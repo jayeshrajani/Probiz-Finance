@@ -2,7 +2,7 @@ import Head from "next/head";
 import { site } from "@/lib/site";
 
 export default function Seo({ title, description, path = "" }) {
-  const fullTitle = title ? `${title} | ${site.name}` : `${site.name} | Business and Asset Loan Experts in Indore`;
+  const fullTitle = title ? `${title} | ${site.name}` : `${site.name} | Loans, Insurance and Investments Across India`;
   const desc = description || site.description;
   const url = `${site.url}${path}`;
 

@@ -35,12 +35,12 @@ export function MeetProbiz() {
       <div className="container-page grid gap-14 lg:grid-cols-12">
         <div className="lg:col-span-7">
           <p className="text-sm font-medium text-brand-ink">Meet Probiz</p>
-          <h2 className="display-2 mt-3 max-w-[18ch] text-balance">A local advisor with a bank's worth of options.</h2>
+          <h2 className="display-2 mt-3 max-w-[18ch] text-balance">One advisor with a bank's worth of options.</h2>
           <div className="mt-8 grid max-w-2xl gap-5 text-lg leading-relaxed text-muted-foreground">
             <p>
-              ProBiz Management Services started in Indore in {site.since} with secured loans and financial consultation. We work as a
-              DSA: we don't lend our own money, we match you with the bank or NBFC most likely to approve you and handle the file
-              until the money arrives.
+              ProBiz Management Services started in Indore in {site.since} with secured loans and financial consultation, and now works
+              with borrowers across India. We work as a DSA: we don't lend our own money, we match you with the bank or NBFC most likely
+              to approve you and handle the file until the money arrives.
             </p>
             <p>
               In 2021 Shubham Gehlot joined as Co-Founder and Director, bringing ten years across corporate sales, consulting, real
@@ -62,7 +62,7 @@ export function MeetProbiz() {
         <div className="grid content-between gap-10 lg:col-span-5">
           <Scene name="city" className="mx-auto hidden h-56 w-auto lg:block" />
           <div className="grid gap-x-8 gap-y-8 sm:grid-cols-2">
-            <Counter value={years} suffix="+" label="Years helping Indore borrow" />
+            <Counter value={years} suffix="+" label="Years in business" />
             <Counter value={productCount} label="Loans, covers and plans to compare" />
             <Counter value={services.length} label="Services beyond the loan itself" />
             <Counter value={1} label="Advisor for your whole file" />
@@ -89,7 +89,7 @@ export function WhoWeHelp() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className="text-sm font-medium text-brand-ink">Who we help</p>
-            <h2 className="display-2 mt-3 max-w-2xl text-balance">Built for the way Indore earns.</h2>
+            <h2 className="display-2 mt-3 max-w-2xl text-balance">Built for the way India earns.</h2>
           </div>
           <p className="max-w-sm text-muted-foreground">Salary, cash, crops or a business: we know which lenders take which kind of income.</p>
         </div>

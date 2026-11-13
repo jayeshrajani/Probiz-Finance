@@ -1,5 +1,5 @@
 const bcrypt = require("bcryptjs");
-const { signAdminToken } = require("../middlewares/requireAdmin");
+const { signAdminToken } = require("../middlewares/staffAuth");
 const admin = require('../models/admin.model');
 const user = require("../models/user.model");
 const contact = require("../models/contact.model");
@@ -69,8 +69,6 @@ exports.adminLogin = (req, res) => {
             if (!foundAdmin) {
                 return res.status(404).send({ message: 'Email does not exist.', status: 404 });
             }
-
-            console.log(foundAdmin)
 
             const passwordIsValid = bcrypt.compareSync(req.body.password, foundAdmin.password);
             if (!passwordIsValid) {

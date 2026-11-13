@@ -44,8 +44,20 @@ flowchart LR
 - **API**: `pages/api/[...path].js` hands every request to `server/http.js`, a tiny Express-compatible router. The original route files and controllers run unchanged on top of it, so every endpoint keeps its old path and response shape (`/api/loanOfferDetail`, `/api/getAllUsers`, …).
 - **Database**: `server/odm.js` implements the subset of the Mongoose API the controllers use (`find`, `findById`, `save`, `findByIdAndUpdate`, `countDocuments`, filters like `$regex`/`$gte`/`$or`, schema defaults and validation). Each model is one Postgres table `(id, data jsonb, created_at, updated_at)`, created automatically on first use. IDs are UUID strings exposed as `_id`.
 - **Uploads**: forms post `multipart/form-data`; `server/middlewares/uploads.js` declares which file types each form accepts. Files go to Supabase Storage and the public URL is saved on the record.
-- **Admin**: `/admin-panel` signs in with `POST /api/adminLogin` and keeps a 7-day admin token in localStorage. Leads from all ~35 forms are read through `/api/admin/*` (`server/controllers/adminPanel.controller.js`), which adds a status (new, contacted, in progress, converted, closed) and a note log per lead, stored in the `LeadMeta` table.
-- **Access control**: `server/routes/index.js` puts every read of customer data, every update and delete, and the admin-only create endpoints behind `requireAdmin` (a Bearer token signed with `role: admin`). Public reads (property listings, areas, health) and form submissions stay open. `POST /api/createAdmin` works without a token only while no admin exists.
+- **Personas**: customers use the Customer tab on `/sign-in`; employees and admins share the Probiz staff tab (or `/admin-panel`), and `POST /api/staffLogin` gives them the role of whichever account the email and password match.
+
+  | | Customer | Employee | Admin |
+  | --- | --- | --- | --- |
+  | Sign-in | `POST /api/userLogin` | `POST /api/staffLogin` | `POST /api/staffLogin` |
+  | Apply, list a property | yes | | |
+  | Leads | | own leads + unassigned pool; acting on a pool lead claims it | every lead; assign, reassign, delete, export CSV |
+  | Status and notes | | on own leads | on any lead |
+  | Property listings | own (website) | view | view, delete |
+  | Customers, subscribers | | | yes |
+  | Team | | own password | add/remove admins and employees, reset employee passwords |
+
+- **Staff panel**: leads from all ~35 forms are read through `/api/admin/*` (`server/controllers/adminPanel.controller.js`), which adds a status (new, contacted, in progress, converted, closed), an assigned employee and a note log per lead, stored in the `LeadMeta` table. Removing an employee returns their open leads to the pool.
+- **Access control**: `server/middlewares/staffAuth.js` checks Bearer tokens signed with `role: admin` or `role: employee`. `server/routes/index.js` puts every read of customer data, every update and delete, and the admin-only create endpoints behind `requireAdmin`; employees get 403 there. Public reads (property listings, areas, health) and form submissions stay open. `POST /api/createAdmin` works without a token only while no admin exists.
 - **Local dev without setup**: if `DATABASE_URL` is empty the app uses PGlite (Postgres compiled to WebAssembly) stored in `.data/pglite`, and uploads go to `public/uploads/`.
 
 Known gaps carried over from the old code:

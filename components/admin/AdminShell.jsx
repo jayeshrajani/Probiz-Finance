@@ -20,6 +20,7 @@ import {
   SignOut,
   SquaresFour,
   Tray,
+  UserCirclePlus,
   UserGear,
   Users,
 } from "@phosphor-icons/react";
@@ -52,9 +53,10 @@ function NavLink({ href, icon: Icon, label, active, count, onNavigate }) {
 }
 
 function Sidebar({ onNavigate }) {
-  const { config, counts, admin, signOut } = useAdmin();
+  const { config, counts, staff, isAdmin, signOut } = useAdmin();
   const router = useRouter();
   const activeType = router.pathname.startsWith("/admin-panel/leads") ? router.query.type || null : null;
+  const activeScope = router.pathname === "/admin-panel/leads" ? router.query.scope || "" : null;
   const activeGroup = config.types.find((t) => t.type === activeType)?.group;
   const [open, setOpen] = useState(() => new Set(activeGroup ? [activeGroup] : ["loans"]));
 
@@ -75,20 +77,25 @@ function Sidebar({ onNavigate }) {
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-2 px-5">
         <img src="/brand/probiz-logo.png" alt="Probiz" width={110} height={36} className="h-7 w-auto" />
-        <span className="rounded-md bg-foreground px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider text-background uppercase">Admin</span>
+        <span className={cn("rounded-md px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider uppercase", isAdmin ? "bg-foreground text-background" : "bg-brand-soft text-brand-ink")}>
+          {isAdmin ? "Admin" : "Staff"}
+        </span>
       </div>
 
-      <nav aria-label="Admin" className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
+      <nav aria-label="Staff" className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
         <div className="space-y-0.5">
-          <NavLink href="/admin-panel/dashboard" icon={SquaresFour} label="Overview" active={is("/admin-panel/dashboard")} onNavigate={onNavigate} />
-          <NavLink
-            href="/admin-panel/leads"
-            icon={Tray}
-            label="All leads"
-            active={router.pathname === "/admin-panel/leads" && !activeType}
-            count={counts.open}
-            onNavigate={onNavigate}
-          />
+          <NavLink href="/admin-panel/dashboard" icon={SquaresFour} label={isAdmin ? "Overview" : "My day"} active={is("/admin-panel/dashboard")} onNavigate={onNavigate} />
+          {isAdmin ? (
+            <>
+              <NavLink href="/admin-panel/leads" icon={Tray} label="All leads" active={activeScope === "" && !activeType} count={counts.open} onNavigate={onNavigate} />
+              <NavLink href="/admin-panel/leads?scope=unassigned" icon={UserCirclePlus} label="Unassigned" active={activeScope === "unassigned" && !activeType} count={counts.unassigned} onNavigate={onNavigate} />
+            </>
+          ) : (
+            <>
+              <NavLink href="/admin-panel/leads?scope=mine" icon={Tray} label="My leads" active={activeScope === "mine" && !activeType} count={counts.active} onNavigate={onNavigate} />
+              <NavLink href="/admin-panel/leads?scope=unassigned" icon={UserCirclePlus} label="Pick up new leads" active={activeScope === "unassigned" && !activeType} count={counts.unassigned} onNavigate={onNavigate} />
+            </>
+          )}
         </div>
 
         <div>
@@ -146,9 +153,13 @@ function Sidebar({ onNavigate }) {
           <p className="px-2.5 pb-2 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">Manage</p>
           <div className="space-y-0.5">
             <NavLink href="/admin-panel/properties" icon={Buildings} label="Property listings" active={is("/admin-panel/properties")} onNavigate={onNavigate} />
-            <NavLink href="/admin-panel/customers" icon={Users} label="Customers" active={is("/admin-panel/customers")} onNavigate={onNavigate} />
-            <NavLink href="/admin-panel/subscribers" icon={Newspaper} label="Subscribers" active={is("/admin-panel/subscribers")} onNavigate={onNavigate} />
-            <NavLink href="/admin-panel/team" icon={UserGear} label="Team and account" active={is("/admin-panel/team")} onNavigate={onNavigate} />
+            {isAdmin && (
+              <>
+                <NavLink href="/admin-panel/customers" icon={Users} label="Customers" active={is("/admin-panel/customers")} onNavigate={onNavigate} />
+                <NavLink href="/admin-panel/subscribers" icon={Newspaper} label="Subscribers" active={is("/admin-panel/subscribers")} onNavigate={onNavigate} />
+              </>
+            )}
+            <NavLink href="/admin-panel/team" icon={UserGear} label={isAdmin ? "Team and account" : "My account"} active={is("/admin-panel/team")} onNavigate={onNavigate} />
           </div>
         </div>
       </nav>
@@ -156,11 +167,11 @@ function Sidebar({ onNavigate }) {
       <div className="border-t border-border p-3">
         <div className="flex items-center gap-3 rounded-xl px-2 py-2">
           <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">
-            {(admin.admin_Name || "A").slice(0, 1).toUpperCase()}
+            {(staff.name || "?").slice(0, 1).toUpperCase()}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">{admin.admin_Name}</span>
-            <span className="block truncate text-xs text-muted-foreground">{admin.admin_Email}</span>
+            <span className="block truncate text-sm font-medium">{staff.name}</span>
+            <span className="block truncate text-xs text-muted-foreground">{isAdmin ? staff.email : [staff.title, staff.employeeId].filter(Boolean).join(" · ")}</span>
           </span>
           <button type="button" onClick={signOut} aria-label="Sign out" className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-background hover:text-foreground">
             <SignOut className="size-4" />
@@ -177,14 +188,19 @@ function Sidebar({ onNavigate }) {
 export default function AdminShell({ title, children }) {
   const router = useRouter();
   const [session, setSession] = useState(null);
-  const [counts, setCounts] = useState({ open: 0, byType: {} });
+  const [counts, setCounts] = useState({ open: 0, active: 0, unassigned: 0, byType: {} });
   const [menuOpen, setMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   const refreshCounts = useCallback(async () => {
     try {
       const { data } = await adminFetch("admin/overview");
-      setCounts({ open: data.totals.open, byType: Object.fromEntries(data.byType.map((t) => [t.type, t.open])) });
+      setCounts({
+        open: data.totals.open,
+        active: data.totals.active,
+        unassigned: data.totals.unassigned,
+        byType: Object.fromEntries(data.byType.map((t) => [t.type, t.open])),
+      });
     } catch {}
   }, []);
 
@@ -194,7 +210,7 @@ export default function AdminShell({ title, children }) {
       return;
     }
     Promise.all([adminFetch("admin/me"), adminFetch("admin/config")])
-      .then(([me, cfg]) => setSession({ admin: me.data, config: cfg.data }))
+      .then(([me, cfg]) => setSession({ staff: me.data, isAdmin: me.data.role === "admin", config: cfg.data }))
       .catch(() => router.replace("/admin-panel"));
     refreshCounts();
   }, [router, refreshCounts]);

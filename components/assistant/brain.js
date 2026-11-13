@@ -90,7 +90,7 @@ export function reply(input) {
 
   if (has(text, ["talk to a person", "call me", "callback", "call back", "human", "advisor", "agent", "speak", "talk to"])) {
     return {
-      text: "Happy to arrange that. Leave your details and an advisor from our Indore office will call you back.",
+      text: "Happy to arrange that. Leave your details and a Probiz advisor will call you back.",
       form: "callback",
     };
   }

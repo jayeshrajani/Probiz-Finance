@@ -20,7 +20,7 @@ const sections = [
   {
     title: "Property",
     fields: [
-      { name: "propertyName", label: "Listing title", type: "text", required: true, help: "For example, 3 BHK flat in Vijay Nagar" },
+      { name: "propertyName", label: "Listing title", type: "text", required: true, help: "For example, 3 BHK flat with covered parking" },
       { name: "propertyType", label: "Type", type: "select", required: true, half: true, options: PROPERTY_TYPES.map((t) => ({ value: t, label: typeLabel(t) })) },
       { name: "price", label: "Asking price (₹)", type: "number", required: true, half: true, inputMode: "numeric" },
       { name: "bhk_of_house", label: "Configuration", type: "select", half: true, options: ["1RK", "1BHK", "2BHK", "3BHK", "4BHK", "5BHK", "6BHK"], showIf: (v) => BUILT.includes(v.propertyType) },
@@ -58,7 +58,7 @@ const visible = (fields, v) => fields.filter((f) => !f.showIf || f.showIf(v));
 export default function AddPropertyPage() {
   const user = useStoredUser();
   const router = useRouter();
-  const [values, setValues] = useState({ city: "Indore", state: "Madhya Pradesh" });
+  const [values, setValues] = useState({});
   const [errors, setErrors] = useState({});
   const [images, setImages] = useState([]);
   const [video, setVideo] = useState(null);
@@ -140,7 +140,7 @@ export default function AddPropertyPage() {
             <Button size="lg" onClick={() => router.push("/property")}>
               See listings
             </Button>
-            <Button size="lg" variant="outline" onClick={() => { setValues({ city: "Indore", state: "Madhya Pradesh" }); setImages([]); setVideo(null); setStatus("idle"); }}>
+            <Button size="lg" variant="outline" onClick={() => { setValues({}); setImages([]); setVideo(null); setStatus("idle"); }}>
               List another
             </Button>
           </div>

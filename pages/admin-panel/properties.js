@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowSquareOut, Buildings, MagnifyingGlass, Trash } from "@phosphor-icons/react";
-import AdminShell from "@/components/admin/AdminShell";
+import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { ConfirmDialog, Empty, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { adminFetch, timeAgo, useAdminData } from "@/lib/admin-api";
@@ -11,6 +11,7 @@ import { formatINRShort } from "@/lib/format";
 import { typeLabel } from "@/lib/property";
 
 function Properties() {
+  const { isAdmin } = useAdmin();
   const { data, error, loading, reload } = useAdminData("getAllProperty");
   const [q, setQ] = useState("");
   const [target, setTarget] = useState(null);
@@ -88,9 +89,11 @@ function Properties() {
                         <ArrowSquareOut /> View
                       </a>
                     </Button>
-                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setTarget(p)}>
-                      <Trash /> Delete
-                    </Button>
+                    {isAdmin && (
+                      <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setTarget(p)}>
+                        <Trash /> Delete
+                      </Button>
+                    )}
                   </div>
                 </div>
               </li>

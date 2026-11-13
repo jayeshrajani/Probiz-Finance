@@ -5,7 +5,7 @@ export default function AgricultureLandPage() {
     <PropertyListing
       title="Agricultural Land for Sale"
       path="/agricultureland"
-      headline="Agricultural land around Indore."
+      headline="Agricultural land for sale."
       intro="Farmland with title verification, demarcation and conversion support from our team."
       presetType="Agriculture Land"
     />

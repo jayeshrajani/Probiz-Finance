@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Copy, DownloadSimple, Trash } from "@phosphor-icons/react";
 import AdminShell from "@/components/admin/AdminShell";
-import { ConfirmDialog, Empty, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
+import { AdminOnly, ConfirmDialog, Empty, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { adminFetch, downloadCsv, formatDateTime, timeAgo, useAdminData } from "@/lib/admin-api";
 
@@ -92,7 +92,9 @@ function Subscribers() {
 export default function SubscribersPage() {
   return (
     <AdminShell title="Subscribers">
-      <Subscribers />
+      <AdminOnly>
+        <Subscribers />
+      </AdminOnly>
     </AdminShell>
   );
 }

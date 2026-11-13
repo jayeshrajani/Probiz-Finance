@@ -1,6 +1,6 @@
 const { app, routes } = require('../http');
 const db = require('../db');
-const { requireAdmin, requireAdminUnlessFirst } = require('../middlewares/requireAdmin');
+const { requireAdmin, requireAdminUnlessFirst } = require('../middlewares/staffAuth');
 
 app.get('/api/health', async (req, res) => {
     try {

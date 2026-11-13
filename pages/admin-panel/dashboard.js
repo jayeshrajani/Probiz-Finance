@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Buildings, ChartLineUp, Newspaper, Tray, Users, Lightning } from "@phosphor-icons/react";
+import { ArrowRight, Buildings, ChartLineUp, Lightning, Newspaper, Tray, Trophy, UserCirclePlus, Users } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { Empty, ErrorNote, LoadingRows, Panel, StatusBadge } from "@/components/admin/ui";
 import { STATUS_META, timeAgo, useAdminData } from "@/lib/admin-api";
@@ -98,30 +98,128 @@ function Pipeline({ counts }) {
   );
 }
 
+function LeadRows({ leads, empty }) {
+  if (leads.length === 0) return <Empty title={empty.title} body={empty.body} />;
+  return (
+    <ul className="divide-y divide-border">
+      {leads.map((l) => (
+        <li key={`${l.type}-${l.id}`}>
+          <Link href={`/admin-panel/leads/${l.type}/${l.id}`} className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-secondary/60">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">{l.name.slice(0, 1).toUpperCase()}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">{l.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {l.typeLabel}
+                {l.phone ? ` · ${l.phone}` : ""}
+                {l.assignedName ? ` · ${l.assignedName}` : ""}
+              </span>
+            </span>
+            <span className="hidden text-xs text-muted-foreground sm:block">{timeAgo(l.createdAt)}</span>
+            <StatusBadge status={l.status} />
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const viewAll = (href, label = "View all") => (
+  <Link href={href} className="inline-flex items-center gap-1 text-sm font-medium text-brand-ink hover:underline">
+    {label} <ArrowRight weight="bold" className="size-3.5" />
+  </Link>
+);
+
+function ByProduct({ items }) {
+  if (items.length === 0) return <p className="text-sm text-muted-foreground">Nothing yet.</p>;
+  return (
+    <ul className="grid gap-4">
+      {items.slice(0, 8).map((t) => (
+        <li key={t.type}>
+          <Link href={`/admin-panel/leads?type=${t.type}`} className="group block">
+            <div className="flex items-center justify-between text-sm">
+              <span className="truncate group-hover:text-brand-ink">{t.label}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {t.open > 0 && <span className="mr-2 font-medium text-brand-ink">{t.open} new</span>}
+                {t.total}
+              </span>
+            </div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+              <motion.div
+                className="h-full rounded-full bg-foreground/80"
+                initial={{ width: 0 }}
+                animate={{ width: `${(t.total / items[0].total) * 100}%` }}
+                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              />
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Team({ team }) {
+  if (!team?.length)
+    return (
+      <p className="text-sm text-muted-foreground">
+        No employees yet. <Link href="/admin-panel/team" className="font-medium text-brand-ink hover:underline">Add your advisors</Link> so leads can be shared out.
+      </p>
+    );
+  const max = Math.max(1, ...team.map((m) => m.active));
+  return (
+    <ul className="grid gap-4">
+      {team.map((m) => (
+        <li key={m.id}>
+          <Link href={`/admin-panel/leads?scope=${m.id}`} className="group block">
+            <div className="flex items-center justify-between text-sm">
+              <span className="truncate group-hover:text-brand-ink">{m.name}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {m.active} active · <span className="text-emerald-700">{m.won} won</span>
+              </span>
+            </div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+              <motion.div className="h-full rounded-full bg-brand" initial={{ width: 0 }} animate={{ width: `${(m.active / max) * 100}%` }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} />
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Dashboard() {
-  const { admin } = useAdmin();
+  const { staff, isAdmin } = useAdmin();
   const { data, error, loading, reload } = useAdminData("admin/overview");
   const o = data?.data;
   const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+  const first = (staff.name || "there").split(" ")[0];
+
+  let summary = null;
+  if (o && isAdmin) {
+    summary = o.totals.unassigned ? (
+      <>
+        <span className="font-medium text-foreground">{o.totals.unassigned} {o.totals.unassigned === 1 ? "lead is" : "leads are"} unassigned</span>. Share them out or pick them up.
+      </>
+    ) : (
+      "Every lead has an owner. Nice."
+    );
+  } else if (o) {
+    summary = (
+      <>
+        You have <span className="font-medium text-foreground">{o.totals.active} active {o.totals.active === 1 ? "lead" : "leads"}</span>
+        {o.totals.unassigned ? `, and ${o.totals.unassigned} new ${o.totals.unassigned === 1 ? "one" : "ones"} waiting to be picked up` : ""}.
+      </>
+    );
+  }
 
   return (
     <>
       <div className="mb-8">
         <p className="text-sm text-muted-foreground">{today}</p>
         <h1 className="mt-1 font-display text-[2rem] leading-tight font-semibold tracking-[-0.03em]">
-          {greeting()}, {(admin.admin_Name || "there").split(" ")[0]}.
+          {greeting()}, {first}.
         </h1>
-        {o && (
-          <p className="mt-1 text-muted-foreground">
-            {o.totals.open ? (
-              <>
-                You have <span className="font-medium text-foreground">{o.totals.open} new {o.totals.open === 1 ? "lead" : "leads"}</span> waiting for a first call.
-              </>
-            ) : (
-              "Every lead has been picked up. Nice."
-            )}
-          </p>
-        )}
+        {summary && <p className="mt-1 text-muted-foreground">{summary}</p>}
       </div>
 
       <ErrorNote error={error} onRetry={reload} />
@@ -132,17 +230,16 @@ function Dashboard() {
         </Panel>
       )}
 
-      {o && (
+      {o && isAdmin && (
         <div className="grid gap-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <Kpi icon={Lightning} label="New leads" value={o.totals.open} hint="Waiting for a first call" href="/admin-panel/leads?status=new" accent />
-            <Kpi icon={Tray} label="Last 7 days" value={o.totals.last7} hint={`${o.totals.last30} in 30 days`} href="/admin-panel/leads" />
-            <Kpi icon={ChartLineUp} label="All leads" value={o.totals.leads} hint="Across every form" href="/admin-panel/leads" />
+            <Kpi icon={UserCirclePlus} label="Unassigned" value={o.totals.unassigned} hint="No advisor yet" href="/admin-panel/leads?scope=unassigned" />
+            <Kpi icon={Tray} label="Last 7 days" value={o.totals.last7} hint={`${o.totals.leads} in total`} href="/admin-panel/leads" />
             <Kpi icon={Users} label="Customers" value={o.totals.users} hint="Website accounts" href="/admin-panel/customers" />
             <Kpi icon={Buildings} label="Listings" value={o.totals.properties} hint="Property for sale" href="/admin-panel/properties" />
             <Kpi icon={Newspaper} label="Subscribers" value={o.totals.subscribers} hint="Newsletter" href="/admin-panel/subscribers" />
           </div>
-
           <div className="grid gap-6 xl:grid-cols-3">
             <Panel title="Leads, last 30 days" description="Every form submission from the website" className="xl:col-span-2">
               <DailyChart days={o.daily} />
@@ -151,70 +248,44 @@ function Dashboard() {
               <Pipeline counts={o.statusCounts} />
             </Panel>
           </div>
-
           <div className="grid gap-6 xl:grid-cols-3">
-            <Panel
-              title="Latest leads"
-              className="xl:col-span-2"
-              bodyClassName="p-0"
-              actions={
-                <Link href="/admin-panel/leads" className="inline-flex items-center gap-1 text-sm font-medium text-brand-ink hover:underline">
-                  View all <ArrowRight weight="bold" className="size-3.5" />
-                </Link>
-              }
-            >
-              {o.recent.length === 0 ? (
-                <Empty title="No leads yet" body="Applications and enquiries from the website will appear here." />
-              ) : (
-                <ul className="divide-y divide-border">
-                  {o.recent.map((l) => (
-                    <li key={`${l.type}-${l.id}`}>
-                      <Link href={`/admin-panel/leads/${l.type}/${l.id}`} className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-secondary/60">
-                        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">{l.name.slice(0, 1).toUpperCase()}</span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">{l.name}</span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {l.typeLabel}
-                            {l.phone ? ` · ${l.phone}` : ""}
-                          </span>
-                        </span>
-                        <span className="hidden text-xs text-muted-foreground sm:block">{timeAgo(l.createdAt)}</span>
-                        <StatusBadge status={l.status} />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            <Panel title="Latest leads" className="xl:col-span-2" bodyClassName="p-0" actions={viewAll("/admin-panel/leads")}>
+              <LeadRows leads={o.recent} empty={{ title: "No leads yet", body: "Applications and enquiries from the website will appear here." }} />
             </Panel>
+            <div className="grid content-start gap-6">
+              <Panel title="Team workload" description="Open leads per advisor">
+                <Team team={o.team} />
+              </Panel>
+              <Panel title="By product">
+                <ByProduct items={o.byType} />
+              </Panel>
+            </div>
+          </div>
+        </div>
+      )}
 
-            <Panel title="By product" description="Total leads and how many are new">
-              {o.byType.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing yet.</p>
-              ) : (
-                <ul className="grid gap-4">
-                  {o.byType.slice(0, 8).map((t) => (
-                    <li key={t.type}>
-                      <Link href={`/admin-panel/leads?type=${t.type}`} className="group block">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="truncate group-hover:text-brand-ink">{t.label}</span>
-                          <span className="tabular-nums text-muted-foreground">
-                            {t.open > 0 && <span className="mr-2 font-medium text-brand-ink">{t.open} new</span>}
-                            {t.total}
-                          </span>
-                        </div>
-                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                          <motion.div
-                            className="h-full rounded-full bg-foreground/80"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(t.total / o.byType[0].total) * 100}%` }}
-                            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                          />
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+      {o && !isAdmin && (
+        <div className="grid gap-6">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Kpi icon={Tray} label="My active leads" value={o.totals.active} hint="New, contacted or in progress" href="/admin-panel/leads?scope=mine" accent />
+            <Kpi icon={UserCirclePlus} label="Ready to pick up" value={o.totals.unassigned} hint="Unassigned leads" href="/admin-panel/leads?scope=unassigned" />
+            <Kpi icon={Trophy} label="Converted" value={o.totals.won} hint="Leads you closed as won" href="/admin-panel/leads?scope=mine&status=won" />
+            <Kpi icon={ChartLineUp} label="Last 7 days" value={o.totals.last7} hint={`${o.totals.leads} assigned to you in total`} href="/admin-panel/leads?scope=mine" />
+          </div>
+          <div className="grid gap-6 xl:grid-cols-3">
+            <Panel title="Pick up next" description="Newest unassigned leads. Opening one and acting on it makes it yours." className="xl:col-span-2" bodyClassName="p-0" actions={viewAll("/admin-panel/leads?scope=unassigned", "See all")}>
+              <LeadRows leads={o.pool} empty={{ title: "Nothing waiting", body: "Every lead has an owner. New ones will show up here." }} />
+            </Panel>
+            <Panel title="My pipeline">
+              <Pipeline counts={o.statusCounts} />
+            </Panel>
+          </div>
+          <div className="grid gap-6 xl:grid-cols-3">
+            <Panel title="My latest leads" className="xl:col-span-2" bodyClassName="p-0" actions={viewAll("/admin-panel/leads?scope=mine")}>
+              <LeadRows leads={o.recent} empty={{ title: "No leads yet", body: "Pick one up from the list above to get started." }} />
+            </Panel>
+            <Panel title="My leads, last 30 days">
+              <DailyChart days={o.daily} />
             </Panel>
           </div>
         </div>

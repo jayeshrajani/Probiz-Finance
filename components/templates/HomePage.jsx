@@ -48,7 +48,7 @@ function Hero() {
       <div className="container-page relative grid items-center gap-14 pt-10 pb-20 md:pt-16 lg:grid-cols-12 lg:gap-12 lg:pb-28">
         <div className="animate-in fade-in slide-in-from-bottom-3 duration-700 lg:col-span-6">
           <p className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 py-1 pr-3.5 pl-1 text-sm font-medium">
-            <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-brand-ink">Indore</span>
+            <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-brand-ink">Across India</span>
             Loans, insurance and paperwork since {site.since}
           </p>
           <h1 className="display-1 mt-7">
@@ -56,7 +56,7 @@ function Hero() {
             <span aria-hidden className="block">with confidence.</span>
           </h1>
           <p className="lede mt-6 max-w-lg text-pretty">
-            Home, business and personal loans from leading banks, plus insurance and investments, with the paperwork handled by our Indore team.
+            Home, business and personal loans from leading banks, plus insurance and investments, with the paperwork handled by one team wherever you are.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Button asChild size="lg">
@@ -175,7 +175,7 @@ function HardCases() {
           <article className="reveal grid gap-8 overflow-hidden rounded-[1.75rem] bg-secondary p-8 md:col-span-2 md:grid-cols-[auto_1fr_auto] md:items-end md:p-10">
             <p className="font-display text-[clamp(4rem,3rem+4vw,6.5rem)] font-semibold leading-[0.85] tracking-[-0.05em] text-foreground/90">{site.since}</p>
             <p className="max-w-sm text-muted-foreground md:pb-2">
-              The year we started helping Indore borrow, insure and invest. Today the same team handles registry, notary and e-stamp work too.
+              The year we started, in Indore. Today we help borrowers across India, and the same team handles registry, notary and e-stamp work too.
             </p>
             <Scene name="city" bare className="-mb-10 hidden h-48 w-auto self-end lg:block" />
           </article>

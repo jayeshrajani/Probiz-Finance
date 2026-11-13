@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import AdminShell from "@/components/admin/AdminShell";
-import { Empty, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
+import { AdminOnly, Empty, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { downloadCsv, formatDateTime, timeAgo, useAdminData } from "@/lib/admin-api";
 
@@ -84,7 +84,9 @@ function Customers() {
 export default function CustomersPage() {
   return (
     <AdminShell title="Customers">
-      <Customers />
+      <AdminOnly>
+        <Customers />
+      </AdminOnly>
     </AdminShell>
   );
 }

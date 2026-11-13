@@ -16,9 +16,31 @@ const amountText = (v) => (v === null || v === undefined || v === "" ? "" : Numb
 
 function Leads() {
   const router = useRouter();
-  const { config } = useAdmin();
-  const { type = "", status = "", q = "", page = "1" } = router.query;
+  const { config, isAdmin } = useAdmin();
+  const { type = "", status = "", q = "", page = "1", scope = "" } = router.query;
   const typeDef = config.types.find((t) => t.type === type);
+  const owner = config.employees.find((e) => e.id === scope);
+  const heading = typeDef
+    ? typeDef.label
+    : scope === "mine"
+      ? "My leads"
+      : scope === "unassigned"
+        ? isAdmin
+          ? "Unassigned leads"
+          : "Pick up new leads"
+        : owner
+          ? `${owner.name}'s leads`
+          : isAdmin
+            ? "All leads"
+            : "My leads and new leads";
+  const subheading =
+    scope === "unassigned"
+      ? isAdmin
+        ? "Nobody owns these yet. Open one to assign it to an advisor."
+        : "Open a lead and act on it to make it yours."
+      : typeDef
+        ? "Submissions from this form on the website."
+        : "Newest first.";
   const [search, setSearch] = useState(q);
   const [exporting, setExporting] = useState(false);
 
@@ -41,8 +63,9 @@ function Leads() {
     const p = new URLSearchParams({ type: type || "all", limit: String(LIMIT), page: String(page) });
     if (status) p.set("status", status);
     if (q) p.set("q", q);
+    if (scope) p.set("scope", scope);
     return `admin/leads?${p}`;
-  }, [router.isReady, type, status, q, page]);
+  }, [router.isReady, type, status, q, page, scope]);
 
   const { data, error, loading, reload } = useAdminData(path);
   const rows = data?.data || [];
@@ -55,6 +78,7 @@ function Leads() {
       const p = new URLSearchParams({ type: type || "all", limit: "200" });
       if (status) p.set("status", status);
       if (q) p.set("q", q);
+      if (scope) p.set("scope", scope);
       let all = [];
       for (let n = 1; ; n++) {
         p.set("page", String(n));
@@ -70,6 +94,7 @@ function Leads() {
         { label: "Amount", value: (r) => r.amount },
         { label: "Detail", value: (r) => r.detail },
         { label: "Status", value: (r) => STATUS_META[r.status]?.label },
+        { label: "Advisor", value: (r) => r.assignedName || "Unassigned" },
         { label: "Received", value: (r) => formatDateTime(r.createdAt) },
       ], all);
     } finally {
@@ -81,10 +106,8 @@ function Leads() {
     <>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">{typeDef ? typeDef.label : "All leads"}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {typeDef ? "Submissions from this form on the website." : "Every application and enquiry from the website, newest first."}
-          </p>
+          <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">{heading}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{subheading}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {typeDef?.page && (
@@ -94,9 +117,11 @@ function Leads() {
               </a>
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={exporting || !allCount}>
-            <DownloadSimple /> {exporting ? "Exporting..." : "Export CSV"}
-          </Button>
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={exportCsv} disabled={exporting || !allCount}>
+              <DownloadSimple /> {exporting ? "Exporting..." : "Export CSV"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -121,6 +146,30 @@ function Leads() {
             ))}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
+            <select
+              aria-label="Advisor"
+              value={scope}
+              onChange={(e) => setQuery({ scope: e.target.value, page: "" })}
+              className="h-9 rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus:border-brand"
+            >
+              {isAdmin ? (
+                <>
+                  <option value="">Any advisor</option>
+                  <option value="unassigned">Unassigned</option>
+                  {config.employees.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name}
+                    </option>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <option value="">Mine and unassigned</option>
+                  <option value="mine">Only mine</option>
+                  <option value="unassigned">Only unassigned</option>
+                </>
+              )}
+            </select>
             {!typeDef && (
               <select
                 aria-label="Product"
@@ -175,6 +224,7 @@ function Leads() {
                   <th className="px-5 py-3 font-medium">Amount</th>
                   <th className="hidden px-5 py-3 font-medium xl:table-cell">Detail</th>
                   <th className="px-5 py-3 font-medium">Received</th>
+                  <th className="hidden px-5 py-3 font-medium lg:table-cell">Advisor</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                 </tr>
               </thead>
@@ -195,6 +245,9 @@ function Leads() {
                     <td className="hidden max-w-[14rem] truncate px-5 py-3.5 text-muted-foreground xl:table-cell">{r.detail || "-"}</td>
                     <td className="px-5 py-3.5 whitespace-nowrap text-muted-foreground" title={formatDateTime(r.createdAt)}>
                       {timeAgo(r.createdAt)}
+                    </td>
+                    <td className="hidden px-5 py-3.5 lg:table-cell">
+                      {r.assignedName ? <span className="text-sm">{r.assignedName}</span> : <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">Unassigned</span>}
                     </td>
                     <td className="px-5 py-3.5">
                       <StatusBadge status={r.status} />

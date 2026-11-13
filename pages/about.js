@@ -26,7 +26,7 @@ export default function AboutPage() {
   const paragraphs = company.about.paragraphs;
 
   return (
-    <SiteLayout title="About Us" description="ProBiz Finance (ProBiz Management Services Pvt. Ltd.) has helped individuals and businesses in Indore with loans and financial advice since 2013." path="/about">
+    <SiteLayout title="About Us" description="ProBiz Finance (ProBiz Management Services Pvt. Ltd.) has helped individuals and businesses with loans and financial advice since 2013." path="/about">
       <div className="container-page pt-8">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "About" }]} />
       </div>
@@ -38,7 +38,7 @@ export default function AboutPage() {
         className="mt-2 min-h-[520px] bg-transparent text-foreground [--bg-ink:var(--foreground)] [--bg-paper:var(--background)] sm:min-h-[640px]"
       >
         <div className="max-w-2xl text-center">
-          <p className="text-xl font-semibold tracking-[-0.02em] text-balance sm:text-2xl">Financial advice for Indore's families and businesses.</p>
+          <p className="text-xl font-semibold tracking-[-0.02em] text-balance sm:text-2xl">Financial advice for families and businesses across India.</p>
           <p className="lede mt-4 text-pretty">{paragraphs[0]}</p>
           <p className="mt-6 text-sm text-muted-foreground">Drag across the page to write with the ink.</p>
         </div>

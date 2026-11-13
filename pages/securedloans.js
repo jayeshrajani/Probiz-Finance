@@ -11,11 +11,11 @@ const groups = [
 
 export default function LoansPage() {
   return (
-    <SiteLayout title="All Loans" description="Every loan Probiz Finance arranges in Indore: home, property, personal, business, car, gold, education and farm loans." path="/securedloans">
+    <SiteLayout title="All Loans" description="Every loan Probiz Finance arranges: home, property, personal, business, car, gold, education and farm loans." path="/securedloans">
       <section className="container-page pt-10 pb-8 md:pt-14">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Loans" }]} />
         <h1 className="display-1 mt-6 max-w-[16ch] text-balance">Every loan, one advisor.</h1>
-        <p className="lede mt-5 max-w-xl">Twenty kinds of loans from partner banks and NBFCs, compared and applied for with help from our Indore team.</p>
+        <p className="lede mt-5 max-w-xl">Twenty kinds of loans from partner banks and NBFCs, compared and applied for with help from our team.</p>
       </section>
       {groups.map((g) => (
         <section key={g.key} className="container-page border-t border-border py-14 first-of-type:border-t-0">

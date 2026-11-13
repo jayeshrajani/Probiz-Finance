@@ -68,7 +68,7 @@ function Highlights({ items }) {
       <div className="container-page">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <h2 className="display-2 max-w-xl">What you get with Probiz.</h2>
-          <p className="max-w-sm text-muted-foreground">One advisor from first call to final paperwork, at our office in Indore or on the phone.</p>
+          <p className="max-w-sm text-muted-foreground">One advisor from first call to final paperwork, over the phone wherever you are or at our office.</p>
         </div>
         <ul className={`mt-12 grid gap-4 sm:grid-cols-2 ${items.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
           {items.map((h, i) => (
@@ -148,7 +148,7 @@ export default function ProductPage({ slug }) {
               )}
             </div>
             <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
-              {["No credit check to start", "One advisor, start to finish", `In Indore since ${site.since}`].map((t) => (
+              {["No credit check to start", "One advisor, start to finish", `Trusted since ${site.since}`].map((t) => (
                 <li key={t} className="inline-flex items-center gap-2">
                   <Check weight="bold" className="size-3.5 text-brand-ink" />
                   {t}

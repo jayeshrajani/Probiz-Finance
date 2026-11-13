@@ -23,7 +23,7 @@ export default function ServicePage({ slug }) {
   const others = services.filter((s) => s.slug !== slug).slice(0, 4);
 
   return (
-    <SiteLayout title={`${content.title} in Indore`} description={content.summary} path={`/${slug}`}>
+    <SiteLayout title={content.title} description={content.summary} path={`/${slug}`}>
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_60%_at_85%_0%,var(--brand-soft),transparent)]" />
         <div className="container-page relative grid items-center gap-12 pt-10 pb-16 md:pt-14 lg:grid-cols-12 lg:gap-16 lg:pb-24">

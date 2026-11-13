@@ -10,25 +10,28 @@ import { cn } from "@/lib/utils";
 const PAGES = [
   { label: "Overview", href: "/admin-panel/dashboard", hint: "Page" },
   { label: "All leads", href: "/admin-panel/leads", hint: "Page" },
+  { label: "Unassigned leads", href: "/admin-panel/leads?scope=unassigned", hint: "Page" },
+  { label: "My leads", href: "/admin-panel/leads?scope=mine", hint: "Page", staffOnly: true },
   { label: "Property listings", href: "/admin-panel/properties", hint: "Page" },
-  { label: "Customers", href: "/admin-panel/customers", hint: "Page" },
-  { label: "Subscribers", href: "/admin-panel/subscribers", hint: "Page" },
+  { label: "Customers", href: "/admin-panel/customers", hint: "Page", adminOnly: true },
+  { label: "Subscribers", href: "/admin-panel/subscribers", hint: "Page", adminOnly: true },
   { label: "Team and account", href: "/admin-panel/team", hint: "Page" },
 ];
 
 export default function CommandPalette({ open, onClose }) {
-  const { config } = useAdmin();
+  const { config, isAdmin } = useAdmin();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
 
   const items = useMemo(() => {
-    const all = [...PAGES, ...config.types.map((t) => ({ label: t.label, href: `/admin-panel/leads?type=${t.type}`, hint: "Leads" }))];
+    const pages = PAGES.filter((p) => (isAdmin ? !p.staffOnly : !p.adminOnly));
+    const all = [...pages, ...config.types.map((t) => ({ label: t.label, href: `/admin-panel/leads?type=${t.type}`, hint: "Leads" }))];
     const term = q.trim().toLowerCase();
     const matches = term ? all.filter((i) => i.label.toLowerCase().includes(term)) : all;
     return term ? [{ label: `Search leads for "${q.trim()}"`, href: `/admin-panel/leads?q=${encodeURIComponent(q.trim())}`, hint: "Search" }, ...matches] : matches;
-  }, [q, config.types]);
+  }, [q, config.types, isAdmin]);
 
   useEffect(() => {
     if (!open) return;

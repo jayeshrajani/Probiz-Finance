@@ -77,13 +77,13 @@ export default function PropertyListing({ title = "Property Listings", path = "/
   const set = (k) => (e) => setFilters((f) => ({ ...f, [k]: e.target.value }));
 
   return (
-    <SiteLayout title={title} description="Plots, flats, houses, shops and farmland for sale in and around Indore." path={path}>
+    <SiteLayout title={title} description="Plots, flats, houses, shops and farmland for sale, listed by owners on Probiz." path={path}>
       <TopoBackground className="block min-h-0 bg-transparent text-brand/80">
       <section className="container-page relative pt-10 pb-10 text-foreground md:pt-14">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Property" }]} />
         <div className="mt-6 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <h1 className="display-1 max-w-[14ch] text-balance">{headline || "Find a property in Indore."}</h1>
+            <h1 className="display-1 max-w-[14ch] text-balance">{headline || "Find your next property."}</h1>
             <p className="lede mt-5 max-w-xl">{intro || "Plots, flats, shops and farmland, with loans and legal checks from the same team."}</p>
           </div>
           <Button asChild variant="outline">

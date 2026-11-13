@@ -85,6 +85,9 @@ export default function SiteFooter() {
             <Link href="/terms-conditions" className="hover:text-background">
               Terms
             </Link>
+            <Link href="/sign-in?as=staff" className="hover:text-background">
+              Staff sign-in
+            </Link>
             <div className="flex items-center gap-1">
               {socials.map(({ label, href, Icon }) => (
                 <a

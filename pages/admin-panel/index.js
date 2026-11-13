@@ -32,11 +32,11 @@ export default function AdminLogin() {
     }
     setBusy(true);
     try {
-      const res = await adminFetch("adminLogin", { method: "POST", body: { admin_Email: email.trim(), password } });
+      const res = await adminFetch("staffLogin", { method: "POST", body: { email: email.trim(), password } });
       setToken(res.accessToken);
       router.replace("/admin-panel/dashboard");
     } catch (err) {
-      setError(err.status === 404 || err.status === 401 ? "That email and password don't match an admin account." : err.message);
+      setError(err.message);
       setBusy(false);
     }
   }
@@ -60,7 +60,7 @@ export default function AdminLogin() {
           <form onSubmit={onSubmit} noValidate className="w-full max-w-sm">
             <img src="/brand/probiz-logo.png" alt="Probiz" width={130} height={42} className="mb-10 h-8 w-auto lg:hidden" />
             <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Welcome back</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Sign in to the Probiz admin panel.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Employees and admins sign in here. Your account decides what you can access.</p>
 
             <div className="mt-8 grid gap-4">
               <label className="grid gap-1.5 text-sm font-medium">
@@ -99,7 +99,7 @@ export default function AdminLogin() {
               {busy && <SpinnerGap className="animate-spin" />}
               Sign in
             </Button>
-            <p className="mt-6 text-center text-xs text-muted-foreground">Forgotten your password? Ask another admin to reset your account.</p>
+            <p className="mt-6 text-center text-xs text-muted-foreground">Forgotten your password? Ask an admin to reset it.</p>
           </form>
         </div>
       </div>

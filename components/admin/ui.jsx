@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { CaretLeft, CaretRight, SpinnerGap } from "@phosphor-icons/react";
+import { useAdmin } from "@/components/admin/AdminShell";
 import { Button } from "@/components/ui/button";
 import { STATUS_META } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,16 @@ export function StatusBadge({ status, className }) {
       <span className="size-1.5 rounded-full bg-current opacity-70" />
       {meta.label}
     </span>
+  );
+}
+
+export function AdminOnly({ children }) {
+  const { isAdmin } = useAdmin();
+  if (isAdmin) return children;
+  return (
+    <section className="rounded-2xl border border-border bg-background">
+      <Empty title="Admins only" body="Customer and subscriber lists are limited to admins. Ask an admin if you need something from here." />
+    </section>
   );
 }
 

@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowSquareOut, EnvelopeSimple, FileText, Phone, SpinnerGap, Trash, WhatsappLogo } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowSquareOut, EnvelopeSimple, FileText, HandGrabbing, Phone, SpinnerGap, Trash, UserCircle, WhatsappLogo } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { ConfirmDialog, ErrorNote, LoadingRows, Panel, StatusBadge } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
@@ -117,7 +117,7 @@ function Notes({ type, id, notes, onChange }) {
 
 function LeadDetail() {
   const router = useRouter();
-  const { config, refreshCounts } = useAdmin();
+  const { config, refreshCounts, isAdmin, staff } = useAdmin();
   const { type, id } = router.query;
   const { data, error, loading, reload } = useAdminData(router.isReady ? `admin/leads/${type}/${id}` : null);
   const [override, setOverride] = useState(null);
@@ -129,25 +129,27 @@ function LeadDetail() {
   if (loading || !data) return <LoadingRows rows={8} />;
 
   const { lead, fields } = data.data;
-  const status = override?.status ?? lead.status;
-  const notes = override?.notes ?? data.data.notes;
+  const current = override || data.data;
+  const { status, notes, assignedTo, assignedName } = current;
+  const canEdit = isAdmin || !assignedTo || assignedTo === staff.id;
   const { details, files } = splitFields(fields);
   const phone = lead.phone ? String(lead.phone).replace(/\D/g, "").slice(-10) : null;
 
-  async function setStatus(next) {
-    if (next === status) return;
+  async function patch(body, message) {
     setSaving(true);
     try {
-      const res = await adminFetch(`admin/leads/${type}/${id}`, { method: "PATCH", body: { status: next } });
+      const res = await adminFetch(`admin/leads/${type}/${id}`, { method: "PATCH", body });
       setOverride(res.data);
       refreshCounts();
-      toast.success(`Marked as ${STATUS_META[next].label.toLowerCase()}`);
+      toast.success(message);
     } catch (err) {
       toast.error(err.message);
     } finally {
       setSaving(false);
     }
   }
+
+  const setStatus = (next) => next !== status && patch({ status: next }, `Marked as ${STATUS_META[next].label.toLowerCase()}`);
 
   async function remove() {
     setDeleting(true);
@@ -200,10 +202,52 @@ function LeadDetail() {
               </a>
             </Button>
           )}
-          <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setConfirm(true)}>
-            <Trash /> Delete
-          </Button>
+          {isAdmin && (
+            <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setConfirm(true)}>
+              <Trash /> Delete
+            </Button>
+          )}
         </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+        <p className="flex items-center gap-2.5 text-sm">
+          <UserCircle weight="duotone" className="size-5 text-muted-foreground" />
+          {assignedName ? (
+            <span>
+              Advisor: <span className="font-medium">{assignedTo === staff.id ? "You" : assignedName}</span>
+            </span>
+          ) : (
+            <span className="text-muted-foreground">Nobody owns this lead yet.</span>
+          )}
+        </p>
+        {isAdmin ? (
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Assign to</span>
+            <select
+              value={assignedTo || ""}
+              disabled={saving}
+              onChange={(e) => {
+                const who = config.employees.find((x) => x.id === e.target.value);
+                patch({ assignTo: e.target.value || null }, who ? `Assigned to ${who.name}` : "Moved to unassigned");
+              }}
+              className="h-9 rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus:border-brand"
+            >
+              <option value="">Unassigned</option>
+              {config.employees.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          !assignedTo && (
+            <Button size="sm" disabled={saving} onClick={() => patch({ claim: true }, "This lead is yours now")}>
+              <HandGrabbing weight="bold" /> Pick up this lead
+            </Button>
+          )
+        )}
       </div>
 
       <div className="mb-6 rounded-2xl border border-border bg-background p-2">
@@ -214,7 +258,7 @@ function LeadDetail() {
               type="button"
               role="radio"
               aria-checked={status === s}
-              disabled={saving}
+              disabled={saving || !canEdit}
               onClick={() => setStatus(s)}
               className={cn(
                 "relative h-10 rounded-xl text-sm font-medium transition-colors disabled:cursor-wait",
