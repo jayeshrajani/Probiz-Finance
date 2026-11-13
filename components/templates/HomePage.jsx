@@ -8,6 +8,7 @@ import MythFlip from "@/components/fun/MythFlip";
 import RotatingWord from "@/components/fun/RotatingWord";
 import ScoreMeter from "@/components/fun/ScoreMeter";
 import DotField from "@/components/kokonutui/dot-field";
+import { Compare, MeetProbiz, WhoWeHelp } from "@/components/sections/HomeStory";
 import SiteLayout from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { hrefFor, productBySlug, products, services } from "@/lib/catalog";
@@ -287,10 +288,13 @@ export default function HomePage() {
     <SiteLayout path="/">
       <Hero />
       <Doors />
+      <MeetProbiz />
       <Tools />
+      <WhoWeHelp />
       <HardCases />
       <Planner />
       <Score />
+      <Compare />
       <HowItWorks />
       <Myths />
       <Services />

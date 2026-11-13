@@ -14,13 +14,15 @@ const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-int
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
+  const isAdmin = router.pathname.startsWith("/admin-panel");
 
   useEffect(() => {
+    if (window.location.pathname.startsWith("/admin-panel")) return;
     let onRoute;
     import("react-facebook-pixel").then(({ default: ReactPixel }) => {
       ReactPixel.init("5323417621055552");
       ReactPixel.pageView();
-      onRoute = () => ReactPixel.pageView();
+      onRoute = (url) => !url.startsWith("/admin-panel") && ReactPixel.pageView();
       router.events.on("routeChangeComplete", onRoute);
     });
     return () => onRoute && router.events.off("routeChangeComplete", onRoute);
@@ -39,7 +41,7 @@ export default function App({ Component, pageProps }) {
       `}</style>
       <MotionConfig reducedMotion="user">
         <Component {...pageProps} />
-        <Assistant />
+        {!isAdmin && <Assistant />}
       </MotionConfig>
       <Toaster />
     </>

@@ -10,18 +10,18 @@ Probiz-Finance/
 │   └── api/[...path].js   Single entry point for every /api/* request
 ├── components/            Website UI: site/ (header, footer), templates/, art/ (SVG illustrations), assistant/ (chat), fun/, ui/ (shadcn)
 ├── lib/                   Catalogue, form schemas, API client, formatting helpers
-├── app/admin-panel/       Mounts the admin SPA at /admin-panel (App Router, client-only)
-├── admin/                 Admin panel source (React + react-router HashRouter + MUI/Bootstrap)
+├── pages/admin-panel/     Admin panel (sign-in, overview, leads, listings, customers, subscribers, team)
 ├── server/
 │   ├── routes/            Route table (same paths as the old Express app)
 │   ├── controllers/       Request handlers
 │   ├── models/            Data schemas (Mongoose-style definitions)
-│   ├── middlewares/       File-upload rules per form
+│   ├── admin/leads.js     Registry of every lead form the admin can work through
+│   ├── middlewares/       File-upload rules per form, admin token guard
 │   ├── odm.js             Mongoose-compatible data layer on Postgres JSONB
 │   ├── http.js            Express-style router, body/multipart parsing
 │   ├── db.js              Postgres (DATABASE_URL) or local PGlite
 │   └── storage.js         Supabase Storage (or public/uploads in dev)
-├── public/                Static assets (public/admin/images for the admin)
+├── public/                Static assets
 ├── styles/                Tailwind + global CSS for the website
 └── scripts/               seed-areas.js, smoke-api.sh
 ```
@@ -31,9 +31,9 @@ Probiz-Finance/
 ```mermaid
 flowchart LR
   B[Browser] -->|/, /about, ...| P[pages/ website]
-  B -->|/admin-panel#/...| A[admin/ SPA]
+  B -->|/admin-panel/...| A[pages/admin-panel]
   P -->|fetch /api/*| R[pages/api/...path]
-  A -->|axios /api/*| R
+  A -->|fetch /api/* with admin token| R
   R --> H[server/http.js router]
   H --> C[server/controllers]
   C --> O[server/odm.js]
@@ -44,11 +44,12 @@ flowchart LR
 - **API**: `pages/api/[...path].js` hands every request to `server/http.js`, a tiny Express-compatible router. The original route files and controllers run unchanged on top of it, so every endpoint keeps its old path and response shape (`/api/loanOfferDetail`, `/api/getAllUsers`, …).
 - **Database**: `server/odm.js` implements the subset of the Mongoose API the controllers use (`find`, `findById`, `save`, `findByIdAndUpdate`, `countDocuments`, filters like `$regex`/`$gte`/`$or`, schema defaults and validation). Each model is one Postgres table `(id, data jsonb, created_at, updated_at)`, created automatically on first use. IDs are UUID strings exposed as `_id`.
 - **Uploads**: forms post `multipart/form-data`; `server/middlewares/uploads.js` declares which file types each form accepts. Files go to Supabase Storage and the public URL is saved on the record.
-- **Admin**: the former Create React App lives in `admin/` and is rendered client-side at `/admin-panel` (`/admin-panel#/login`, `#/dashboard`, …).
+- **Admin**: `/admin-panel` signs in with `POST /api/adminLogin` and keeps a 7-day admin token in localStorage. Leads from all ~35 forms are read through `/api/admin/*` (`server/controllers/adminPanel.controller.js`), which adds a status (new, contacted, in progress, converted, closed) and a note log per lead, stored in the `LeadMeta` table.
+- **Access control**: `server/routes/index.js` puts every read of customer data, every update and delete, and the admin-only create endpoints behind `requireAdmin` (a Bearer token signed with `role: admin`). Public reads (property listings, areas, health) and form submissions stay open. `POST /api/createAdmin` works without a token only while no admin exists.
 - **Local dev without setup**: if `DATABASE_URL` is empty the app uses PGlite (Postgres compiled to WebAssembly) stored in `.data/pglite`, and uploads go to `public/uploads/`.
 
 Known gaps carried over from the old code:
-- Admin endpoints have no authentication (including `POST /api/createAdmin`). Add auth before going live with real data.
+- `PUT /api/changeUserPassword/:id` needs no token but does require the user's current password; the website doesn't use it yet.
 - Cashfree and credit-score endpoints are stubs.
 - The chat assistant (`components/assistant/`) is rule-based and runs in the browser; it only sends data when a visitor requests a callback (saved as a contact enquiry).
 
@@ -63,7 +64,7 @@ npm run dev                    # http://localhost:3000 and http://localhost:3000
 bash scripts/smoke-api.sh      # optional API smoke test
 ```
 
-Create a first admin account:
+Create the first admin account (only works while there are no admins; later admins are added from Team in the panel):
 
 ```bash
 curl -X POST http://localhost:3000/api/createAdmin -H 'content-type: application/json' \

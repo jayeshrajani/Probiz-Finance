@@ -1,6 +1,5 @@
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const config = require("../config/auth.config");
+const { signAdminToken } = require("../middlewares/requireAdmin");
 const admin = require('../models/admin.model');
 const user = require("../models/user.model");
 const contact = require("../models/contact.model");
@@ -9,10 +8,6 @@ const Property = require("../models/property.model");
 const PropertyInHouse = require("../models/inHouse.model");
 const AdminRole = require('../models/adminRole.model');
 const Area = require('../models/area.model');
-
-function generateToken(userid) {
-    return jwt.sign({ id: userid }, config.secret, { expiresIn: 15552000 });
-}
 
 exports.createAdmin = async (req, res) => {
     try {
@@ -82,7 +77,7 @@ exports.adminLogin = (req, res) => {
                 return res.status(401).send({ message: "Invalid password!.", status: 401 });
             }
 
-            const token = generateToken(foundAdmin._id);
+            const token = signAdminToken(foundAdmin._id);
             const { password, ...adminData } = foundAdmin.toObject();
             return res.status(200).send({ accessToken: token, data: adminData, status: 200 });
         })

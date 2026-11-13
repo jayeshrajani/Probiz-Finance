@@ -17,7 +17,7 @@ function register(method) {
         return seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       })
       .join('/');
-    routes.push({ method, re: new RegExp(`^${pattern}/?$`), keys, handlers });
+    routes.push({ method, path, re: new RegExp(`^${pattern}/?$`), keys, handlers });
   };
 }
 
@@ -176,4 +176,4 @@ async function dispatch(req, res) {
   }
 }
 
-module.exports = { app, dispatch, raw, multipart };
+module.exports = { app, routes, dispatch, raw, multipart };

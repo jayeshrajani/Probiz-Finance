@@ -1,8 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Sources outside the website (admin SPA uses Bootstrap, server has no markup). */
-@source not "../admin";
+/* The server folder has no markup. */
 @source not "../server";
 
 @custom-variant dark (&:is(.dark *));

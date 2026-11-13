@@ -12,7 +12,11 @@ echo "== sip calc";      j -X POST "$B/sipCalculator" -d '{"monthlyInvestment":1
 printf '%%PDF-1.4 smoke' > /tmp/smoke.pdf
 echo "== home loan (multipart)"
 curl -s -m 30 -X POST "$B/loanOfferDetail" -F fullName=Ravi -F dateOfBirth=1990-01-01 -F address=Indore -F contactNumber=9999999999 -F loanAmount=500000 -F "panCard=@/tmp/smoke.pdf;type=application/pdf" | head -c 600; echo
-echo "== home loan list"; LEN=300 j "$B/getHomeLoan"
-echo "== users";          LEN=300 j "$B/getAllUsers"
-echo "== dashboard";      j "$B/getCountForDashboard"
+echo "== leads without token (expect 401)"; j "$B/getHomeLoan"
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@probiz.com}"; ADMIN_PASSWORD="${ADMIN_PASSWORD:-Admin@12345}"
+TOKEN=$(curl -s -m 30 -H 'content-type: application/json' -X POST "$B/adminLogin" -d "{\"admin_Email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
+A=(-H "Authorization: Bearer $TOKEN")
+echo "== home loan list (admin)"; LEN=300 j "${A[@]}" "$B/getHomeLoan"
+echo "== users (admin)";          LEN=300 j "${A[@]}" "$B/getAllUsers"
+echo "== overview (admin)";       LEN=300 j "${A[@]}" "$B/admin/overview"
 echo "== unknown route";  j "$B/nope"
