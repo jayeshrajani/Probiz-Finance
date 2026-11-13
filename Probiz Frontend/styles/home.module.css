@@ -1,0 +1,22 @@
+.home_banner_sec_img {
+  /* height: 650px; */
+  object-fit: cover;
+  width: 100%;
+}
+.apply_now_btn {
+  background-color: #4c1f7a;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 7px;
+  margin-top: 20px;
+}
+.banner_icon {
+  margin-top: 40px;
+}
+.banner_icon{
+    display: flex;
+}
+.icon_phone{
+    margin-left: 10px;
+    font-weight: 600;
+}
