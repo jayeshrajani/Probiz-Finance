@@ -1,0 +1,351 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Sources outside the website (admin SPA uses Bootstrap, server has no markup). */
+@source not "../admin";
+@source not "../server";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Ink and surfaces: Apple-like neutrals, cool and quiet. */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.21 0.006 286);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.006 286);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.006 286);
+  --primary: oklch(0.21 0.006 286);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.968 0.002 286);
+  --secondary-foreground: oklch(0.21 0.006 286);
+  --muted: oklch(0.968 0.002 286);
+  --muted-foreground: oklch(0.49 0.01 286);
+  --accent: oklch(0.955 0.003 286);
+  --accent-foreground: oklch(0.21 0.006 286);
+  --destructive: oklch(0.55 0.2 27);
+  --border: oklch(0.915 0.003 286);
+  --input: oklch(0.88 0.004 286);
+  --ring: oklch(0.733 0.186 52);
+  --radius: 1.25rem;
+
+  /* Probiz orange, the only accent. */
+  --brand: oklch(0.733 0.186 52);
+  --brand-ink: oklch(0.55 0.17 45);
+  --brand-soft: oklch(0.975 0.022 70);
+  --brand-foreground: oklch(0.21 0.006 286);
+  --cream: oklch(0.982 0.012 75);
+
+  --motion-instant: 120ms;
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --motion-slow: 520ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-cream: var(--cream);
+
+  --radius-sm: calc(var(--radius) - 12px);
+  --radius-md: calc(var(--radius) - 8px);
+  --radius-lg: calc(var(--radius) - 4px);
+  --radius-xl: var(--radius);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/60;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "ss01", "cv11";
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--brand) 28%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+}
+
+/* Type scale. Display sizes track tight like SF Pro Display; body stays calm. */
+@utility display-1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+/* Page heroes carry longer headlines than the homepage, so they cap smaller. */
+@utility display-page {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.25rem, 1.5rem + 2.8vw, 3.75rem);
+  line-height: 1.06;
+  letter-spacing: -0.033em;
+}
+@utility display-2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2rem, 1.45rem + 2.2vw, 3.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+@utility headline {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.375rem, 1.2rem + 0.6vw, 1.75rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+@utility lede {
+  font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  line-height: 1.55;
+  letter-spacing: -0.011em;
+  color: var(--muted-foreground);
+}
+@utility container-page {
+  width: 100%;
+  max-width: 90rem;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 0.6rem + 2.6vw, 2.5rem);
+}
+@utility section {
+  padding-block: clamp(4rem, 2.8rem + 5vw, 7.5rem);
+}
+
+@layer components {
+  /* Range slider: brand fill driven by --fill, set inline from the value. */
+  .range {
+    appearance: none;
+    width: 100%;
+    height: 1.75rem;
+    background: transparent;
+    cursor: pointer;
+    --fill: 50%;
+  }
+  .range::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--brand) var(--fill), var(--muted) var(--fill));
+  }
+  .range::-webkit-slider-thumb {
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    margin-top: -8px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 3px oklch(0.21 0.006 286 / 0.22), 0 0 0 1px oklch(0.21 0.006 286 / 0.08);
+    transition: transform var(--motion-fast) var(--ease-soft), box-shadow var(--motion-fast);
+  }
+  .range:active::-webkit-slider-thumb {
+    transform: scale(1.1);
+  }
+  .range::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--muted);
+  }
+  .range::-moz-range-progress {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--brand);
+  }
+  .range::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 3px oklch(0.21 0.006 286 / 0.22), 0 0 0 1px oklch(0.21 0.006 286 / 0.08);
+  }
+  .range:focus-visible {
+    outline: none;
+  }
+  .range:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 5px color-mix(in oklch, var(--brand) 30%, transparent);
+  }
+  .range:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 5px color-mix(in oklch, var(--brand) 30%, transparent);
+  }
+
+  /* Scroll reveal with no JavaScript; browsers without scroll timelines show content as-is. */
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 40%;
+    }
+  }
+
+  .glass-bar {
+    background: color-mix(in oklch, var(--background) 78%, transparent);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-bar {
+      background: var(--background);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
+  .prose-legal h2 {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .prose-legal p,
+  .prose-legal li {
+    color: var(--muted-foreground);
+    line-height: 1.7;
+  }
+  .prose-legal p + p {
+    margin-top: 0.875rem;
+  }
+  .prose-legal ul {
+    margin-top: 0.75rem;
+    padding-left: 1.25rem;
+    list-style: disc;
+  }
+  .prose-legal li + li {
+    margin-top: 0.375rem;
+  }
+}
+
+/* Illustration idle motion: slow, small, and transform-only. */
+.art-float {
+  animation: art-float 6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.art-float-2 {
+  animation-duration: 7s;
+  animation-delay: -2.4s;
+}
+.art-float-3 {
+  animation-duration: 8s;
+  animation-delay: -4.8s;
+}
+.art-needle {
+  transform-box: view-box;
+  transform-origin: 240px 250px;
+  animation: art-sway 5s ease-in-out infinite;
+}
+@keyframes art-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+@keyframes art-sway {
+  0%,
+  100% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+.avatar-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 5.5s infinite;
+}
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.12);
+  }
+}
+
+/* Flip cards: the back face is hidden from assistive tech until flipped (see MythFlip). */
+.flip-inner {
+  transform-style: preserve-3d;
+  transition: transform 620ms var(--ease-out-expo);
+}
+.flip-inner[data-flipped="true"] {
+  transform: rotateY(180deg);
+}
+.flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-back {
+  transform: rotateY(180deg);
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

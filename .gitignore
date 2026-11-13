@@ -3,6 +3,12 @@
 **/.next/
 **/build/
 **/dist/
+.vercel/
+next-env.d.ts
+
+# Local database (PGlite) and dev uploads
+.data/
+public/uploads/
 
 # Local environment and credentials
 .env

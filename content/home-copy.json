@@ -1,0 +1,129 @@
+{
+  "howitworks": {
+    "title": "How It Works?",
+    "subtitle": "Simple Steps to Achieve Your Financial Goals",
+    "description": "Our streamlined process makes financial planning effortless. Whether you're applying for a loan, investing, or managing your retirement funds, we guide you at every step with clarity and transparency.",
+    "steps": [
+      {
+        "title": "Get Personalized Recommendations",
+        "description": "Get Personalized Recommendations. Answer a few quick questions about your financial needs, and our smart system will recommend the best products for your unique situation. No credit score impact; 100% confidential; Real-time results."
+      },
+      {
+        "title": "Compare Options",
+        "description": "Make informed decisions with confidence. View side-by-side comparisons of interest rates, fees, and features across top financial products from trusted partners. Detailed product breakdowns; Customizable filters; Expert ratings & reviews."
+      },
+      {
+        "title": "Submit Digital Application",
+        "description": "Complete your application in 10 minutes. Our paperless process saves you time with auto-filled forms, e-signature capabilities, and secure document uploads. Progress tracker; Instant form validation; 24/7 save & resume."
+      },
+      {
+        "title": "Receive Fast Approval",
+        "description": "Get decisions faster than traditional methods. Most applicants receive conditional approval within 2 business days, with real-time status updates throughout the process. Dedicated support agent; Secure document portal; Competitive rate locking."
+      }
+    ]
+  },
+  "services": {
+    "title": "Other Services",
+    "description": "We offer a wide range of financial and business services to help you manage and grow your wealth with ease. Whether you need expert financial guidance, business development strategies, or corporate solutions, we’ve got you covered.",
+    "items": [
+      {
+        "title": "CA Service",
+        "description": "Get expert assistance with tax planning, auditing, and financial consulting to ensure smooth and compliant financial management.",
+        "cta": "View More"
+      },
+      {
+        "title": "Government Business Loan Services",
+        "description": "Unlock business growth with professional business development services, market analysis, and strategic planning.",
+        "cta": "View More"
+      },
+      {
+        "title": "E-Stamp Services",
+        "description": "From company formation to financial structuring, we provide complete support for your business success.",
+        "cta": "View More"
+      }
+    ],
+    "closingCopy": "Ready to take your finances and business to the next level? Partner with us today!"
+  },
+  "financialcalculator": {
+    "title": "Financial Calculators",
+    "subtitle": "Smart Tools for Smarter Financial Decisions",
+    "description": "Take control of your financial future with our suite of easy-to-use calculators. Whether you're planning for a home loan, investment, or retirement, our tools provide accurate projections to help you make informed decisions.",
+    "items": [
+      {
+        "title": "Home Loan EMI Calculator",
+        "subtitle": "Plan your dream home with precision",
+        "description": "Calculate your exact Equated Monthly Installment (EMI) for home loans based on loan amount, interest rate, and tenure.",
+        "bullets": [
+          "View amortization schedule",
+          "Compare loan scenarios",
+          "Adjust for prepayments"
+        ],
+        "cta": "Get Started →"
+      },
+      {
+        "title": "Loan Eligibility Calculator",
+        "subtitle": "Discover how much you can borrow",
+        "description": "Instantly check your maximum eligible loan amount based on your income, expenses, and credit profile.",
+        "bullets": [
+          "Real-time eligibility assessment",
+          "Multiple loan product comparisons",
+          "Personalized recommendations"
+        ],
+        "cta": "Check Eligibility →"
+      },
+      {
+        "title": "Balance Transfer Calculator",
+        "subtitle": "Find better loan deals and save",
+        "description": "Analyze potential savings when transferring your existing home loan to a new lender with lower interest rates.",
+        "bullets": [
+          "Compare interest savings",
+          "Calculate processing fee impact",
+          "Break-even analysis"
+        ],
+        "cta": "Calculate Savings →"
+      }
+    ]
+  },
+  "customerexperience": {
+    "title": "Creating Extraordinary Customer Experience",
+    "description": "5 Lac+ people have got their Credit Scores for FREE!",
+    "cta": "CHECK CREDIT CARD SCORE FOR FREE"
+  },
+  "trendingcards": {
+    "title": "Trending Loans & Offers",
+    "description": "Explore the latest loan options and exclusive offers designed to meet your financial goals. Benefit from competitive interest rates, hassle-free approvals, and flexible repayment options.",
+    "items": [
+      {
+        "title": "Personal Loan",
+        "description": "Fast & Paperless - Get instant approval with minimal documentation at low-interest rates.",
+        "cta": "CHECK ELIGIBILITY"
+      },
+      {
+        "title": "Home Loan",
+        "description": "Dream Home Made Easy - Avail home loans at the lowest interest rates with quick approvals.",
+        "cta": "CHECK ELIGIBILITY"
+      },
+      {
+        "title": "Loan Against Property",
+        "description": "Leverage Your Property - Get high-value loans with attractive interest rates and easy repayment terms.",
+        "cta": "CHECK ELIGIBILITY"
+      },
+      {
+        "title": "Business Loan",
+        "description": "Fuel Your Business Growth - Competitive interest rates and customized repayment options for entrepreneurs.",
+        "cta": "CHECK ELIGIBILITY"
+      }
+    ]
+  },
+  "creditcard": {
+    "title": "Swipe Like A Pro - Your Credit Card, Your Freedom!",
+    "description": "Unlock a world of convenience and possibilities with your credit card. Whether you're saving, traveling, investing, or indulging in life's little luxuries, we've got you covered.",
+    "items": [
+      "Smart Savings - Earn rewards while you spend and grow your financial future.",
+      "Travel with Ease - Enjoy seamless transactions anywhere in the world.",
+      "Secure & Reliable - Your money is protected with top-tier security features.",
+      "Instant Access - From rides to dining, experience uninterrupted transactions."
+    ],
+    "closingCopy": "Take charge of your finances, Spend Smart, Live Better!"
+  }
+}

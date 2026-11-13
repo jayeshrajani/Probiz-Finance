@@ -1,0 +1,624 @@
+{
+  "homeloan": {
+    "slug": "homeloan",
+    "heroTitle": "Unlock your Financial growth with Home Loans!",
+    "heroSubtitle": "Owning a home is a dream for many, and at Probiz, we make it easier by offering customized home loan solutions designed to fit your unique financial situation. Whether you're a first-time buyer or looking to invest in property, our flexible financing options ensure a smooth and hassle-free experience.",
+    "potentialHeading": "Potential with Home Loans!",
+    "potentialPoints": [
+      {
+        "title": "Low CIBIL Score",
+        "text": "Flexible home loan approvals for clients with low or challenged credit scores."
+      },
+      {
+        "title": "Cash Income",
+        "text": "Special consideration for applicants whose primary income source is cash-based."
+      },
+      {
+        "title": "Legal & Illegal Properties",
+        "text": "Expert assistance in financing properties that have legal complications or unclear documentation."
+      },
+      {
+        "title": "Lowest Rate of Interest",
+        "text": "Competitive interest rates starting from 7.10% per annum."
+      },
+      {
+        "title": "Fast Processing",
+        "text": "Quick loan approval and disbursement."
+      },
+      {
+        "title": "Minimal Documentation",
+        "text": "Simplified paperwork for efficient loan processing."
+      },
+      {
+        "title": "Instant Approval",
+        "text": "Immediate evaluation and sanction for quick homeownership."
+      },
+      {
+        "title": "100% Funding",
+        "text": "Complete financial support to realize your dream home."
+      }
+    ],
+    "statedNumbers": [
+      "7.10% per annum",
+      "100% Funding"
+    ]
+  },
+  "personlloan": {
+    "slug": "personlloan",
+    "heroTitle": "Need Cash? We’re Fast, Personal Loans That Last! Personal Loans!",
+    "heroSubtitle": "Need funds for a dream vacation, home renovation, wedding, medical emergency, or debt consolidation? Our Personal Loan offers a quick and hassle-free way to access funds with minimal documentation and flexible repayment options.",
+    "potentialHeading": "Fulfill Your Dreams with a Personal Loan!",
+    "potentialPoints": [
+      {
+        "title": "Instant Approval",
+        "text": "Get funds in your account quickly."
+      },
+      {
+        "title": "No Collateral Required",
+        "text": "100% unsecured loan."
+      },
+      {
+        "title": "Flexible Loan Amounts",
+        "text": "Borrow as per your needs."
+      },
+      {
+        "title": "Easy Repayment",
+        "text": "Tenure options up to 5 years."
+      },
+      {
+        "title": "Competitive Interest Rates",
+        "text": "Affordable monthly EMIs."
+      }
+    ],
+    "statedNumbers": [
+      "100% unsecured loan",
+      "up to 5 years"
+    ]
+  },
+  "buisnessloan": {
+    "slug": "buisnessloan",
+    "heroTitle": "Cash Flow Solved, Growth Unlocked, Empowering Your! Buisness Loan",
+    "heroSubtitle": "With low interest rates, flexible repayment plans, and quick approvals, Probiz ensures that your business reaches new heights effortlessly!",
+    "potentialHeading": "Potential with Business Loan!",
+    "potentialPoints": [
+      {
+        "title": "Small Enterprises",
+        "text": "Support for working capital and inventory management."
+      },
+      {
+        "title": "Medium Enterprises",
+        "text": "Funding for business expansion and technological upgrades."
+      },
+      {
+        "title": "Large Enterprises",
+        "text": "Major project funding and substantial capital requirements."
+      }
+    ],
+    "statedNumbers": []
+  },
+  "carloan": {
+    "slug": "carloan",
+    "heroTitle": "Unlock your Financial growth with Car Loan!",
+    "heroSubtitle": "Get the best car loan deals with flexible repayment options, low-interest rates, and quick approvals to help you drive your dream car hassle-free.",
+    "potentialHeading": "Potential with Car Loan!",
+    "potentialPoints": [
+      {
+        "title": "Car loan services",
+        "text": "Probiz specializes in car loan services for both new and used vehicles, featuring up to 200% funding of used car value."
+      },
+      {
+        "title": "Loan benefits",
+        "text": "Quick approval, attractive interest rates, and flexible tenure."
+      },
+      {
+        "title": "Used car funding",
+        "text": "Up to 200% funding of used car value."
+      },
+      {
+        "title": "Documentation",
+        "text": "Minimal documentation and fast processing."
+      },
+      {
+        "title": "Closing copy",
+        "text": "With Probiz, securing a car loan is easier than ever. Our hassle-free loan process ensures you get the best financing options tailored to your needs. Whether you're purchasing a brand-new car or a pre-owned vehicle, we provide competitive interest rates, quick disbursement, and flexible repayment plans. Our expert team is here to guide you every step of the way, making car ownership a seamless experience."
+      }
+    ],
+    "statedNumbers": [
+      "up to 200% funding of used car value"
+    ]
+  },
+  "educationloan": {
+    "slug": "educationloan",
+    "heroTitle": "Dream Big, Study Bigger, Affordable Education Loans for All! Education Loan!",
+    "heroSubtitle": "A quality education opens doors to endless opportunities, and our education loans help you achieve your academic aspirations without financial stress. Whether you're planning to study in India or abroad, we offer affordable interest rates, quick approvals, and flexible repayment options to support your journey.",
+    "potentialHeading": "Potential with Education Loans!",
+    "potentialPoints": [
+      {
+        "title": "Seamless Application Process",
+        "text": "Apply online with minimal paperwork."
+      },
+      {
+        "title": "No Collateral for Select Loans",
+        "text": "Get funding without security for eligible courses."
+      },
+      {
+        "title": "Affordable Interest Rates",
+        "text": "Designed to ease your repayment burden."
+      },
+      {
+        "title": "Flexible Repayment Tenure",
+        "text": "Pay at your convenience, even after graduation."
+      },
+      {
+        "title": "Covers Domestic & International Studies",
+        "text": "Pursue education anywhere in the world."
+      },
+      {
+        "title": "Closing copy",
+        "text": "Achieve your academic dreams with financial support tailored to your needs. Invest in knowledge, invest in your future!"
+      }
+    ],
+    "statedNumbers": []
+  },
+  "goldloan": {
+    "slug": "goldloan",
+    "heroTitle": "Cash at Your Fingertips, Your Gold, Our Assurance! Gold Loans!",
+    "heroSubtitle": "Need quick financial assistance? Your gold can help you secure an instant loan with low interest rates and minimal paperwork. Whether it's for personal needs, business expansion, or emergency expenses, our gold loan solutions offer a secure and hassle-free way to access cash.",
+    "potentialHeading": "Unlock Instant Funds with a Gold Loan!",
+    "potentialPoints": [
+      {
+        "title": "Instant Approval & Disbursal",
+        "text": "Get funds in minutes!"
+      },
+      {
+        "title": "High Loan Value",
+        "text": "Get up to 90% of your gold’s value."
+      },
+      {
+        "title": "Low Interest Rates",
+        "text": "Competitive rates to make repayment easy."
+      },
+      {
+        "title": "Flexible Repayment Options",
+        "text": "Choose a plan that suits your needs."
+      },
+      {
+        "title": "No Credit Score Required",
+        "text": "Your gold secures the loan, not your credit history."
+      },
+      {
+        "title": "Closing copy",
+        "text": "Turn your gold into financial freedom today! Apply now for a hassle-free gold loan experience."
+      }
+    ],
+    "statedNumbers": [
+      "up to 90% of your gold’s value"
+    ]
+  },
+  "kisancreditcard": {
+    "slug": "kisancreditcard",
+    "heroTitle": "Fuel Your Fields, Fulfill Your Dreams, With Kisan Credit Card",
+    "heroSubtitle": "The Kisan Credit Card (KCC) is designed to provide farmers with affordable and hassle-free credit to meet their agricultural and allied expenses.",
+    "potentialHeading": "Potential with Kisan Credit Card!",
+    "potentialPoints": [
+      {
+        "title": "Low-Interest Rates",
+        "text": "Avail financing at subsidized rates for farming needs."
+      },
+      {
+        "title": "Flexible Repayment Options",
+        "text": "Easy repayment aligned with crop cycles."
+      },
+      {
+        "title": "Quick & Hassle-Free Process",
+        "text": "Minimal paperwork and fast loan approvals."
+      },
+      {
+        "title": "Comprehensive Coverage",
+        "text": "Covers expenses for seeds, fertilizers, machinery, and more."
+      },
+      {
+        "title": "Insurance Coverage",
+        "text": "Protection against crop losses due to natural calamities."
+      }
+    ],
+    "statedNumbers": []
+  },
+  "pradhanmantriloan": {
+    "slug": "pradhanmantriloan",
+    "heroTitle": "Low Interest, High Growth,  for Every Entrepreneur! Pradhan Mantri Mudra Yojana Loans!",
+    "heroSubtitle": null,
+    "potentialHeading": "Potential with Pradhan Mantri Mudra Yojana Loans!",
+    "potentialPoints": [
+      {
+        "title": "Overview",
+        "text": "The Pradhan Mantri Mudra Yojana (PMMY) is a flagship initiative by the Government of India aimed at empowering small and micro-businesses. This scheme provides collateral-free loans to entrepreneurs, startups, and small business owners to help them grow and expand their enterprises."
+      },
+      {
+        "title": "Loan amount",
+        "text": "Loan amount up to ₹10 lakh."
+      },
+      {
+        "title": "Collateral",
+        "text": "No collateral required."
+      },
+      {
+        "title": "Availability",
+        "text": "Available for small businesses, startups, and MSMEs."
+      },
+      {
+        "title": "Interest",
+        "text": "Competitive interest rates."
+      },
+      {
+        "title": "Repayment",
+        "text": "Flexible repayment tenure."
+      },
+      {
+        "title": "Shishu Loan (Up to ₹50,000)",
+        "text": "For early-stage businesses."
+      },
+      {
+        "title": "Kishor Loan (₹50,000 - ₹5 Lakh)",
+        "text": "For growing businesses."
+      },
+      {
+        "title": "Tarun Loan (₹5 Lakh - ₹10 Lakh)",
+        "text": "For established enterprises."
+      }
+    ],
+    "statedNumbers": [
+      "up to ₹10 lakh",
+      "Up to ₹50,000",
+      "₹50,000 - ₹5 Lakh",
+      "₹5 Lakh - ₹10 Lakh"
+    ]
+  },
+  "constructionloan": {
+    "slug": "constructionloan",
+    "heroTitle": "Brick by Brick, Loan by Loan, We Build Trust! Construction Loans!",
+    "heroSubtitle": "Turn your vision into reality with our Construction Loan, designed to provide the financial support you need to build or renovate your home. With flexible repayment options, easy disbursal, and competitive interest rates, we help you construct your dream property hassle-free.",
+    "potentialHeading": "Build Your Dream Home with a Construction Loan!",
+    "potentialPoints": [
+      {
+        "title": "Flexible Disbursement",
+        "text": "Funds released as per your construction phases."
+      },
+      {
+        "title": "Low-Interest Rates",
+        "text": "Affordable financing tailored to your budget."
+      },
+      {
+        "title": "Quick & Easy Processing",
+        "text": "Minimal paperwork and fast approvals."
+      },
+      {
+        "title": "Customized Repayment Plans",
+        "text": "Options to match your financial situation."
+      },
+      {
+        "title": "Closing copy",
+        "text": "Whether you’re constructing a new home, expanding your property, or renovating an existing space, our Construction Loan makes it easy. Apply today and start building your future!"
+      }
+    ],
+    "statedNumbers": []
+  },
+  "commercialproperty": {
+    "slug": "commercialproperty",
+    "heroTitle": "Invest Big, Earn Bigger, Commercial Loans for Strategic Investors! Commercial Property Purchase",
+    "heroSubtitle": "Expand your business or secure a valuable asset with our Commercial Property Loan, designed to help you purchase office spaces, retail outlets, warehouses, or any other commercial real estate. With high loan amounts, flexible repayment options, and competitive interest rates, we ensure a seamless financing experience.",
+    "potentialHeading": "Invest in Your Future with a Commercial Property Loan!",
+    "potentialPoints": [
+      {
+        "title": "High Loan Amounts",
+        "text": "Get up to 80% of the property value."
+      },
+      {
+        "title": "Flexible Tenure",
+        "text": "Repayment options of up to 25 years."
+      },
+      {
+        "title": "Low-Interest Rates",
+        "text": "Cost-effective financing to support your business growth."
+      },
+      {
+        "title": "Quick Approvals",
+        "text": "Minimal paperwork and fast loan processing."
+      },
+      {
+        "title": "Closing copy",
+        "text": "Whether you’re an entrepreneur, investor, or business owner, our Commercial Property Loan is tailored to help you expand, invest, and grow. Apply today and take the next step toward success!"
+      }
+    ],
+    "statedNumbers": [
+      "up to 80% of the property value",
+      "up to 25 years"
+    ]
+  },
+  "commercialpropertymortgage": {
+    "slug": "commercialpropertymortgage",
+    "heroTitle": "Turn Commercial Property into Quick Capital! Commercial Property Mortgage!",
+    "heroSubtitle": "Leverage the value of your commercial property to secure funds for business expansion, working capital, or personal financial needs. Our Commercial Property Mortgage (Loan Against Property) offers high loan amounts, flexible repayment options, and competitive interest rates, ensuring you get the financial support you need while retaining ownership of your asset.",
+    "potentialHeading": "Unlock Financial Growth with a Commercial Property Mortgage!",
+    "potentialPoints": [
+      {
+        "title": "High Loan-to-Value (LTV)",
+        "text": "Get up to 70% of your property’s market value."
+      },
+      {
+        "title": "Low Interest Rates",
+        "text": "More affordable than unsecured loans."
+      },
+      {
+        "title": "Flexible Tenure",
+        "text": "Repayment periods of up to 20 years."
+      },
+      {
+        "title": "Quick Processing",
+        "text": "Hassle-free approval with minimal paperwork."
+      },
+      {
+        "title": "Multi-Purpose Usage",
+        "text": "Fund business expansion, renovations, debt consolidation & more."
+      },
+      {
+        "title": "Closing copy",
+        "text": "Keep your property while accessing the funds you need! Apply today and fuel your business growth with confidence."
+      }
+    ],
+    "statedNumbers": [
+      "up to 70% of your property’s market value",
+      "up to 20 years"
+    ]
+  },
+  "mortrageloan": {
+    "slug": "mortrageloan",
+    "heroTitle": "Your Home, Your Money, Mortgage Loans for Life's Big Moments! Mortgage Loans!",
+    "heroSubtitle": "Leverage the value of your property to meet your financial needs with a Loan Against Property (LAP). Whether you need funds for business expansion, debt consolidation, or personal expenses, we offer the perfect solution.",
+    "potentialHeading": "Unlock Financial Opportunities with Mortgage Loans!",
+    "potentialPoints": [
+      {
+        "title": "High Loan Amounts",
+        "text": "Get up to 70% of your property's market value."
+      },
+      {
+        "title": "Competitive Interest Rates",
+        "text": "Lower than standard personal loans."
+      },
+      {
+        "title": "Flexible Tenure",
+        "text": "Repayment options up to 20 years."
+      },
+      {
+        "title": "Quick Approvals",
+        "text": "Hassle-free processing with minimal paperwork."
+      },
+      {
+        "title": "Closing copy",
+        "text": "With a Loan Against Property, you can achieve your financial goals while keeping your assets secure. Apply today for a stress-free borrowing experience!"
+      }
+    ],
+    "statedNumbers": [
+      "up to 70% of your property's market value",
+      "up to 20 years"
+    ]
+  },
+  "flatpurchase": {
+    "slug": "flatpurchase",
+    "heroTitle": "100% Funding, 0% Stress, Your Dream Flat Awaits! Flat Purchase Loans!",
+    "heroSubtitle": "Achieve homeownership effortlessly with our tailored flat purchase loan solutions. Whether you're a first-time buyer or an investor, we ensure a smooth and transparent process to help you secure your dream property.",
+    "potentialHeading": "Unlock Your Dream Home with Flat Purchase Loans!",
+    "potentialPoints": [
+      {
+        "title": "Quick Approval",
+        "text": "Fast-track your loan processing with minimal documentation."
+      },
+      {
+        "title": "100% Paperless",
+        "text": "Enjoy a digital-first experience with no paperwork hassle."
+      },
+      {
+        "title": "Competitive Interest Rates",
+        "text": "Affordable financing options tailored to your needs."
+      },
+      {
+        "title": "Closing copy",
+        "text": "With flexible repayment plans, expert guidance, and a customer-first approach, we make home buying a stress-free journey. Get Started Today! Let’s turn your dream home into reality."
+      }
+    ],
+    "statedNumbers": [
+      "100% Funding",
+      "0% Stress",
+      "100% Paperless"
+    ]
+  },
+  "plotpurchaseloan": {
+    "slug": "plotpurchaseloan",
+    "heroTitle": "Start with a Plot, End with a Home - Let’s Finance Your Journey. Plot Purchase Loans!",
+    "heroSubtitle": "Owning a plot of land is the first step toward building your dream home. Our Plot Purchase Loans provide:",
+    "potentialHeading": "Unlock Your Dream Property with Plot Purchase Loans!",
+    "potentialPoints": [
+      {
+        "title": "Quick Approvals",
+        "text": "Get your loan sanctioned with minimal paperwork."
+      },
+      {
+        "title": "100% Paperless Process",
+        "text": "Apply online and track your loan status effortlessly."
+      },
+      {
+        "title": "Competitive Interest Rates",
+        "text": "Affordable financing to fit your budget."
+      },
+      {
+        "title": "Why Choose Us?",
+        "text": "Whether you're planning to construct a home, expand your assets, or invest for the future, our loans offer flexible repayment plans, low processing fees, and expert financial assistance."
+      },
+      {
+        "title": "Closing copy",
+        "text": "Apply now and take the first step toward securing your ideal plot!"
+      }
+    ],
+    "statedNumbers": [
+      "100% Paperless Process"
+    ]
+  },
+  "plotpurchaseconstruction": {
+    "slug": "plotpurchaseconstruction",
+    "heroTitle": "From Plot to Paradise - One Loan, Infinite Possibilities. Plot Purchase Construction!",
+    "heroSubtitle": "Turn your dream home into reality with our seamless Plot Purchase & Construction Loan solutions. Whether you’re planning to buy a plot and build from scratch or construct on an existing one, we’ve got you covered with flexible financing options.",
+    "potentialHeading": "Build Your Future with Plot Purchase & Construction Loans!",
+    "potentialPoints": [
+      {
+        "title": "Quick Approval",
+        "text": "Fast and hassle-free loan processing."
+      },
+      {
+        "title": "100% Paperless",
+        "text": "A seamless digital experience with minimal paperwork."
+      },
+      {
+        "title": "Competitive Interest Rates",
+        "text": "Affordable financing tailored to your needs."
+      },
+      {
+        "title": "Closing copy",
+        "text": "We offer expert guidance, customized repayment plans, and end-to-end support to help you build the home you’ve always envisioned. Apply Now and take the first step toward your dream home!"
+      }
+    ],
+    "statedNumbers": [
+      "100% Paperless"
+    ]
+  },
+  "balancetransfer": {
+    "slug": "balancetransfer",
+    "heroTitle": "Say Goodbye to High Interest, Hello to Better Service! Balance Transfer Loans!",
+    "heroSubtitle": "Take control of your finances with smarter loan options designed to help you save more and pay less. Transfer your existing commercial loan today and enjoy unbeatable benefits.",
+    "potentialHeading": "Unlock New Potential with Balance Transfer Loans!",
+    "potentialPoints": [
+      {
+        "title": "Quick Approval",
+        "text": "No delays, get your loan transfer approved faster than ever."
+      },
+      {
+        "title": "100% Paperless",
+        "text": "Experience a seamless digital process from application to approval."
+      },
+      {
+        "title": "Competitive Interest Rates",
+        "text": "Enjoy lower EMIs with attractive interest rates tailored for you."
+      }
+    ],
+    "statedNumbers": [
+      "100% Paperless"
+    ]
+  },
+  "balancetranfertopuploan": {
+    "slug": "balancetranfertopuploan",
+    "heroTitle": "Transfer, Top-Up, Transform, Extra Funds, Lower Rates! Balance Transfer and top up Loans!",
+    "heroSubtitle": "Looking to access extra funds while transferring your existing loan? A Balance Transfer Top-Up Loan gives you both, lower interest rates and additional finance, all in one simple step.",
+    "potentialHeading": "Unlock More with Balance Transfer Top-Up Loans!",
+    "potentialPoints": [
+      {
+        "title": "Quick Approval"
+      },
+      {
+        "title": "100% Paperless"
+      },
+      {
+        "title": "Competitive Interest Rates"
+      },
+      {
+        "title": "Closing copy",
+        "text": "Whether you're planning a renovation, managing unexpected expenses, or investing in opportunities, a top-up loan helps you stay ahead financially without additional hassle. Explore smarter lending, apply today and make your money work harder for you!"
+      }
+    ],
+    "statedNumbers": [
+      "100% Paperless"
+    ]
+  },
+  "homerennovation": {
+    "slug": "homerennovation",
+    "heroTitle": "Unlock your Financial growth with Home Renovation Loans!",
+    "heroSubtitle": "Transform your house into the home of your dreams. Whether it’s a kitchen upgrade, extra space, or modern interiors, we’re here to fund your vision with ease.",
+    "potentialHeading": "Unlock the Potential with Home Renovation Loans!",
+    "potentialPoints": [
+      {
+        "title": "Quick Approval",
+        "text": "Get instant decisions so you can start renovating faster."
+      },
+      {
+        "title": "100% Paperless",
+        "text": "Apply online with minimal documentation."
+      },
+      {
+        "title": "Competitive Interest Rates",
+        "text": "Affordable EMIs to suit your budget."
+      }
+    ],
+    "statedNumbers": [
+      "100% Paperless"
+    ]
+  },
+  "projectfunding": {
+    "slug": "projectfunding",
+    "heroTitle": "Easy Access, Low Cost, Government Loans for Every Need! Project Funding by Government Banks!",
+    "heroSubtitle": "Looking to kickstart your next big project? Government-backed project funding offers you a reliable and cost-effective way to bring your vision to life with trusted financial support.",
+    "potentialHeading": "Unlock Project Potential with Government Bank Funding!",
+    "potentialPoints": [
+      {
+        "title": "Quick Approval Process"
+      },
+      {
+        "title": "100% Paperless Application"
+      },
+      {
+        "title": "Competitive Interest Rates"
+      },
+      {
+        "title": "Funding benefits",
+        "text": "Enjoy the benefits of government partnerships, reduced financial risks, and hassle-free processing. Whether you're building your dream home, expanding your business, or investing in new ventures, our funding solutions are designed to empower your growth."
+      },
+      {
+        "title": "Closing copy",
+        "text": "Get started today and watch your project dreams take shape!"
+      }
+    ],
+    "statedNumbers": [
+      "100% Paperless Application"
+    ]
+  },
+  "creditcard": {
+    "slug": "creditcard",
+    "heroTitle": "Unlock your Financial growth with Credit Cards!",
+    "heroSubtitle": null,
+    "potentialHeading": "Potential with Credit Card!",
+    "potentialPoints": [
+      {
+        "title": "Overview",
+        "text": "At Probiz, we offer the best-in-class credit card services designed to enhance your lifestyle and financial convenience. Our carefully curated credit card options feature:"
+      },
+      {
+        "title": "Maximum rewards and benefits",
+        "text": "Tailored to your spending patterns."
+      },
+      {
+        "title": "High Credit Limits",
+        "text": "To meet your extensive financial needs."
+      },
+      {
+        "title": "Zero or minimal annual fees",
+        "text": "Ensuring cost-effective card usage."
+      },
+      {
+        "title": "Personalized guidance",
+        "text": "To choose the perfect credit card based on your lifestyle and financial habits."
+      },
+      {
+        "title": "Quick Approval & Delivery",
+        "text": "Directly to your doorstep."
+      }
+    ],
+    "statedNumbers": []
+  }
+}

@@ -1,0 +1,1127 @@
+{
+  "ca-services": {
+    "slug": "ca-services",
+    "heroTitle": "CA Services",
+    "heroSubtitle": null,
+    "sections": [
+      {
+        "heading": "Audit & Assurance Services",
+        "items": [
+          {
+            "title": "Statutory Audit under Companies Act, 2013"
+          },
+          {
+            "title": "Internal Financial Control (IFC) Audits"
+          },
+          {
+            "title": "Tax Audit under Section 44AB of Income Tax Act"
+          },
+          {
+            "title": "Forensic and Investigation Audits"
+          },
+          {
+            "title": "Due Diligence Reviews"
+          },
+          {
+            "title": "Risk-Based Internal Audit"
+          },
+          {
+            "title": "Corporate Governance Review"
+          },
+          {
+            "title": "Compliance Audit (Statutory, Regulatory, and Process)"
+          },
+          {
+            "title": "Environmental Social Governance Reporting and Sustainability Audit"
+          }
+        ]
+      },
+      {
+        "heading": "Accounting & Bookkeeping Services",
+        "items": [
+          {
+            "title": "Cloud-based Bookkeeping & Automation"
+          },
+          {
+            "title": "Accounts Outsourcing & Virtual Accounting"
+          },
+          {
+            "title": "Preparation of Management Accounts (MIS) and Budgeting"
+          },
+          {
+            "title": "Financial Reporting as per Ind AS, IFRS & US GAAP"
+          },
+          {
+            "title": "Backlog Accounting & Books Cleanup"
+          },
+          {
+            "title": "Standard Operating Procedures (SOP) Implementation for Accounts Department"
+          },
+          {
+            "title": "Accounts Payable & Receivable Management"
+          }
+        ]
+      },
+      {
+        "heading": "Direct & Indirect Taxation Services",
+        "items": [
+          {
+            "title": "Direct Taxation Advisory (including Transfer Pricing & BEPS Compliance)"
+          },
+          {
+            "title": "GST Compliance (Return filing, reconciliation, refund applications, etc.)"
+          },
+          {
+            "title": "GST Litigation Support (DRC-01A, Appeals up to Tribunal)"
+          },
+          {
+            "title": "Tax Representation Services (Income Tax/GST/Customs)"
+          },
+          {
+            "title": "International Taxation & NRI Taxation"
+          },
+          {
+            "title": "Corporate Tax Strategy and Planning"
+          },
+          {
+            "title": "TDS/TCS Compliances & Advisory"
+          },
+          {
+            "title": "Advance Rulings, Anti-Profiteering & GST Audit Services"
+          }
+        ]
+      },
+      {
+        "heading": "Regulatory Compliance & Corporate Law Services",
+        "items": [
+          {
+            "title": "Company Incorporation (India & Outside India)"
+          },
+          {
+            "title": "Secretarial Compliances (ROC Filings, Board Resolutions, Minutes, etc.)"
+          },
+          {
+            "title": "FEMA & RBI Compliances (FDI, ODI, ECB Reporting)"
+          },
+          {
+            "title": "Representation in NCLT/NCLAT proceedings (Mergers & Restructuring cases)"
+          },
+          {
+            "title": "Compliance under the Labour & Employment Laws"
+          },
+          {
+            "title": "POSH Policy drafting and related compliance"
+          }
+        ]
+      },
+      {
+        "heading": "Business Setup & Expansion Services",
+        "items": [
+          {
+            "title": "Incorporation of LLP, Pvt Ltd, OPC, Section 8 Companies"
+          },
+          {
+            "title": "Company Setup Outside India (Mainland, Freezone, Offshore)"
+          },
+          {
+            "title": "Branch Office/Liaison Office Registrations (FEMA Compliances)"
+          },
+          {
+            "title": "Startup India Registration & DPIIT Certification"
+          },
+          {
+            "title": "Business Licenses & Approvals (Shops & Establishments, GST, Import Export Code, etc.)"
+          },
+          {
+            "title": "Corporate Structuring & Business Reorganization Advisory"
+          }
+        ]
+      },
+      {
+        "heading": "Virtual CFO & Business Advisory Services",
+        "items": [
+          {
+            "title": "End-to-End Virtual CFO Services for SMEs and Startups"
+          },
+          {
+            "title": "Financial Projections, Cash Flow, and Business Valuation"
+          },
+          {
+            "title": "Investor Pitch Deck Preparation & Fundraising Support"
+          },
+          {
+            "title": "ERP Implementation Advisory (SAP, Tally Prime, Zoho Books)"
+          },
+          {
+            "title": "Cost Control & Profitability Improvement Consulting"
+          },
+          {
+            "title": "MIS Reporting & Financial KPIs Dashboarding"
+          },
+          {
+            "title": "SOP Development for Business Processes"
+          }
+        ]
+      },
+      {
+        "heading": "International Business Advisory",
+        "items": [
+          {
+            "title": "Cross Border Taxation & DTAA Advisory"
+          },
+          {
+            "title": "Global Entity Structuring & Compliance Management"
+          },
+          {
+            "title": "Transfer Pricing Documentation & Master File Preparation"
+          },
+          {
+            "title": "Advice on Permanent Establishment (PE) Risk"
+          },
+          {
+            "title": "Offshore Structures and Holding Companies Setup"
+          }
+        ]
+      },
+      {
+        "heading": "Litigation & Representation Services",
+        "items": [
+          {
+            "title": "Tax Litigation: CIT(A), ITAT, GST Tribunal, High Court coordination"
+          },
+          {
+            "title": "Reply to Tax Notices, Departmental Queries, Show Cause Notices (GST & IT)"
+          },
+          {
+            "title": "Compounding & Amnesty Scheme Advisory"
+          },
+          {
+            "title": "Representation before SEBI, RBI, SFIO & Other Regulatory Bodies"
+          }
+        ]
+      },
+      {
+        "heading": "Transaction & Investment Advisory",
+        "items": [
+          {
+            "title": "Due Diligence (Financial, Tax, Legal)"
+          },
+          {
+            "title": "Mergers, Demergers & Restructuring Advisory"
+          },
+          {
+            "title": "Business Valuations & Fairness Opinions"
+          },
+          {
+            "title": "Private Equity and Venture Capital Funding Support"
+          },
+          {
+            "title": "Deal Negotiation & Transaction Support"
+          }
+        ]
+      }
+    ],
+    "whyChooseUs": [],
+    "pricing/fees/offers": [],
+    "formTitle": "CA Services",
+    "anyCtaText": [
+      "Submit",
+      "Submitting...",
+      "Full Name",
+      "Email Address",
+      "Mobile Number",
+      "Type your message here"
+    ]
+  },
+  "real-estate-services": {
+    "slug": "real-estate-services",
+    "heroTitle": "Real Estate Services",
+    "heroSubtitle": null,
+    "sections": [
+      {
+        "heading": "Audit & Assurance Services",
+        "items": [
+          {
+            "title": "Statutory Audit under Companies Act, 2013"
+          },
+          {
+            "title": "Internal Financial Control (IFC) Audits"
+          },
+          {
+            "title": "Tax Audit under Section 44AB of Income Tax Act"
+          },
+          {
+            "title": "Forensic and Investigation Audits"
+          },
+          {
+            "title": "Due Diligence Reviews"
+          },
+          {
+            "title": "Risk-Based Internal Audit"
+          },
+          {
+            "title": "Corporate Governance Review"
+          },
+          {
+            "title": "Compliance Audit (Statutory, Regulatory, and Process)"
+          },
+          {
+            "title": "Environmental Social Governance Reporting and Sustainability Audit"
+          }
+        ]
+      },
+      {
+        "heading": "Accounting & Bookkeeping Services",
+        "items": [
+          {
+            "title": "Cloud-based Bookkeeping & Automation"
+          },
+          {
+            "title": "Accounts Outsourcing & Virtual Accounting"
+          },
+          {
+            "title": "Preparation of Management Accounts (MIS) and Budgeting"
+          },
+          {
+            "title": "Financial Reporting as per Ind AS, IFRS & US GAAP"
+          },
+          {
+            "title": "Backlog Accounting & Books Cleanup"
+          },
+          {
+            "title": "Standard Operating Procedures (SOP) Implementation for Accounts Department"
+          },
+          {
+            "title": "Accounts Payable & Receivable Management"
+          }
+        ]
+      },
+      {
+        "heading": "Real Estate Services",
+        "items": [
+          {
+            "title": "Property Buying Assistance",
+            "description": "Site visit, legal check, builder verification, registry support"
+          },
+          {
+            "title": "Property Selling Services",
+            "description": "Verified buyers, market valuation, digital listing"
+          },
+          {
+            "title": "Flat / Apartment Booking",
+            "description": "Collaboration with top builders - special discounts & offers"
+          },
+          {
+            "title": "Home Loan Coordination",
+            "description": "Fast loan processing through 30+ banks/NBFCs"
+          },
+          {
+            "title": "Plot Purchase Support",
+            "description": "Legal land check, development approval & title clarity"
+          }
+        ]
+      },
+      {
+        "heading": "Commercial Property Services",
+        "items": [
+          {
+            "title": "Office / Shop Lease",
+            "description": "Location scouting, agreement drafting, registration support"
+          },
+          {
+            "title": "Commercial Property Buying",
+            "description": "Investment advisory, rental yield estimation"
+          },
+          {
+            "title": "Co-Working Space Setup",
+            "description": "Legal setup, branding, infrastructure advisory"
+          },
+          {
+            "title": "Retail Space Consulting",
+            "description": "Mall leasing, franchise location analysis"
+          }
+        ]
+      },
+      {
+        "heading": "Agricultural & Farm Land Services",
+        "items": [
+          {
+            "title": "Agricultural Land Purchase",
+            "description": "Land title verification, demarcation, conversion support"
+          },
+          {
+            "title": "Farm House Projects",
+            "description": "Land selection, layout planning, Vastu consultation"
+          },
+          {
+            "title": "NA Land / Conversion Service",
+            "description": "Agricultural to Residential/Commercial land conversion consultancy"
+          }
+        ]
+      },
+      {
+        "heading": "NRI & Investment Services",
+        "items": [
+          {
+            "title": "Property Management for NRIs",
+            "description": "End-to-end rental management, site inspection, maintenance"
+          },
+          {
+            "title": "Investment Planning",
+            "description": "ROI-focused land or flat investments with exit strategy"
+          },
+          {
+            "title": "Legal Due Diligence",
+            "description": "Property verification, POA registration, dispute check"
+          }
+        ]
+      },
+      {
+        "heading": "Legal & Documentation Services",
+        "items": [
+          {
+            "title": "Sale Deed Drafting & Registration"
+          },
+          {
+            "title": "Stamp Duty & E-Stamp Paper Assistance"
+          },
+          {
+            "title": "Mutation, Khasra-Khatauni, Patwari Work"
+          },
+          {
+            "title": "Power of Attorney & NOC Documentation"
+          }
+        ]
+      }
+    ],
+    "whyChooseUs": [
+      "Trusted Real Estate Advisors",
+      "Strong Network with Verified Builders",
+      "Expert Legal & Loan Support",
+      "Transparent Dealings & Digital Documentation",
+      "One-stop Solution from Plot to Possession"
+    ],
+    "pricing/fees/offers": [],
+    "formTitle": "Real Estate Services",
+    "anyCtaText": [
+      "Submit",
+      "Submitting...",
+      "Full Name",
+      "Email Address",
+      "Mobile Number",
+      "Type your message here"
+    ]
+  },
+  "dsa-franchise": {
+    "slug": "dsa-franchise",
+    "heroTitle": "Become a Franchise Partner with Probiz Management Services",
+    "heroSubtitle": "Join India's fastest-growing Loan DSA Franchise Network",
+    "sections": [
+      {
+        "heading": "Why Partner with Us?",
+        "items": [
+          {
+            "title": "Pre-qualified leads directly from our website"
+          },
+          {
+            "title": "Access to CRM & lead management system"
+          },
+          {
+            "title": "Exclusive territory rights for your city"
+          },
+          {
+            "title": "Ready tie-ups with leading Banks & NBFCs"
+          },
+          {
+            "title": "Sales & process training for you and your team"
+          },
+          {
+            "title": "Full backend and marketing support"
+          },
+          {
+            "title": "Scalable business model with minimal risk"
+          }
+        ]
+      },
+      {
+        "heading": "Franchise Model Overview",
+        "items": [
+          {
+            "title": "Setup your own Loan DSA office in your city"
+          },
+          {
+            "title": "We provide verified leads from our centralized lead generation system"
+          },
+          {
+            "title": "You focus on lead conversion & customer relationship"
+          },
+          {
+            "title": "Earn commissions on loans + cross-sell insurance & other financial products"
+          },
+          {
+            "title": "Ongoing training and technology support"
+          }
+        ]
+      },
+      {
+        "heading": "Investment & Earnings",
+        "items": [
+          {
+            "title": "One-Time Franchise Fee: ₹1.5 lakh to ₹3 lakh (depending on city)"
+          },
+          {
+            "title": "Optional Monthly Tech & Marketing Fee: ₹10,000/month"
+          },
+          {
+            "title": "Royalty: 10%-20% of your earned commissions"
+          },
+          {
+            "title": "Earnings Potential: ₹1 lakh to ₹5 lakh+ monthly (based on lead conversion)"
+          }
+        ]
+      },
+      {
+        "heading": "Who Can Apply?",
+        "items": [
+          {
+            "title": "Existing loan agents, financial advisors, or entrepreneurs"
+          },
+          {
+            "title": "Professionals with good networking & sales skills"
+          },
+          {
+            "title": "Ability to invest in a small office setup and basic team"
+          },
+          {
+            "title": "Passion for customer service and ethical business practices"
+          }
+        ]
+      },
+      {
+        "heading": "How We Support You",
+        "items": [
+          {
+            "title": "Centralized lead generation from website & digital ads"
+          },
+          {
+            "title": "CRM access for lead management"
+          },
+          {
+            "title": "Loan product training (Personal Loan, Home Loan, Business Loan, etc.)"
+          },
+          {
+            "title": "Branding & marketing collateral"
+          },
+          {
+            "title": "Dedicated relationship manager for ongoing support"
+          },
+          {
+            "title": "Assistance in onboarding with banks & NBFCs"
+          }
+        ]
+      },
+      {
+        "heading": "Ready to Start?",
+        "items": [
+          {
+            "title": "Become an exclusive Loan DSA Franchise Partner in your city."
+          },
+          {
+            "title": "‘Hum Leads Denge, Aap Business Banaiye!’"
+          }
+        ]
+      }
+    ],
+    "whyChooseUs": [
+      "Pre-qualified leads directly from our website",
+      "Access to CRM & lead management system",
+      "Exclusive territory rights for your city",
+      "Ready tie-ups with leading Banks & NBFCs",
+      "Sales & process training for you and your team",
+      "Full backend and marketing support",
+      "Scalable business model with minimal risk"
+    ],
+    "pricing/fees/offers": [
+      "One-Time Franchise Fee: ₹1.5 lakh to ₹3 lakh (depending on city)",
+      "Optional Monthly Tech & Marketing Fee: ₹10,000/month",
+      "Royalty: 10%-20% of your earned commissions",
+      "Earnings Potential: ₹1 lakh to ₹5 lakh+ monthly (based on lead conversion)"
+    ],
+    "formTitle": "DSA Franchise",
+    "anyCtaText": [
+      "Ready to Start?",
+      "Become an exclusive Loan DSA Franchise Partner in your city.",
+      "‘Hum Leads Denge, Aap Business Banaiye!’",
+      "Submit",
+      "Submitting...",
+      "Full Name",
+      "Email Address",
+      "Mobile Number",
+      "Type your message here"
+    ]
+  },
+  "registration-services": {
+    "slug": "registration-services",
+    "heroTitle": "Legal Documentation & Registration Services",
+    "heroSubtitle": null,
+    "sections": [
+      {
+        "heading": "Registry Services (पंजीकरण सेवाएं)",
+        "intro": "Legal registration of property documents as per Indian Registration Act, 1908.",
+        "items": [
+          {
+            "title": "Sale Deed Registration: For buying/selling property"
+          },
+          {
+            "title": "Gift Deed Registration: For gifting property to relatives"
+          },
+          {
+            "title": "Lease Deed Registration: Commercial/Residential lease above 11 months"
+          },
+          {
+            "title": "Power of Attorney (POA): Legal rights transfer to another person"
+          },
+          {
+            "title": "Property Partition Deed: Distribution of ancestral or joint property"
+          },
+          {
+            "title": "Builder Buyer Agreement: Flat booking documentation"
+          },
+          {
+            "title": "Land Registration: Agriculture/Plot/Land Purchase Registration"
+          },
+          {
+            "title": "Joint Development Agreement (JDA): Developer agreements with landowners"
+          }
+        ],
+        "additionalCopy": [
+          "Deliverables: Registered Deed, Index-2 Copy, Stamp Duty & Registration Receipt",
+          "Jurisdiction: Sub-Registrar Office (SRO) of respective area"
+        ]
+      },
+      {
+        "heading": "Notary Services (नोटरी सेवाएं)",
+        "intro": "Official attestation of documents to verify authenticity & legality.",
+        "items": [
+          {
+            "title": "Affidavit Notarization: Name Change, Address Proof, DOB correction"
+          },
+          {
+            "title": "Rental Agreement Notary: For less than 11-month rent contracts"
+          },
+          {
+            "title": "Declaration Notary: General declarations (legal, property, etc.)"
+          },
+          {
+            "title": "Educational Certificate Attest: Bonafide, Transfer Certificate, Marksheet, etc."
+          },
+          {
+            "title": "Business Agreement Notary: Partnership, NDA, Authorization letters"
+          }
+        ],
+        "additionalCopy": [
+          "Validity: Notarized documents are legally valid for use in government & private sectors",
+          "Authorized By: Government-authorized Notary Public"
+        ]
+      },
+      {
+        "heading": "E-Stamp Services (ई-स्टैम्प सेवा)",
+        "intro": "Digitally issued non-judicial stamp papers through SHCIL-authorized centers.",
+        "items": [
+          {
+            "title": "₹10 / ₹50 / ₹100: Affidavits, Agreements, Undertakings"
+          },
+          {
+            "title": "₹500 / ₹1000: Lease Agreements, Business Agreements"
+          },
+          {
+            "title": "₹2000 / ₹5000 / ₹10,000+: Property Sale, Partnership Deeds, Loan Documents"
+          }
+        ],
+        "additionalCopy": [
+          "Delivery: Hardcopy with seal or soft copy via Email/WhatsApp"
+        ],
+        "bullets": [
+          "Tamper-proof digital issue",
+          "Verifiable through official SHCIL portal",
+          "Instant delivery in PDF or print format"
+        ]
+      }
+    ],
+    "whyChooseUs": [
+      "Fast & Transparent Processing",
+      "Doorstep Document Pickup (Optional)",
+      "Expert Legal Guidance",
+      "Pan India Network with Local Office Support",
+      "Affordable Charges & GST Invoice"
+    ],
+    "pricing/fees/offers": [
+      "₹10 / ₹50 / ₹100",
+      "₹500 / ₹1000",
+      "₹2000 / ₹5000 / ₹10,000+"
+    ],
+    "formTitle": "Registration Services",
+    "anyCtaText": [
+      "Submit",
+      "Submitting...",
+      "Full Name",
+      "Email Address",
+      "Mobile Number",
+      "Type your message here"
+    ]
+  },
+  "government-business-services": {
+    "slug": "government-business-services",
+    "heroTitle": "Government Business Loan Schemes in India",
+    "heroSubtitle": null,
+    "sections": [
+      {
+        "heading": "Pradhan Mantri Mudra Yojana (PMMY)",
+        "intro": "This scheme offers collateral-free loans up to ₹10 lakhs to non-corporate, non-farm small/micro enterprises.",
+        "items": [
+          {
+            "title": "Shishu: Up to ₹50,000"
+          },
+          {
+            "title": "Kishor: ₹50,000 to ₹5 lakhs"
+          },
+          {
+            "title": "Tarun: ₹5 lakhs to ₹10 lakhs"
+          },
+          {
+            "title": "Eligibility",
+            "description": "Small manufacturers, service sector units, shopkeepers, fruit/vegetable vendors, truck operators, food-service units, repair shops, machine operators, small industries, artisans, food processors, etc."
+          }
+        ]
+      },
+      {
+        "heading": "Stand-Up India Scheme",
+        "intro": "Provides loans ranging from ₹10 lakhs to ₹1 crore to SC/ST and women entrepreneurs for setting up new enterprises.",
+        "items": [
+          {
+            "title": "Eligibility",
+            "description": "SC/ST or women entrepreneurs holding at least 51% stake in a new business or partnership firm."
+          }
+        ]
+      },
+      {
+        "heading": "Credit Guarantee Fund Trust for Micro and Small Enterprises (CGTMSE)",
+        "intro": "Offers collateral-free credit to micro and small enterprises (MSEs).",
+        "items": [
+          {
+            "title": "Eligibility",
+            "description": "New and existing MSEs (excluding retail trade, educational institutions, agriculture, and SHGs)."
+          }
+        ]
+      },
+      {
+        "heading": "SIDBI Make in India Soft Loan Fund for MSMEs (SMILE)",
+        "intro": "Provides soft loans to new and existing MSMEs for business expansion.",
+        "items": [
+          {
+            "title": "Eligibility",
+            "description": "New and existing enterprises in manufacturing and service sectors."
+          }
+        ]
+      },
+      {
+        "heading": "Bank Credit Facilitation Scheme (by NSIC)",
+        "intro": "Implemented by NSIC, this scheme helps MSMEs obtain credit support from banks without additional fees.",
+        "items": [
+          {
+            "title": "Eligibility",
+            "description": "Registered MSMEs across India."
+          }
+        ]
+      },
+      {
+        "heading": "Prime Minister’s Employment Generation Programme (PMEGP)",
+        "intro": "Provides financial assistance to establish new micro-enterprises.",
+        "items": [
+          {
+            "title": "Eligibility",
+            "description": "Individuals above 18 years of age looking to set up a new enterprise."
+          }
+        ]
+      }
+    ],
+    "whyChooseUs": [],
+    "pricing/fees/offers": [
+      "Up to ₹10 lakhs",
+      "Up to ₹50,000",
+      "₹50,000 to ₹5 lakhs",
+      "₹5 lakhs to ₹10 lakhs",
+      "₹10 lakhs to ₹1 crore"
+    ],
+    "formTitle": "Government Business Loan",
+    "anyCtaText": [
+      "Submit",
+      "Submitting...",
+      "Full Name",
+      "Email Address",
+      "Mobile Number",
+      "Type your message here"
+    ]
+  },
+  "digital-marketing-sevice": {
+    "slug": "digital-marketing-sevice",
+    "heroTitle": "Digital Marketing & App Development Services",
+    "heroSubtitle": null,
+    "sections": [
+      {
+        "heading": "Social Media Marketing",
+        "items": [
+          {
+            "title": "Facebook, Instagram, LinkedIn, YouTube Setup"
+          },
+          {
+            "title": "Creative Post Designing & Scheduling"
+          },
+          {
+            "title": "Targeted Ad Campaigns & Hashtag Strategy"
+          }
+        ]
+      },
+      {
+        "heading": "SEO & SEM",
+        "items": [
+          {
+            "title": "On-Page & Off-Page SEO Optimization"
+          },
+          {
+            "title": "Google Ads & PPC Campaign Management"
+          },
+          {
+            "title": "Keyword Research & Monthly Reporting"
+          }
+        ]
+      },
+      {
+        "heading": "Website Development",
+        "items": [
+          {
+            "title": "Business & E-commerce Websites"
+          },
+          {
+            "title": "Mobile Responsive & SEO-Friendly"
+          },
+          {
+            "title": "WhatsApp & Payment Integration"
+          }
+        ]
+      },
+      {
+        "heading": "WhatsApp & SMS Marketing",
+        "items": [
+          {
+            "title": "Bulk WhatsApp & SMS Campaigns"
+          },
+          {
+            "title": "Lead Follow-up Automation"
+          },
+          {
+            "title": "CRM Integration (Optional)"
+          }
+        ]
+      },
+      {
+        "heading": "Branding & Graphic Design",
+        "items": [
+          {
+            "title": "Logo, Poster, Banner & Visiting Card Design"
+          },
+          {
+            "title": "Festival & Promotional Creatives"
+          },
+          {
+            "title": "Ad Creatives for Facebook & Google"
+          }
+        ]
+      },
+      {
+        "heading": "Mobile App Development",
+        "items": [
+          {
+            "title": "Custom Android & iOS Apps"
+          },
+          {
+            "title": "User-Friendly UI/UX Design"
+          },
+          {
+            "title": "App Store Publishing & ASO"
+          }
+        ]
+      }
+    ],
+    "whyChooseUs": [
+      "End-to-End Service from Strategy to Execution",
+      "Creative & Experienced Digital & App Team",
+      "Performance-Focused Marketing & Tech Plans",
+      "Affordable Packages for Startups & MSMEs",
+      "Monthly Reporting & Transparent Communication"
+    ],
+    "pricing/fees/offers": [],
+    "formTitle": "Digital Marketing Service",
+    "anyCtaText": [
+      "Let’s Build Your Brand & App Online!",
+      "Submit",
+      "Submitting...",
+      "Full Name",
+      "Email Address",
+      "Mobile Number",
+      "Type your message here"
+    ]
+  },
+  "e-stamp-services": {
+    "slug": "e-stamp-services",
+    "heroTitle": "Customer Attraction Strategy",
+    "heroSubtitle": "For Registry, Notary & E-Stamp Services",
+    "sections": [
+      {
+        "heading": "Instant Estimate Calculator",
+        "intro": "Check stamp duty and registration charges by entering property details.",
+        "items": []
+      },
+      {
+        "heading": "WhatsApp Chat Button",
+        "intro": "Quickly connect with us via WhatsApp for instant support.",
+        "items": []
+      },
+      {
+        "heading": "TAT-Based Promise",
+        "intro": "Guaranteed registration completion in 48 hours!",
+        "items": []
+      },
+      {
+        "heading": "Google Reviews Integration",
+        "intro": "Showcasing real customer reviews for transparency.",
+        "items": []
+      },
+      {
+        "heading": "Ready Templates & Samples",
+        "intro": "Download affidavits, rent agreements & more in exchange for contact info.",
+        "items": []
+      },
+      {
+        "heading": "Explainer Video",
+        "intro": "A 1-minute animation explaining registry, notary, and e-stamp processes.",
+        "items": []
+      }
+    ],
+    "whyChooseUs": [],
+    "pricing/fees/offers": [
+      "₹200 OFF on First Notary Service",
+      "Combo Pack: Registry + E-Stamp + Notary @ ₹999*"
+    ],
+    "formTitle": "Credit Score Service",
+    "anyCtaText": [
+      "Submit",
+      "Submitting...",
+      "Full Name",
+      "Email Address",
+      "Mobile Number",
+      "Type your message here"
+    ]
+  },
+  "business-consultation-service": {
+    "slug": "business-consultation-service",
+    "heroTitle": "Business Consultation & Launch Support",
+    "heroSubtitle": "Helping Small Businesses Start, Grow & Succeed",
+    "sections": [
+      {
+        "heading": "Business Planning & Idea Validation",
+        "intro": "Market research, competitor analysis & brand name suggestions.",
+        "items": []
+      },
+      {
+        "heading": "Legal Setup & Paperwork",
+        "intro": "Company registration, GST, UDYAM, MSME, PAN, and licenses.",
+        "items": []
+      },
+      {
+        "heading": "Business Funding & Finance",
+        "intro": "Loan schemes, capital planning & accounting system setup.",
+        "items": []
+      },
+      {
+        "heading": "Branding & Design",
+        "intro": "Logo, visiting card, packaging & brand story.",
+        "items": []
+      },
+      {
+        "heading": "Online Presence & Website",
+        "intro": "Website setup, Google My Business & social media.",
+        "items": []
+      },
+      {
+        "heading": "Marketing & Promotion",
+        "intro": "Flyers, social media ads, SEO & influencer outreach.",
+        "items": []
+      },
+      {
+        "heading": "Lead Generation & CRM",
+        "intro": "Getting leads, CRM setup & follow-up strategies.",
+        "items": []
+      },
+      {
+        "heading": "Business Growth & Support",
+        "intro": "Revenue planning, expansion ideas & continuous support.",
+        "items": []
+      },
+      {
+        "heading": "Program Features",
+        "items": [
+          {
+            "title": "Duration: 30 Days / Fast Track in 15 Days"
+          },
+          {
+            "title": "One-on-One Mentorship + Group Sessions"
+          },
+          {
+            "title": "All Templates, Formats & Designs Provided"
+          },
+          {
+            "title": "Full Support via Call / WhatsApp / Video"
+          },
+          {
+            "title": "GST Invoice + Certification of Completion"
+          }
+        ]
+      },
+      {
+        "heading": "Who Should Join?",
+        "items": [
+          {
+            "title": "Small Business Starters (Shop, Online Seller, Service Provider)"
+          },
+          {
+            "title": "Local Traders, Retailers, Freelancers"
+          },
+          {
+            "title": "Women Entrepreneurs, Students, Homepreneurs"
+          }
+        ]
+      }
+    ],
+    "whyChooseUs": [],
+    "pricing/fees/offers": [
+      "Duration: 30 Days / Fast Track in 15 Days"
+    ],
+    "formTitle": "Business Consultation",
+    "anyCtaText": [
+      "Ready to Build Your Dream Business?",
+      "Submit",
+      "Submitting...",
+      "Full Name",
+      "Email Address",
+      "Mobile Number",
+      "Type your message here"
+    ]
+  },
+  "credit-score-check-service": {
+    "slug": "credit-score-check-service",
+    "heroTitle": "India’s First DSA Platform Offering Free Credit Score Check!",
+    "heroSubtitle": "Only at Probiz Finance - Empowering Smart Borrowers",
+    "sections": [
+      {
+        "heading": "Why This is a Game-Changer for You?",
+        "intro": "Forget waiting in banks or paying hefty charges just to check your credit score. Now check your credit score instantly - right from our loan DSA platform!",
+        "items": []
+      },
+      {
+        "heading": "What You Get - Instantly & Free!",
+        "items": [
+          {
+            "title": "Your Real-Time Credit Score (CIBIL / Experian / Equifax)"
+          },
+          {
+            "title": "Loan Eligibility Insights"
+          },
+          {
+            "title": "Existing Loan Summary & Credit Health Snapshot"
+          },
+          {
+            "title": "Pre-assessment for Personal, Business & Home Loans"
+          },
+          {
+            "title": "Takes less than 30 seconds. No impact on your score"
+          }
+        ]
+      },
+      {
+        "heading": "Want a Downloadable Official Credit Report?",
+        "items": [
+          {
+            "title": "Complete PDF Report with Loan History"
+          },
+          {
+            "title": "Overdue Accounts, DPDs, Settled Accounts Info"
+          },
+          {
+            "title": "Useful for loan sanctioning, property deals, personal records"
+          }
+        ]
+      },
+      {
+        "heading": "Get it for just ₹99 only (No hidden fees)",
+        "intro": "Why We Charge ₹99 for Download?",
+        "items": [
+          {
+            "title": "Official credit report in your inbox"
+          },
+          {
+            "title": "Verified report from authorized bureaus"
+          },
+          {
+            "title": "Priority support from our Credit Experts"
+          },
+          {
+            "title": "Loan Pre-Eligibility Suggestions - FREE!"
+          },
+          {
+            "title": "And yes - ₹99 will be adjusted in your file processing if you apply with us."
+          }
+        ]
+      },
+      {
+        "heading": "100% Secure. 100% Private.",
+        "items": [
+          {
+            "title": "Your data is encrypted"
+          },
+          {
+            "title": "We never share your info with third parties"
+          },
+          {
+            "title": "Trusted by 10,000+ smart borrowers like you"
+          }
+        ]
+      },
+      {
+        "heading": "Experience the DSA Revolution - Only with Probiz!",
+        "intro": "No Bank Offers This. No Other DSA Has This. We’re not just a DSA - we’re a complete financial ecosystem.",
+        "items": []
+      }
+    ],
+    "whyChooseUs": [
+      "Your data is encrypted",
+      "We never share your info with third parties",
+      "Trusted by 10,000+ smart borrowers like you"
+    ],
+    "pricing/fees/offers": [
+      "Get it for just ₹99 only (No hidden fees)",
+      "₹99 will be adjusted in your file processing if you apply with us.",
+      "Takes less than 30 seconds."
+    ],
+    "formTitle": "Credit Score Service",
+    "anyCtaText": [
+      "CHECK CREDIT SCORE",
+      "Submit",
+      "Submitting...",
+      "Full Name",
+      "Email Address",
+      "Mobile Number",
+      "Type your message here"
+    ]
+  }
+}
