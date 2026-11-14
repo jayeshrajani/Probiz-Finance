@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "seed:areas": "node scripts/seed-areas.js"
+    "seed:areas": "node scripts/seed-areas.js",
+    "backfill:leads": "node scripts/backfill-leads.js",
+    "check:intake": "node scripts/check-intake.mjs"
   },
   "engines": {
     "node": ">=20.9"

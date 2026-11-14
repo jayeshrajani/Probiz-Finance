@@ -12,12 +12,13 @@ import { formatINRShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const LIMIT = 25;
+const CHANNEL_LABEL = { web_form: "Website form", assistant: "Assistant", staff: "Staff entry", legacy_api: "Older form", legacy_import: "Imported" };
 const amountText = (v) => (v === null || v === undefined || v === "" ? "" : Number.isFinite(Number(v)) ? formatINRShort(Number(v)) : String(v));
 
 function Leads() {
   const router = useRouter();
   const { config, isAdmin } = useAdmin();
-  const { type = "", status = "", q = "", page = "1", scope = "" } = router.query;
+  const { type = "", status = "", q = "", page = "1", scope = "", channel = "" } = router.query;
   const typeDef = config.types.find((t) => t.type === type);
   const owner = config.employees.find((e) => e.id === scope);
   const heading = typeDef
@@ -40,7 +41,7 @@ function Leads() {
         : "Open a lead and act on it to make it yours."
       : typeDef
         ? "Submissions from this form on the website."
-        : "Newest first.";
+        : "Most recent activity first.";
   const [search, setSearch] = useState(q);
   const [exporting, setExporting] = useState(false);
 
@@ -64,8 +65,9 @@ function Leads() {
     if (status) p.set("status", status);
     if (q) p.set("q", q);
     if (scope) p.set("scope", scope);
+    if (channel) p.set("channel", channel);
     return `admin/leads?${p}`;
-  }, [router.isReady, type, status, q, page, scope]);
+  }, [router.isReady, type, status, q, page, scope, channel]);
 
   const { data, error, loading, reload } = useAdminData(path);
   const rows = data?.data || [];
@@ -79,6 +81,7 @@ function Leads() {
       if (status) p.set("status", status);
       if (q) p.set("q", q);
       if (scope) p.set("scope", scope);
+      if (channel) p.set("channel", channel);
       let all = [];
       for (let n = 1; ; n++) {
         p.set("page", String(n));
@@ -95,7 +98,10 @@ function Leads() {
         { label: "Detail", value: (r) => r.detail },
         { label: "Status", value: (r) => STATUS_META[r.status]?.label },
         { label: "Advisor", value: (r) => r.assignedName || "Unassigned" },
+        { label: "Source", value: (r) => CHANNEL_LABEL[r.channel] || "" },
+        { label: "Times sent", value: (r) => r.repeatCount + 1 },
         { label: "Received", value: (r) => formatDateTime(r.createdAt) },
+        { label: "Last activity", value: (r) => formatDateTime(r.lastActivityAt) },
       ], all);
     } finally {
       setExporting(false);
@@ -170,6 +176,19 @@ function Leads() {
                 </>
               )}
             </select>
+            <select
+              aria-label="Source"
+              value={channel}
+              onChange={(e) => setQuery({ channel: e.target.value, page: "" })}
+              className="h-9 rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus:border-brand"
+            >
+              <option value="">Any source</option>
+              {(config.channels || []).map((c) => (
+                <option key={c} value={c}>
+                  {CHANNEL_LABEL[c] || c}
+                </option>
+              ))}
+            </select>
             {!typeDef && (
               <select
                 aria-label="Product"
@@ -223,7 +242,7 @@ function Leads() {
                   <th className="px-5 py-3 font-medium">Contact</th>
                   <th className="px-5 py-3 font-medium">Amount</th>
                   <th className="hidden px-5 py-3 font-medium xl:table-cell">Detail</th>
-                  <th className="px-5 py-3 font-medium">Received</th>
+                  <th className="px-5 py-3 font-medium">Last activity</th>
                   <th className="hidden px-5 py-3 font-medium lg:table-cell">Advisor</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                 </tr>
@@ -235,7 +254,14 @@ function Leads() {
                       <Link href={`/admin-panel/leads/${r.type}/${r.id}`} onClick={(e) => e.stopPropagation()} className="font-medium hover:text-brand-ink">
                         {r.name}
                       </Link>
-                      {!typeDef && <span className="block text-xs text-muted-foreground">{r.typeLabel}</span>}
+                      {r.repeatCount > 0 && (
+                        <span title="Sent the form more than once" className="ml-2 rounded-full bg-brand-soft px-1.5 py-0.5 text-[0.6875rem] font-medium text-brand-ink tabular-nums">
+                          ×{r.repeatCount + 1}
+                        </span>
+                      )}
+                      <span className="block text-xs text-muted-foreground">
+                        {[!typeDef && r.typeLabel, CHANNEL_LABEL[r.channel]].filter(Boolean).join(" · ")}
+                      </span>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="block tabular-nums">{r.phone || "-"}</span>
@@ -243,8 +269,8 @@ function Leads() {
                     </td>
                     <td className="px-5 py-3.5 tabular-nums">{amountText(r.amount) || <span className="text-muted-foreground">-</span>}</td>
                     <td className="hidden max-w-[14rem] truncate px-5 py-3.5 text-muted-foreground xl:table-cell">{r.detail || "-"}</td>
-                    <td className="px-5 py-3.5 whitespace-nowrap text-muted-foreground" title={formatDateTime(r.createdAt)}>
-                      {timeAgo(r.createdAt)}
+                    <td className="px-5 py-3.5 whitespace-nowrap text-muted-foreground" title={`Received ${formatDateTime(r.createdAt)}`}>
+                      {timeAgo(r.lastActivityAt || r.createdAt)}
                     </td>
                     <td className="hidden px-5 py-3.5 lg:table-cell">
                       {r.assignedName ? <span className="text-sm">{r.assignedName}</span> : <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">Unassigned</span>}

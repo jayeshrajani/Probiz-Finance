@@ -17,13 +17,14 @@ Probiz-Finance/
 │   ├── models/            Data schemas (Mongoose-style definitions)
 │   ├── admin/leads.js     Registry of every lead form the admin can work through
 │   ├── middlewares/       File-upload rules per form, admin token guard
+│   ├── leads/             Lead intake: gate, envelope + events, WhatsApp alert, backfill
 │   ├── odm.js             Mongoose-compatible data layer on Postgres JSONB
 │   ├── http.js            Express-style router, body/multipart parsing
 │   ├── db.js              Postgres (DATABASE_URL) or local PGlite
 │   └── storage.js         Supabase Storage (or public/uploads in dev)
 ├── public/                Static assets
 ├── styles/                Tailwind + global CSS for the website
-└── scripts/               seed-areas.js, smoke-api.sh
+└── scripts/               seed-areas.js, smoke-api.sh, check-intake.mjs, backfill-leads.js
 ```
 
 ## How it works
@@ -56,14 +57,34 @@ flowchart LR
   | Customers, subscribers | | | yes |
   | Team | | own password | add/remove admins and employees, reset employee passwords |
 
-- **Staff panel**: leads from all ~35 forms are read through `/api/admin/*` (`server/controllers/adminPanel.controller.js`), which adds a status (new, contacted, in progress, converted, closed), an assigned employee and a note log per lead, stored in the `LeadMeta` table. Removing an employee returns their open leads to the pool.
+- **Lead intake**: every way a lead arrives (the ~35 website forms, the assistant's callback, old API URLs, staff-added in-house properties) goes through `server/leads/intake.js`:
+
+  ```mermaid
+  flowchart LR
+    F["POST /api/leads/:formKey<br/>(or an old form URL)"] --> G{Gate}
+    G -->|honeypot filled| X[fake 201, nothing saved]
+    G -->|over rate limit| T[429]
+    G -->|invalid or no consent| V[400 + field errors]
+    G --> C[form controller saves the application]
+    C --> L{same product + phone,<br/>open, last 7 days?}
+    L -->|yes| R[merge into that Lead<br/>event lead.repeat]
+    L -->|no| N[new Lead<br/>event lead.created]
+    N --> W[WhatsApp alert to the team]
+  ```
+
+  - The full application stays in its per-form table. The `Lead` table holds one row per lead (name, phone, product, status, owner, source, consent, linked customer, repeat count) and `LeadEvent` is its append-only history (created, repeat, assigned, status changed, note, notification sent/failed). The staff panel reads only these two.
+  - Validation uses the same rules as the browser (`lib/lead-schema.js` over `lib/forms.js`). Consent is required on website and assistant submissions and stored with its wording and version. The browser sends `_meta` with consent, channel, page, first landing page, external referrer, UTM tags and device (`lib/attribution.js`).
+  - Rate limits live in a Postgres `rate_limits` table: 5 submissions per IP per product per 10 minutes, 30 per IP per day. Forwarded IP headers are trusted only on Vercel or with `TRUST_PROXY=1`.
+  - A signed-in customer's token links the lead to their account. Uploads are capped at 5 MB per file; wrong types and oversized files are rejected with a message instead of silently dropped.
+  - Leads from before this pipeline (and their old `LeadMeta` status, owner and notes) are imported automatically on the first staff-panel request after a server start; `npm run backfill:leads` does the same by hand.
+- **Staff panel**: `/api/admin/*` (`server/controllers/adminPanel.controller.js`) lists, filters (status, advisor, product, source) and updates leads. Status, assignment and notes are written as events. Removing an employee returns their open leads to the pool.
 - **Access control**: `server/middlewares/staffAuth.js` checks Bearer tokens signed with `role: admin` or `role: employee`. `server/routes/index.js` puts every read of customer data, every update and delete, and the admin-only create endpoints behind `requireAdmin`; employees get 403 there. Public reads (property listings, areas, health) and form submissions stay open. `POST /api/createAdmin` works without a token only while no admin exists.
 - **Local dev without setup**: if `DATABASE_URL` is empty the app uses PGlite (Postgres compiled to WebAssembly) stored in `.data/pglite`, and uploads go to `public/uploads/`.
 
 Known gaps carried over from the old code:
 - `PUT /api/changeUserPassword/:id` needs no token but does require the user's current password; the website doesn't use it yet.
 - Cashfree and credit-score endpoints are stubs.
-- The chat assistant (`components/assistant/`) is rule-based and runs in the browser; it only sends data when a visitor requests a callback (saved as a contact enquiry).
+- The chat assistant (`components/assistant/`) is rule-based and runs in the browser; it only sends data when a visitor requests a callback (a `contact` lead with channel `assistant`).
 
 ## Local development
 
@@ -74,6 +95,12 @@ npm install
 cp .env.example .env.local     # set JWT_SECRET (openssl rand -hex 32); leave the rest empty
 npm run dev                    # http://localhost:3000 and http://localhost:3000/admin-panel
 bash scripts/smoke-api.sh      # optional API smoke test
+```
+
+End-to-end lead intake check (every form, validation, consent, honeypot, rate limit, duplicate merge, old URLs, assistant, customer link). Start the server with `TRUST_PROXY=1 npm run dev` so each check can use its own IP, then:
+
+```bash
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... CUSTOMER_EMAIL=... CUSTOMER_PASSWORD=... npm run check:intake
 ```
 
 Create the first admin account (only works while there are no admins; later admins are added from Team in the panel):
@@ -129,4 +156,17 @@ On Vercel, certificates are issued and renewed automatically with the full chain
 | `SUPABASE_STORAGE_BUCKET` | no | Bucket name, default `uploads` |
 | `NEXT_PUBLIC_API_URL` | no | Use an API on another host instead of this app's `/api` |
 | `FORCE_HTTPS` | no | Set to `1` at build time to send HSTS and `upgrade-insecure-requests` outside Vercel |
+| `TRUST_PROXY` | no | `1` to take the visitor IP from `X-Forwarded-For` (only behind a proxy that sets it; automatic on Vercel) |
+| `SITE_URL` | no | Public site URL used in alert links, default `https://probizfinance.com` |
+| `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE`, `WHATSAPP_ALERT_TO` | no | New-lead WhatsApp alerts; see below |
+| `WHATSAPP_TEMPLATE_LANG`, `WHATSAPP_API_VERSION` | no | Template language (default `en`) and Graph API version (default `v21.0`) |
 | `NEXT_PUBLIC_CASHFREE_MODE(_PRODUCTION)` | no | Cashfree checkout mode |
+
+### WhatsApp new-lead alerts
+
+Off until all four required variables are set. Each new lead (not repeats) sends a template message through the Meta WhatsApp Cloud API to every number in `WHATSAPP_ALERT_TO`; the result is logged on the lead as "WhatsApp alert sent" or "Alert failed: ...".
+
+1. In Meta Business Manager, add a WhatsApp Business account and a sender phone number. Copy its **Phone number ID** → `WHATSAPP_PHONE_NUMBER_ID`.
+2. Create a System User with the `whatsapp_business_messaging` permission and generate a permanent token → `WHATSAPP_TOKEN`.
+3. Create a *Utility* message template, e.g. `new_lead`, with four body variables: `New {{1}} lead: {{2}}, {{3}}. Open: {{4}}` (product, name, phone, panel link). Once approved, set `WHATSAPP_TEMPLATE=new_lead`.
+4. Set `WHATSAPP_ALERT_TO` to the team's numbers with country code, comma-separated (e.g. `919826000000,919827000000`).

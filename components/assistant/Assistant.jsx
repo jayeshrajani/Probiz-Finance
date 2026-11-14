@@ -7,6 +7,7 @@ import { ArrowRight, ArrowUp, CheckCircle, SpinnerGap, X } from "@phosphor-icons
 import { ASSISTANT_EVENT } from "@/components/assistant/events";
 import { reply, STARTERS } from "@/components/assistant/brain";
 import { errorMessage, postJSON } from "@/lib/api";
+import { leadMeta } from "@/lib/attribution";
 import { formatINR } from "@/lib/format";
 import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
@@ -62,7 +63,7 @@ function EmiCard({ emi }) {
 }
 
 function CallbackForm({ topic }) {
-  const [values, setValues] = useState({ name: "", mobile_no: "", email: "" });
+  const [values, setValues] = useState({ name: "", mobile_no: "", email: "", consent: false });
   const [state, setState] = useState({ status: "idle", error: "" });
 
   async function onSubmit(e) {
@@ -71,12 +72,14 @@ function CallbackForm({ topic }) {
     if (values.name.trim().length < 2) return setState({ status: "idle", error: "Please add your name." });
     if (!/^[6-9]\d{9}$/.test(mobile)) return setState({ status: "idle", error: "Enter a 10-digit mobile number." });
     if (!/^\S+@\S+\.\S+$/.test(values.email)) return setState({ status: "idle", error: "Enter a valid email." });
+    if (!values.consent) return setState({ status: "idle", error: "Please tick the box so we can call you." });
     setState({ status: "busy", error: "" });
-    const res = await postJSON("addContactUs", {
+    const res = await postJSON("leads/contact", {
       name: values.name.trim(),
       mobile_no: mobile,
       email: values.email.trim(),
       message: `Callback requested from the website assistant.${topic ? ` Topic: ${topic}` : ""}`,
+      _meta: leadMeta({ channel: "assistant", consent: true, topic }),
     });
     setState(res.ok ? { status: "done", error: "" } : { status: "idle", error: errorMessage(res.data) });
   }
@@ -97,6 +100,12 @@ function CallbackForm({ topic }) {
       <input aria-label="Your name" placeholder="Your name" autoComplete="name" className={field} value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} />
       <input aria-label="Mobile number" placeholder="Mobile number" type="tel" inputMode="numeric" autoComplete="tel" className={field} value={values.mobile_no} onChange={(e) => setValues({ ...values, mobile_no: e.target.value })} />
       <input aria-label="Email" placeholder="Email" type="email" autoComplete="email" className={field} value={values.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
+      <label className="flex cursor-pointer items-start gap-2 px-1 pt-1 text-xs leading-relaxed text-muted-foreground">
+        <input type="checkbox" checked={values.consent} onChange={(e) => setValues({ ...values, consent: e.target.checked })} className="mt-0.5 size-3.5 shrink-0 accent-[var(--brand)]" />
+        <span>
+          Probiz can call, WhatsApp or email me about this. <Link href="/privacy-policy" className="underline underline-offset-2">Privacy policy</Link>
+        </span>
+      </label>
       {state.error && (
         <p role="alert" className="px-1 text-xs text-destructive">
           {state.error}

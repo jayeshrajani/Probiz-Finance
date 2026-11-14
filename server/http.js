@@ -86,11 +86,14 @@ function multipart(allowedTypes) {
         if (!contentType(req).includes('multipart/form-data')) {
           req.body = await parseBody(req);
           req.files = {};
+          if (req.leadGate && !(await req.leadGate(req, res, []))) return;
           return next();
         }
-        const { body, files } = await parseMultipart(req, limits, allowedTypes);
+        const { body, files, rejected } = await parseMultipart(req, limits, allowedTypes);
         req.body = body;
         req.files = {};
+        req.rejectedFiles = rejected;
+        if (req.leadGate && !(await req.leadGate(req, res, files))) return;
         await Promise.all(files.map(async (file) => {
           file.location = await uploadFile(file.buffer, { originalName: file.originalname, mimetype: file.mimetype });
           delete file.buffer;
@@ -104,28 +107,36 @@ function multipart(allowedTypes) {
   };
 }
 
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
 function parseMultipart(req, limits, allowedTypes) {
   return new Promise((resolve, reject) => {
     const body = {};
     const files = [];
+    const rejected = [];
     const counts = {};
-    const bb = Busboy({ headers: req.headers });
+    const bb = Busboy({ headers: req.headers, limits: { fileSize: MAX_FILE_BYTES, files: 30 } });
     bb.on('field', (name, value) => addField(body, name, value));
     bb.on('file', (name, stream, info) => {
       counts[name] = (counts[name] || 0) + 1;
-      const accepted = name in limits && counts[name] <= limits[name] && allowedTypes.includes(info.mimeType);
-      if (!accepted) {
+      const known = name in limits && counts[name] <= limits[name];
+      if (!known || !allowedTypes.includes(info.mimeType)) {
+        if (known) rejected.push({ field: name, filename: info.filename, reason: 'type' });
         stream.resume();
         return;
       }
       const chunks = [];
       stream.on('data', (c) => chunks.push(c));
       stream.on('end', () => {
+        if (stream.truncated) {
+          rejected.push({ field: name, filename: info.filename, reason: 'size' });
+          return;
+        }
         const buffer = Buffer.concat(chunks);
         files.push({ fieldname: name, originalname: info.filename, mimetype: info.mimeType, size: buffer.length, buffer });
       });
     });
-    bb.on('close', () => resolve({ body, files }));
+    bb.on('close', () => resolve({ body, files, rejected }));
     bb.on('error', reject);
     req.pipe(bb);
   });
@@ -176,4 +187,4 @@ async function dispatch(req, res) {
   }
 }
 
-module.exports = { app, routes, dispatch, raw, multipart };
+module.exports = { app, routes, dispatch, raw, multipart, parseBody, runChain };

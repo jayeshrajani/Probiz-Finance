@@ -53,7 +53,7 @@ export default function SignInPage() {
     const res = await postJSON("userLogin", { user_Email: email, password });
     setBusy(false);
     if (res.ok && res.data?.data) {
-      signIn(res.data.data);
+      signIn({ ...res.data.data, accessToken: res.data.accessToken });
       toast.success("Signed in.");
       router.push(typeof router.query.next === "string" && router.query.next.startsWith("/") ? router.query.next : "/");
     } else {

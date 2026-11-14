@@ -16,6 +16,9 @@ require('./user.routes')(app);
 require('./calculator.route')(app);
 require('./adminPanel.routes')(app);
 
+// Every lead form (old URLs and POST /api/leads/:formKey) goes through one intake pipeline.
+require('../leads/intake').installLeadIntake(app, routes);
+
 // Customer data must never be readable without an admin token. Public reads and form submissions stay open.
 const PUBLIC_READS = new Set([
     '/api/health',

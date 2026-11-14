@@ -1,7 +1,11 @@
 // Minimal Mongoose-compatible ODM backed by Postgres: one table per model, documents stored as JSONB.
 // Supports the subset of the Mongoose API used by server/controllers.
 const { randomUUID } = require('crypto');
+const { AsyncLocalStorage } = require('async_hooks');
 const db = require('./db');
+
+// Collects inserts made while handling one request, so the lead pipeline can find the record a controller saved.
+const saveTracker = new AsyncLocalStorage();
 
 const OBJECT_ID = 'ObjectId';
 const MIXED = 'Mixed';
@@ -437,6 +441,7 @@ function model(modelName, schema) {
       await checkUnique(this._id, data);
       await db.ensureTable(table);
       const json = JSON.stringify(data);
+      const inserting = this.$isNew;
       // ::text::jsonb stops postgres.js from JSON-encoding the already-serialized string again.
       const rows = this.$isNew
         ? await db.query(`INSERT INTO "${table}" (id, data) VALUES ($1, $2::text::jsonb) RETURNING created_at, updated_at`, [this._id, json])
@@ -451,6 +456,7 @@ function model(modelName, schema) {
       }
       this.$isNew = false;
       this.$errors = {};
+      if (inserting) saveTracker.getStore()?.push({ model: Document, id: this._id });
       return this;
     }
 
@@ -675,4 +681,4 @@ const Types = {
   }),
 };
 
-module.exports = { Schema, model, Types, ValidationError, CastError, Promise: global.Promise };
+module.exports = { Schema, model, Types, ValidationError, CastError, Promise: global.Promise, saveTracker };

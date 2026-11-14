@@ -1,40 +1,92 @@
 const bcrypt = require('bcryptjs');
 const Admin = require('../models/admin.model');
 const Employee = require('../models/employee.model');
-const LeadMeta = require('../models/leadMeta.model');
+const Lead = require('../models/lead.model');
+const LeadEvent = require('../models/leadEvent.model');
 const User = require('../models/user.model');
 const Property = require('../models/property.model');
 const Newsletter = require('../models/newslatter.model');
 const { signStaffToken } = require('../middlewares/staffAuth');
-const { LEAD_TYPES, GROUPS, byType, summarize } = require('../admin/leads');
+const { LEAD_TYPES, GROUPS, byType } = require('../admin/leads');
+const { ensureBackfilled } = require('../leads/backfill');
+const { emit } = require('../leads/events');
 
 const STATUSES = ['new', 'contacted', 'in_progress', 'won', 'lost'];
 const OPEN = new Set(['new', 'contacted', 'in_progress']);
+const CHANNELS = ['web_form', 'assistant', 'staff', 'legacy_api', 'legacy_import'];
 const DAY = 24 * 60 * 60 * 1000;
 const HIDDEN_FIELDS = new Set(['_id', '__v', 'password', 'deleteFlag']);
 
 const isAdmin = (req) => req.staff.role === 'admin';
-const metaKey = (type, id) => `${type}:${id}`;
 const byNewest = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
+const byActivity = (a, b) => new Date(b.lastActivityAt || b.createdAt) - new Date(a.lastActivityAt || a.createdAt);
 const fail = (res, status, message) => res.status(status).json({ message, status });
 
 // Employees work their own leads plus the unassigned pool; admins see everything.
 const canSee = (req, lead) => isAdmin(req) || !lead.assignedTo || lead.assignedTo === req.staff.id;
 
-async function loadMetas(types) {
-  const metas = await LeadMeta.find(types ? { type: { $in: types } } : {}).lean();
-  return new Map(metas.map((meta) => [metaKey(meta.type, meta.leadId), meta]));
+const row = (lead) => ({
+  id: String(lead._id),
+  type: lead.type,
+  typeLabel: byType[lead.type]?.label || lead.type,
+  name: lead.name || 'Unnamed',
+  phone: lead.phone,
+  email: lead.email,
+  amount: lead.amount,
+  detail: lead.detail,
+  createdAt: lead.createdAt,
+  lastActivityAt: lead.lastActivityAt || lead.createdAt,
+  status: lead.status || 'new',
+  assignedTo: lead.assignedTo || null,
+  assignedName: lead.assignedName || null,
+  channel: lead.source?.channel || null,
+  repeatCount: lead.repeatCount || 0,
+});
+
+async function loadLeads(filter = {}) {
+  await ensureBackfilled();
+  return (await Lead.find(filter).lean()).map(row);
 }
 
-async function loadLeads(defs, types) {
-  const [lists, metas] = await Promise.all([
-    Promise.all(defs.map(async (def) => (await def.model.find({}).lean()).map((doc) => summarize(def, doc)))),
-    loadMetas(types),
-  ]);
-  return lists.flat().map((row) => {
-    const meta = metas.get(metaKey(row.type, row.id));
-    return { ...row, status: meta?.status || 'new', assignedTo: meta?.assignedTo || null, assignedName: meta?.assignedName || null };
-  });
+const staffActor = (req) => ({ kind: 'staff', id: req.staff.id, name: req.staff.name || req.staff.email });
+
+const CHANNEL_LABEL = { web_form: 'website form', assistant: 'website assistant', staff: 'staff entry', legacy_api: 'older form', legacy_import: 'older form' };
+
+// The activity feed shown on the lead page, newest first.
+function activity(events) {
+  const text = (e) => {
+    const d = e.data || {};
+    switch (e.type) {
+      case 'lead.created':
+        return `Came in through the ${CHANNEL_LABEL[d.source?.channel] || 'website'}${d.source?.topic ? ` (${d.source.topic})` : ''}`;
+      case 'lead.repeat':
+        return 'Submitted the form again';
+      case 'lead.assigned':
+        return d.claimed ? `${d.name} picked up this lead` : `Assigned to ${d.name}`;
+      case 'lead.unassigned':
+        return d.reason || 'Moved back to the unassigned pool';
+      case 'lead.status_changed':
+        return `Status changed to ${String(d.to).replace('_', ' ')}`;
+      case 'lead.note_added':
+        return d.text;
+      case 'notification.sent':
+        return 'WhatsApp alert sent to the team';
+      case 'notification.failed':
+        return `Alert failed: ${d.error || d.results?.find((r) => !r.ok)?.error || 'unknown error'}`;
+      default:
+        return e.type;
+    }
+  };
+  return events
+    .slice()
+    .sort((a, b) => new Date(b.at) - new Date(a.at))
+    .map((e) => ({
+      id: String(e._id),
+      kind: e.type === 'lead.note_added' ? 'note' : 'system',
+      text: text(e),
+      by: e.actor?.name || (e.actor?.kind === 'customer' ? 'Customer' : 'Probiz'),
+      at: e.at,
+    }));
 }
 
 const staffView = (s) => ({ id: s.id, role: s.role, name: s.name, email: s.email, employeeId: s.employeeId || null, title: s.title || null });
@@ -76,13 +128,14 @@ exports.config = async (req, res) => {
       statuses: STATUSES,
       groups: GROUPS,
       types: LEAD_TYPES.map(({ type, label, group, page }) => ({ type, label, group, page: page || null })),
+      channels: CHANNELS,
       employees: employees.map((e) => ({ id: String(e._id), name: e.name })),
     },
   });
 };
 
 exports.overview = async (req, res) => {
-  const all = await loadLeads(LEAD_TYPES);
+  const all = await loadLeads();
   const mine = isAdmin(req) ? all : all.filter((l) => l.assignedTo === req.staff.id);
   const unassigned = all.filter((l) => !l.assignedTo);
   const now = Date.now();
@@ -115,7 +168,7 @@ exports.overview = async (req, res) => {
     statusCounts,
     daily: days,
     byType: [...perType.values()].sort((a, b) => b.total - a.total),
-    recent: [...mine].sort(byNewest).slice(0, 8),
+    recent: [...mine].sort(byActivity).slice(0, 8),
     pool: [...unassigned].sort(byNewest).slice(0, 5),
   };
 
@@ -137,15 +190,17 @@ exports.overview = async (req, res) => {
 
 exports.list = async (req, res) => {
   const type = String(req.query.type || 'all');
-  const defs = type === 'all' ? LEAD_TYPES : byType[type] ? [byType[type]] : null;
-  if (!defs) return fail(res, 404, 'Unknown lead type.');
+  if (type !== 'all' && !byType[type]) return fail(res, 404, 'Unknown lead type.');
 
-  let leads = (await loadLeads(defs, type === 'all' ? null : [type])).filter((l) => canSee(req, l)).sort(byNewest);
+  let leads = (await loadLeads(type === 'all' ? {} : { type })).filter((l) => canSee(req, l)).sort(byActivity);
 
   const scope = String(req.query.scope || '');
   if (scope === 'mine') leads = leads.filter((l) => l.assignedTo === req.staff.id);
   else if (scope === 'unassigned') leads = leads.filter((l) => !l.assignedTo);
   else if (scope && isAdmin(req)) leads = leads.filter((l) => l.assignedTo === scope);
+
+  const channel = String(req.query.channel || '');
+  if (CHANNELS.includes(channel)) leads = leads.filter((l) => l.channel === channel);
 
   const q = String(req.query.q || '').trim().toLowerCase();
   if (q) leads = leads.filter((l) => [l.name, l.phone, l.email, l.detail].some((v) => v && String(v).toLowerCase().includes(q)));
@@ -164,84 +219,104 @@ async function findLead(req, res) {
     fail(res, 404, 'Unknown lead type.');
     return null;
   }
-  const doc = await def.model.findById(req.params.id).lean();
-  if (!doc) {
+  await ensureBackfilled();
+  const id = String(req.params.id);
+  // Older links used the per-form record id; resolve those to the envelope that holds it.
+  const lead =
+    (await Lead.findOne({ _id: id, type: def.type })) ||
+    (await Lead.find({ type: def.type })).find((l) => (l.refIds?.length ? l.refIds : [l.refId]).includes(id));
+  if (!lead) {
     fail(res, 404, 'Lead not found.');
     return null;
   }
-  const meta = await LeadMeta.findOne({ type: def.type, leadId: String(doc._id) });
-  if (!canSee(req, { assignedTo: meta?.assignedTo })) {
+  if (!canSee(req, lead)) {
     fail(res, 403, 'This lead belongs to another advisor.');
     return null;
   }
-  return { def, doc, meta };
+  return { def, lead };
 }
 
-const view = (meta) => ({
-  status: meta?.status || 'new',
-  assignedTo: meta?.assignedTo || null,
-  assignedName: meta?.assignedName || null,
-  notes: (meta?.notes || []).slice().reverse(),
-});
+async function view(lead) {
+  const events = await LeadEvent.find({ leadId: String(lead._id) }).lean();
+  return {
+    status: lead.status || 'new',
+    assignedTo: lead.assignedTo || null,
+    assignedName: lead.assignedName || null,
+    notes: activity(events),
+  };
+}
+
+const clean = (doc) => Object.fromEntries(Object.entries(doc).filter(([k]) => !HIDDEN_FIELDS.has(k)));
 
 exports.get = async (req, res) => {
   const found = await findLead(req, res);
   if (!found) return;
-  const { def, doc, meta } = found;
-  const fields = Object.fromEntries(Object.entries(doc).filter(([k]) => !HIDDEN_FIELDS.has(k)));
-  res.json({ data: { lead: { ...summarize(def, doc), page: def.page || null }, fields, ...view(meta) } });
+  const { def, lead } = found;
+  const refs = lead.refIds?.length ? lead.refIds : [lead.refId];
+  const docs = (await Promise.all(refs.map((ref) => def.model.findById(ref).lean()))).filter(Boolean).sort(byNewest);
+  const customer = lead.userId ? await User.findById(lead.userId).lean() : null;
+  res.json({
+    data: {
+      lead: { ...row(lead), page: def.page || null, source: lead.source || null, consent: lead.consent || null },
+      fields: docs[0] ? clean(docs[0]) : {},
+      submissions: docs.map((d) => ({ id: String(d._id), createdAt: d.createdAt, fields: clean(d) })),
+      customer: customer ? { id: String(customer._id), name: customer.fullName || customer.name || null, email: customer.email || null } : null,
+      ...(await view(lead)),
+    },
+  });
 };
 
 exports.update = async (req, res) => {
   const found = await findLead(req, res);
   if (!found) return;
-  const { def, doc } = found;
-  let { meta } = found;
+  const { lead } = found;
   const body = req.body || {};
   const note = String(body.note || '').trim().slice(0, 2000);
   if (body.status !== undefined && !STATUSES.includes(body.status)) return fail(res, 400, 'Unknown status.');
-
-  if (!meta) meta = new LeadMeta({ type: def.type, leadId: String(doc._id), status: 'new', notes: [] });
-  const by = req.staff.name || req.staff.email;
-  const log = (text) => (meta.notes = [...(meta.notes || []), { text, by, at: new Date() }]);
+  const events = [];
 
   if (body.assignTo !== undefined) {
     if (!isAdmin(req)) return fail(res, 403, 'Only admins can reassign leads.');
     if (body.assignTo) {
       const employee = await Employee.findOne({ _id: body.assignTo, deleteFlag: false }).lean();
       if (!employee) return fail(res, 400, 'That employee no longer exists.');
-      meta.assignedTo = String(employee._id);
-      meta.assignedName = employee.name;
-      log(`Assigned to ${employee.name}`);
-    } else if (meta.assignedTo) {
-      meta.assignedTo = null;
-      meta.assignedName = null;
-      log('Moved back to the unassigned pool');
+      lead.assignedTo = String(employee._id);
+      lead.assignedName = employee.name;
+      events.push(['lead.assigned', { to: lead.assignedTo, name: employee.name }]);
+    } else if (lead.assignedTo) {
+      lead.assignedTo = null;
+      lead.assignedName = null;
+      events.push(['lead.unassigned', {}]);
     }
   }
 
   // An employee who works an unassigned lead takes ownership of it.
-  if (!isAdmin(req) && !meta.assignedTo && (body.claim || body.status || note)) {
-    meta.assignedTo = req.staff.id;
-    meta.assignedName = req.staff.name;
-    log(`${req.staff.name} picked up this lead`);
+  if (!isAdmin(req) && !lead.assignedTo && (body.claim || body.status || note)) {
+    lead.assignedTo = req.staff.id;
+    lead.assignedName = req.staff.name;
+    events.push(['lead.assigned', { to: req.staff.id, name: req.staff.name, claimed: true }]);
   }
 
-  if (body.status && body.status !== meta.status) {
-    log(`Status changed to ${body.status.replace('_', ' ')}`);
-    meta.status = body.status;
+  if (body.status && body.status !== lead.status) {
+    events.push(['lead.status_changed', { from: lead.status, to: body.status }]);
+    lead.status = body.status;
   }
-  if (note) log(note);
-  await meta.save();
-  res.json({ data: view(meta) });
+  if (note) events.push(['lead.note_added', { text: note }]);
+  if (events.length) {
+    lead.lastActivityAt = new Date();
+    await lead.save();
+    for (const [type, data] of events) await emit(lead, type, staffActor(req), data);
+  }
+  res.json({ data: await view(lead) });
 };
 
 exports.remove = async (req, res) => {
   const found = await findLead(req, res);
   if (!found) return;
-  const { def, doc } = found;
-  await def.model.findByIdAndDelete(doc._id);
-  await LeadMeta.deleteMany({ type: def.type, leadId: String(doc._id) });
+  const { def, lead } = found;
+  for (const ref of lead.refIds?.length ? lead.refIds : [lead.refId]) await def.model.findByIdAndDelete(ref);
+  await LeadEvent.deleteMany({ leadId: String(lead._id) });
+  await Lead.findByIdAndDelete(lead._id);
   res.json({ message: 'Lead deleted.' });
 };
 
@@ -260,7 +335,7 @@ exports.removeAdmin = async (req, res) => {
 };
 
 exports.employees = async (req, res) => {
-  const [employees, leads] = await Promise.all([Employee.find({ deleteFlag: false }).lean(), loadLeads(LEAD_TYPES)]);
+  const [employees, leads] = await Promise.all([Employee.find({ deleteFlag: false }).lean(), loadLeads()]);
   res.json({
     data: employees
       .map(({ password, ...e }) => {
@@ -298,13 +373,14 @@ exports.removeEmployee = async (req, res) => {
   target.deleteFlag = true;
   await target.save();
   // Their open leads go back to the pool so nothing is stranded.
-  const metas = await LeadMeta.find({ assignedTo: String(target._id) });
-  for (const meta of metas) {
-    if (!OPEN.has(meta.status)) continue;
-    meta.assignedTo = null;
-    meta.assignedName = null;
-    meta.notes = [...(meta.notes || []), { text: `${target.name} left; moved back to the unassigned pool`, by: req.staff.name, at: new Date() }];
-    await meta.save();
+  await ensureBackfilled();
+  const theirs = await Lead.find({ assignedTo: String(target._id) });
+  for (const lead of theirs) {
+    if (!OPEN.has(lead.status)) continue;
+    lead.assignedTo = null;
+    lead.assignedName = null;
+    await lead.save();
+    await emit(lead, 'lead.unassigned', staffActor(req), { reason: `${target.name} left; moved back to the unassigned pool` });
   }
   res.json({ message: 'Employee removed.' });
 };

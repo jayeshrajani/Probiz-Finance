@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { Inter } from "next/font/google";
 import { MotionConfig } from "motion/react";
 import { Toaster } from "@/components/ui/sonner";
+import { captureAttribution } from "@/lib/attribution";
 
 const Assistant = dynamic(() => import("@/components/assistant/Assistant"), { ssr: false });
 
@@ -18,6 +19,7 @@ export default function App({ Component, pageProps }) {
 
   useEffect(() => {
     if (window.location.pathname.startsWith("/admin-panel")) return;
+    captureAttribution();
     let onRoute;
     import("react-facebook-pixel").then(({ default: ReactPixel }) => {
       ReactPixel.init("5323417621055552");

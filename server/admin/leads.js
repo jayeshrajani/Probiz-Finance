@@ -41,6 +41,49 @@ const LEAD_TYPES = [
   { type: 'gumasta', label: 'Gumasta licence (old form)', group: 'archive', model: m('gumastaLicense.model') },
 ];
 
+// Website form key (lib/forms.js) and legacy POST endpoint per lead type; both route into server/leads/intake.js.
+const INTAKE = {
+  homeloan: ['homeloan', 'loanOfferDetail'],
+  plotpurchase: ['plotpurchaseloan', 'addPlotPurchaseLoanOfferDetail'],
+  plotconstruction: ['plotpurchaseconstruction', 'addPlotPurchaseConstructionLoanOfferDetail'],
+  flatpurchase: ['flatpurchase', 'addFlatPurchaseLoanOfferDetail'],
+  lap: ['mortrageloan', 'addLoanagainstPropertyOfferDetail'],
+  construction: ['constructionloan', 'addconstructionLoanDetail'],
+  renovation: ['homerennovation', 'addHomeRenovationDetail'],
+  commercialpurchase: ['commercialproperty', 'addCommercialPropertyPurchaseOfferDetail'],
+  commercialmortgage: ['commercialpropertymortgage', 'addCommercialPropertyMortgageOfferDetail'],
+  balancetransfer: ['balancetransfer', 'addBalanceTransferDetail'],
+  bttopup: ['balancetransfertopup', 'addBalanceTransferTopUpDetail'],
+  personal: ['personalloan', 'personalLoanApplication'],
+  business: ['buisnessloan', 'businessLoanDetail'],
+  mudra: ['pradhanmantriloan', 'pradhanmantrimodrayojnaLoanApplication'],
+  projectfunding: ['projectfunding', 'projectfundingLoanDetail'],
+  car: ['carloan', 'carLoanDetail'],
+  education: ['educationloan', 'addEducationLoan'],
+  gold: ['goldloan', 'addGoldLoan'],
+  kisan: ['kisancreditcard', 'kisanCreditLoanApplication'],
+  creditcard: ['creditcard', 'creditCardDetail'],
+  health: ['health', 'addInsuranceLoan'],
+  motor: ['motor', 'addAutomobileLoan'],
+  investment: ['investment', 'addInvestment'],
+  ca: ['ca-services', 'addCaServices'],
+  legal: ['registration-services', 'addLegalDocumentationService'],
+  estamp: ['e-stamp-services', 'addEStampService'],
+  government: ['government-business-services', 'addGovernmentBusinessService'],
+  consultation: ['business-consultation-service', 'addBusinessConsultation'],
+  creditscore: ['credit-score-check-service', 'addCreditScoreService'],
+  marketing: ['digital-marketing-sevice', 'addDigitalMarketingService'],
+  realestate: ['real-estate-services', 'addRealStateServices'],
+  dsa: ['dsa-franchise', 'addDsaServices'],
+  contact: ['contact', 'addContactUs'],
+  inhouse: [null, 'addInHouseProperty'],
+};
+for (const def of LEAD_TYPES) {
+  const [formKey, endpoint] = INTAKE[def.type] || [];
+  def.formKey = formKey || null;
+  def.endpoint = endpoint ? `/api/${endpoint}` : null;
+}
+
 const GROUPS = [
   { id: 'loans', label: 'Loans' },
   { id: 'cover', label: 'Insurance and investments' },
@@ -50,6 +93,8 @@ const GROUPS = [
 ];
 
 const byType = Object.fromEntries(LEAD_TYPES.map((t) => [t.type, t]));
+const byFormKey = Object.fromEntries(LEAD_TYPES.filter((t) => t.formKey).map((t) => [t.formKey, t]));
+const byModel = new Map(LEAD_TYPES.map((t) => [t.model, t]));
 
 const first = (doc, keys) => {
   for (const k of keys) {
@@ -75,4 +120,4 @@ function summarize(def, doc) {
   };
 }
 
-module.exports = { LEAD_TYPES, GROUPS, byType, summarize };
+module.exports = { LEAD_TYPES, GROUPS, byType, byFormKey, byModel, summarize };

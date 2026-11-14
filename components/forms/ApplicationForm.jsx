@@ -9,28 +9,14 @@ import FormField from "@/components/forms/FormField";
 import Confetti from "@/components/fun/Confetti";
 import { Button } from "@/components/ui/button";
 import { errorMessage, postForm, postJSON } from "@/lib/api";
+import { leadMeta } from "@/lib/attribution";
 import { forms } from "@/lib/forms";
+import { CONSENT_TEXT, HONEYPOT, isEmpty, validateField, visible } from "@/lib/lead-schema";
 import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 // Hosting (Vercel) rejects request bodies above 4.5 MB.
 const MAX_UPLOAD = 4.4 * 1024 * 1024;
-const MOBILE = /^[6-9]\d{9}$/;
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-const isEmpty = (v) => v === undefined || v === null || String(v).trim() === "";
-const visible = (items, values) => (items || []).filter((f) => !f.showIf || f.showIf(values));
-
-function validateField(field, value) {
-  if (isEmpty(value)) return field.required ? "Required" : null;
-  const v = String(value).trim();
-  if (field.type === "tel" && !MOBILE.test(v)) return "Enter a 10-digit mobile number";
-  if (field.type === "email" && !EMAIL.test(v)) return "Enter a valid email address";
-  if (field.type === "number" && Number(v) < 0) return "Enter a positive number";
-  if (field.type === "date" && /birth/i.test(field.name) && new Date(v) > new Date()) return "Date of birth can't be in the future";
-  if (field.pattern && !field.pattern.test(v)) return field.patternMessage || "Check this value";
-  return null;
-}
 
 export default function ApplicationForm({ formKey, preset = {}, productName, className }) {
   const config = forms[formKey];
@@ -49,6 +35,10 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   const [direction, setDirection] = useState(1);
   const [status, setStatus] = useState("idle");
   const [submitError, setSubmitError] = useState(null);
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
+  const [repeat, setRepeat] = useState(false);
+  const trapRef = useRef(null);
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
@@ -94,6 +84,11 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   async function submit() {
     if (!validate(steps.map((_, i) => i))) return;
     if (tooLarge) return;
+    if (!consent) {
+      setConsentError(true);
+      requestAnimationFrame(() => document.getElementById(`${idPrefix}-consent`)?.focus());
+      return;
+    }
 
     const payload = {};
     for (const s of config.steps) {
@@ -101,24 +96,31 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
         if (!isEmpty(values[field.name])) payload[field.name] = String(values[field.name]).trim();
       }
     }
+    const meta = leadMeta({ consent: true });
+    const trap = trapRef.current?.value || "";
+    const endpoint = `leads/${formKey}`;
 
     setStatus("submitting");
     setSubmitError(null);
     let res;
     if (config.json) {
-      res = await postJSON(config.endpoint, payload);
+      res = await postJSON(endpoint, { ...payload, _meta: meta, [HONEYPOT]: trap });
     } else {
       const fd = new FormData();
       Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
+      fd.append("_meta", JSON.stringify(meta));
+      fd.append(HONEYPOT, trap);
       visibleFiles.forEach((slot) => files[slot.name] && fd.append(slot.name, files[slot.name]));
-      res = await postForm(config.endpoint, fd);
+      res = await postForm(endpoint, fd);
     }
 
     if (res.ok) {
+      setRepeat(Boolean(res.data?.repeat));
       setStatus("done");
       topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
       setStatus("idle");
+      if (res.data?.fields) setErrors(res.data.fields);
       setSubmitError(errorMessage(res.data));
     }
   }
@@ -140,16 +142,20 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
             <CheckCircle weight="fill" className="size-12 text-brand" />
             <Confetti />
           </span>
-          <h3 className="headline mt-5">{firstName ? `Thank you, ${firstName}.` : "Thank you."} We have your details.</h3>
+          <h3 className="headline mt-5">
+            {firstName ? `Thank you, ${firstName}.` : "Thank you."} {repeat ? "We've added this to your request." : "We have your details."}
+          </h3>
           <p className="mt-3 max-w-md leading-relaxed text-muted-foreground">
-            A Probiz advisor will call you{phone ? ` on ${phone}` : ""} to take your {productName ? productName.toLowerCase() : "request"} forward. If it's urgent,
-            call us on <a href={site.phoneHref} className="font-medium text-foreground underline-offset-4 hover:underline">{site.phoneDisplay}</a>.
+            {repeat
+              ? "You sent us a similar request recently, so your advisor will see both together instead of calling twice."
+              : `A Probiz advisor will call you${phone ? ` on ${phone}` : ""} to take your ${productName ? productName.toLowerCase() : "request"} forward.`}{" "}
+            If it's urgent, call us on <a href={site.phoneHref} className="font-medium text-foreground underline-offset-4 hover:underline">{site.phoneDisplay}</a>.
           </p>
           <div className="mt-8 flex flex-wrap gap-2">
             <Button asChild>
               <Link href="/">Back to home</Link>
             </Button>
-            <Button variant="outline" onClick={() => { setValues({ ...preset }); setFiles({}); setStep(0); setStatus("idle"); }}>
+            <Button variant="outline" onClick={() => { setValues({ ...preset }); setFiles({}); setStep(0); setRepeat(false); setStatus("idle"); }}>
               Submit another
             </Button>
           </div>
@@ -225,6 +231,45 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
         </motion.fieldset>
       </AnimatePresence>
 
+      {/* Hidden from people; bots that fill every field are dropped on the server. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+        <label>
+          Company website
+          <input ref={trapRef} type="text" name={HONEYPOT} tabIndex={-1} autoComplete="off" defaultValue="" />
+        </label>
+      </div>
+
+      {isLast && (
+        <div className="mt-6">
+          <label htmlFor={`${idPrefix}-consent`} className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-muted-foreground">
+            <input
+              id={`${idPrefix}-consent`}
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => {
+                setConsent(e.target.checked);
+                setConsentError(false);
+              }}
+              aria-invalid={consentError || undefined}
+              aria-describedby={consentError ? `${idPrefix}-consent-error` : undefined}
+              className="mt-1 size-4 shrink-0 accent-[var(--brand)]"
+            />
+            <span>
+              {CONSENT_TEXT.replace("privacy policy.", "")}
+              <Link href="/privacy-policy" className="underline underline-offset-2 hover:text-foreground">
+                privacy policy
+              </Link>
+              .
+            </span>
+          </label>
+          {consentError && (
+            <p id={`${idPrefix}-consent-error`} className="mt-1.5 pl-7 text-xs font-medium text-destructive">
+              Please tick this so we can contact you.
+            </p>
+          )}
+        </div>
+      )}
+
       {submitError && (
         <p role="alert" className="mt-6 flex items-start gap-2 rounded-xl bg-destructive/8 px-4 py-3 text-sm text-destructive">
           <WarningCircle weight="fill" className="mt-0.5 size-4 shrink-0" />
@@ -239,7 +284,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
           </Button>
         ) : (
           <p className="text-xs text-muted-foreground">
-            By continuing you agree to our <Link href="/privacy-policy" className="underline underline-offset-2">privacy policy</Link>.
+            We only use your details to work on this request. <Link href="/privacy-policy" className="underline underline-offset-2">Privacy policy</Link>
           </p>
         )}
         <Button type="submit" size="lg" disabled={status === "submitting" || (isLast && tooLarge)}>

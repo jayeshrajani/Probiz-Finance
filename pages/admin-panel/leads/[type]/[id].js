@@ -96,13 +96,13 @@ function Notes({ type, id, notes, onChange }) {
         <AnimatePresence initial={false}>
           {notes.map((n) => (
             <motion.li
-              key={`${n.at}-${n.text}`}
+              key={n.id || `${n.at}-${n.text}`}
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               className="relative border-l border-border pb-5 pl-5 last:pb-0"
             >
-              <span className={cn("absolute top-1 -left-[5px] size-2.5 rounded-full ring-4 ring-background", n.text.startsWith("Status changed") ? "bg-muted-foreground/50" : "bg-brand")} />
-              <p className={cn("text-sm leading-relaxed", n.text.startsWith("Status changed") && "text-muted-foreground")}>{n.text}</p>
+              <span className={cn("absolute top-1 -left-[5px] size-2.5 rounded-full ring-4 ring-background", n.kind === "system" ? "bg-muted-foreground/50" : "bg-brand")} />
+              <p className={cn("text-sm leading-relaxed", n.kind === "system" && "text-muted-foreground")}>{n.text}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {n.by} · {timeAgo(n.at)}
               </p>
@@ -111,6 +111,42 @@ function Notes({ type, id, notes, onChange }) {
         </AnimatePresence>
         {notes.length === 0 && <li className="text-sm text-muted-foreground">No activity yet. Add the first note after you call.</li>}
       </ol>
+    </Panel>
+  );
+}
+
+const CHANNEL_LABEL = {
+  web_form: "Website form",
+  assistant: "Website assistant",
+  staff: "Added by staff",
+  legacy_api: "Older form",
+  legacy_import: "Imported",
+};
+
+function Origin({ lead, customer }) {
+  const src = lead.source || {};
+  const utm = Object.entries(src.utm || {}).map(([k, v]) => `${k}: ${v}`);
+  const rows = [
+    ["Channel", CHANNEL_LABEL[src.channel] || "Unknown"],
+    ["Topic", src.topic],
+    ["Submitted on", src.page],
+    ["First page", src.landingPage],
+    ["Referrer", src.referrer],
+    ["Campaign", utm.join(" · ") || null],
+    ["Device", src.device],
+    ["Consent", lead.consent?.accepted ? `Given ${formatDateTime(lead.consent.at)}` : "Not recorded"],
+    ["Account", customer ? `${customer.name || "Signed-in customer"}${customer.email ? ` (${customer.email})` : ""}` : "Not signed in"],
+  ].filter(([, v]) => v);
+  return (
+    <Panel title="Where it came from">
+      <dl className="grid gap-3">
+        {rows.map(([k, v]) => (
+          <div key={k} className="grid grid-cols-[6.5rem_1fr] gap-3 text-sm">
+            <dt className="text-muted-foreground">{k}</dt>
+            <dd className="min-w-0 break-words">{v}</dd>
+          </div>
+        ))}
+      </dl>
     </Panel>
   );
 }
@@ -124,11 +160,14 @@ function LeadDetail() {
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [shown, setShown] = useState(0);
 
   if (error) return <ErrorNote error={error} onRetry={reload} />;
   if (loading || !data) return <LoadingRows rows={8} />;
 
-  const { lead, fields } = data.data;
+  const { lead, customer } = data.data;
+  const submissions = data.data.submissions?.length ? data.data.submissions : [{ id: "current", createdAt: lead.createdAt, fields: data.data.fields }];
+  const fields = (submissions[shown] || submissions[0]).fields;
   const current = override || data.data;
   const { status, notes, assignedTo, assignedName } = current;
   const canEdit = isAdmin || !assignedTo || assignedTo === staff.id;
@@ -177,6 +216,7 @@ function LeadDetail() {
             <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">{lead.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {lead.typeLabel} · received {formatDateTime(lead.createdAt)}
+              {lead.repeatCount > 0 && ` · sent ${lead.repeatCount + 1} times, last ${timeAgo(lead.lastActivityAt)}`}
             </p>
           </div>
         </div>
@@ -275,6 +315,25 @@ function LeadDetail() {
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="grid content-start gap-6 xl:col-span-2">
           <Panel title="Application details" actions={<StatusBadge status={status} />}>
+            {submissions.length > 1 && (
+              <div role="tablist" aria-label="Submissions" className="mb-6 flex flex-wrap gap-1.5">
+                {submissions.map((s, i) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={shown === i}
+                    onClick={() => setShown(i)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      shown === i ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {i === 0 ? "Latest" : `Earlier ${i}`} · {formatDateTime(s.createdAt)}
+                  </button>
+                ))}
+              </div>
+            )}
             <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
               {details.map((d) => (
                 <div key={d.key} className="min-w-0">
@@ -314,6 +373,7 @@ function LeadDetail() {
 
         <div className="grid content-start gap-6">
           <Notes type={type} id={id} notes={notes} onChange={setOverride} />
+          <Origin lead={lead} customer={customer} />
         </div>
       </div>
 
