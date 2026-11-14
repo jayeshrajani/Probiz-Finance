@@ -2,3 +2,5 @@ User-agent: *
 Disallow: /admin-panel
 Disallow: /api/
 Allow: /
+
+Sitemap: https://probizfinance.com/sitemap.xml

@@ -77,9 +77,14 @@ export default function MobileNav({ user }) {
               </a>
             </Button>
             {user ? (
-              <Button size="lg" variant="ghost" onClick={signOut}>
-                Sign out
-              </Button>
+              <>
+                <Button asChild size="lg" variant="ghost">
+                  <Link href="/account">My account</Link>
+                </Button>
+                <Button size="lg" variant="ghost" onClick={signOut}>
+                  Sign out
+                </Button>
+              </>
             ) : (
               <Button asChild size="lg" variant="ghost">
                 <Link href="/sign-in">Sign in</Link>

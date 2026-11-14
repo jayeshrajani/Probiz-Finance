@@ -119,6 +119,9 @@ function AccountMenu({ user }) {
             transition={{ duration: 0.16, ease }}
             className="absolute right-0 mt-2 w-52 origin-top-right rounded-2xl border border-border bg-popover p-1.5 shadow-[0_16px_40px_-16px_oklch(0.21_0.006_286/0.25)]"
           >
+            <Link role="menuitem" href="/account" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm hover:bg-accent">
+              <UserCircle weight="bold" className="size-4" /> My account
+            </Link>
             <Link role="menuitem" href="/add-product" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm hover:bg-accent">
               <Plus weight="bold" className="size-4" /> List a property
             </Link>

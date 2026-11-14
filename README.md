@@ -24,7 +24,7 @@ Probiz-Finance/
 │   └── storage.js         Supabase Storage (or public/uploads in dev)
 ├── public/                Static assets
 ├── styles/                Tailwind + global CSS for the website
-└── scripts/               seed-areas.js, smoke-api.sh, check-intake.mjs, backfill-leads.js
+└── scripts/               seed-areas.js, smoke-api.sh, check-intake.mjs, backfill-leads.js, generate-sitemap.mjs
 ```
 
 ## How it works
@@ -51,6 +51,7 @@ flowchart LR
   | --- | --- | --- | --- |
   | Sign-in | `POST /api/userLogin` | `POST /api/staffLogin` | `POST /api/staffLogin` |
   | Apply, list a property | yes | | |
+  | My account (`/account`) | applications and status, edit name and mobile, change password | | |
   | Leads | | own leads + unassigned pool; acting on a pool lead claims it | every lead; assign, reassign, delete, export CSV |
   | Status and notes | | on own leads | on any lead |
   | Property listings | own (website) | view | view, delete |
@@ -79,10 +80,10 @@ flowchart LR
   - Leads from before this pipeline (and their old `LeadMeta` status, owner and notes) are imported automatically on the first staff-panel request after a server start; `npm run backfill:leads` does the same by hand.
 - **Staff panel**: `/api/admin/*` (`server/controllers/adminPanel.controller.js`) lists, filters (status, advisor, product, source) and updates leads. Status, assignment and notes are written as events. Removing an employee returns their open leads to the pool.
 - **Access control**: `server/middlewares/staffAuth.js` checks Bearer tokens signed with `role: admin` or `role: employee`. `server/routes/index.js` puts every read of customer data, every update and delete, and the admin-only create endpoints behind `requireAdmin`; employees get 403 there. Public reads (property listings, areas, health) and form submissions stay open. `POST /api/createAdmin` works without a token only while no admin exists.
+- **Customer account**: `/account` uses `GET`/`PATCH /api/account` and `PUT /api/account/password` behind `server/middlewares/customerAuth.js` (customer token only; staff tokens are rejected). It lists only leads sent while signed in (`Lead.userId`), never leads matched by phone number.
 - **Local dev without setup**: if `DATABASE_URL` is empty the app uses PGlite (Postgres compiled to WebAssembly) stored in `.data/pglite`, and uploads go to `public/uploads/`.
 
 Known gaps carried over from the old code:
-- `PUT /api/changeUserPassword/:id` needs no token but does require the user's current password; the website doesn't use it yet.
 - Cashfree and credit-score endpoints are stubs.
 - The chat assistant (`components/assistant/`) is rule-based and runs in the browser; it only sends data when a visitor requests a callback (a `contact` lead with channel `assistant`).
 
@@ -125,6 +126,13 @@ Free-tier projects pause after 7 days without traffic; they resume from the dash
 1. Import the GitHub repo in Vercel (framework preset: Next.js, root directory: repo root).
 2. Add environment variables: `DATABASE_URL`, `JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`.
 3. Deploy. Health check: `/api/health`.
+
+### Search engines
+
+- `npm run build` regenerates `public/sitemap.xml` from the files in `pages/` (`scripts/generate-sitemap.mjs`; set `SITE_URL` if the domain changes). Private and sign-in pages are excluded there and marked `noindex`.
+- `public/robots.txt` blocks `/admin-panel` and `/api/` and points to the sitemap.
+- Every page sets title, description and canonical URL (`components/site/Seo.jsx`); the homepage adds `FinancialService` structured data and breadcrumbs add `BreadcrumbList`.
+- After the domain is live: in Google Search Console add a **Domain** property for `probizfinance.com`, verify it with the DNS TXT record it shows, then submit `https://probizfinance.com/sitemap.xml`. Do the same in Bing Webmaster Tools (it can import from Search Console).
 
 Notes:
 - Vercel's Hobby (free) plan is for non-commercial use; a commercial site needs Pro.

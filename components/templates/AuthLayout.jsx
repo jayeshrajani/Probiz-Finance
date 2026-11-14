@@ -4,7 +4,7 @@ import SiteLayout from "@/components/site/SiteLayout";
 
 export default function AuthLayout({ title, description, path, heading, intro, children, footer }) {
   return (
-    <SiteLayout title={title} description={description} path={path}>
+    <SiteLayout title={title} description={description} path={path} noindex>
       <BackgroundPaths className="block min-h-0 bg-secondary/60 text-brand-ink">
         <div className="container-page relative grid min-h-[calc(100dvh-4rem)] items-center gap-12 py-16 text-foreground lg:grid-cols-2">
           <div className="hidden lg:block">

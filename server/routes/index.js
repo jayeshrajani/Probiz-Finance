@@ -15,6 +15,7 @@ require('./admin.routes')(app);
 require('./user.routes')(app);
 require('./calculator.route')(app);
 require('./adminPanel.routes')(app);
+require('./account.routes')(app);
 
 // Every lead form (old URLs and POST /api/leads/:formKey) goes through one intake pipeline.
 require('../leads/intake').installLeadIntake(app, routes);
@@ -32,6 +33,7 @@ const ADMIN_WRITES = new Set(['/api/addInHouseProperty', '/api/addRoleByAdmin', 
 
 function adminOnly(route) {
     if (route.path.startsWith('/api/admin/')) return false;
+    if (route.path === '/api/account' || route.path.startsWith('/api/account/')) return false;
     if (route.path.startsWith('/api/cashfree/')) return false;
     if (route.method === 'GET') return !PUBLIC_READS.has(route.path);
     if (route.method === 'PUT' || route.method === 'DELETE' || route.method === 'PATCH') {

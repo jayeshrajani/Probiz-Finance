@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/generate-sitemap.mjs",
     "build": "next build",
     "start": "next start",
+    "sitemap": "node scripts/generate-sitemap.mjs",
     "seed:areas": "node scripts/seed-areas.js",
     "backfill:leads": "node scripts/backfill-leads.js",
     "check:intake": "node scripts/check-intake.mjs"

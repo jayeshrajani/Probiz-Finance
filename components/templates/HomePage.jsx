@@ -10,6 +10,7 @@ import ScoreMeter from "@/components/fun/ScoreMeter";
 import DotField from "@/components/kokonutui/dot-field";
 import { Compare, MeetProbiz, WhoWeHelp } from "@/components/sections/HomeStory";
 import SiteLayout from "@/components/site/SiteLayout";
+import { organizationJsonLd } from "@/components/site/Seo";
 import { Button } from "@/components/ui/button";
 import { hrefFor, productBySlug, products, services } from "@/lib/catalog";
 import { site } from "@/lib/site";
@@ -285,7 +286,7 @@ function Services() {
 
 export default function HomePage() {
   return (
-    <SiteLayout path="/">
+    <SiteLayout path="/" jsonLd={organizationJsonLd}>
       <Hero />
       <Doors />
       <MeetProbiz />

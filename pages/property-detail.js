@@ -82,7 +82,7 @@ export default function PropertyDetailPage() {
     : [];
 
   return (
-    <SiteLayout title={p?.propertyName || "Property"} path="/property-detail">
+    <SiteLayout title={p?.propertyName || "Property"} path="/property-detail" noindex>
       <section className="container-page pt-10 pb-24 md:pt-14">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Property", href: "/property" }, { label: p?.propertyName || "Details" }]} />
 

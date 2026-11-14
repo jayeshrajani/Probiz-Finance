@@ -2,12 +2,15 @@ module.exports = (app)=>{
     const express = require('../http');
     const user = require('../controllers/user.controller');
     const middleware = require("../middlewares/uploads");
+    const { requireCustomer } = require('../middlewares/customerAuth');
+    const ownAccount = (req, res, next) =>
+        String(req.customer._id) === req.params.usersRegId ? next() : res.status(403).json({ message: 'You can only change your own password.', status: 403 });
 
     app.post('/api/userSignUp', user.userSignUp);
 
     app.post('/api/userLogin',user.userLogin);
 
-    app.put('/api/changeUserPassword/:usersRegId', user.changeUserPassword);
+    app.put('/api/changeUserPassword/:usersRegId', requireCustomer, ownAccount, user.changeUserPassword);
 
 //  Add Home Loan request //
     app.post('/api/loanOfferDetail', middleware.homeloan.fields([

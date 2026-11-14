@@ -112,7 +112,7 @@ export default function AddPropertyPage() {
 
   if (!user) {
     return (
-      <SiteLayout title="List Your Property" path="/add-product">
+      <SiteLayout title="List Your Property" path="/add-product" noindex>
         <section className="container-page flex min-h-[60dvh] flex-col items-center justify-center py-24 text-center">
           <h1 className="display-2 max-w-lg">Sign in to list your property.</h1>
           <p className="lede mt-4 max-w-md">Listings are linked to an account so buyers reach the right owner.</p>
@@ -131,7 +131,7 @@ export default function AddPropertyPage() {
 
   if (status === "done") {
     return (
-      <SiteLayout title="List Your Property" path="/add-product">
+      <SiteLayout title="List Your Property" path="/add-product" noindex>
         <section className="container-page flex min-h-[60dvh] flex-col items-center justify-center py-24 text-center">
           <CheckCircle weight="fill" className="size-14 text-brand" />
           <h1 className="display-2 mt-6 max-w-lg">Your property is listed.</h1>
@@ -150,7 +150,7 @@ export default function AddPropertyPage() {
   }
 
   return (
-    <SiteLayout title="List Your Property" path="/add-product">
+    <SiteLayout title="List Your Property" path="/add-product" noindex>
       <section className="container-page max-w-4xl pt-10 pb-24 md:pt-14">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Property", href: "/property" }, { label: "List your property" }]} />
         <h1 className="display-2 mt-6">List your property.</h1>
