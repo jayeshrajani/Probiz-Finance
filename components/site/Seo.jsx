@@ -1,5 +1,6 @@
 import Head from "next/head";
 import { site } from "@/lib/site";
+import contact from "@/content/site-settings.json";
 
 export const organizationJsonLd = {
   "@context": "https://schema.org",
@@ -9,8 +10,8 @@ export const organizationJsonLd = {
   description: site.description,
   url: site.url,
   logo: `${site.url}/brand/probiz-logo.png`,
-  telephone: `+91${site.phone}`,
-  email: site.email,
+  telephone: `+91${contact.primaryPhone}`,
+  email: contact.contactEmail,
   foundingDate: String(site.since),
   areaServed: "IN",
   address: {
@@ -20,7 +21,7 @@ export const organizationJsonLd = {
     addressRegion: "Madhya Pradesh",
     addressCountry: "IN",
   },
-  sameAs: Object.values(site.socials),
+  sameAs: Object.values(contact.social).filter(Boolean),
 };
 
 // `<` is escaped so page content can never close the script tag.

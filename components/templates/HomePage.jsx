@@ -61,7 +61,7 @@ function Hero() {
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href="/eligibility">Check eligibility</Link>
+              <Link href="/eligibility">Check loan eligibility</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
               <a href="#explore">

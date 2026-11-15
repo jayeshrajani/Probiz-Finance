@@ -147,7 +147,7 @@ export function reply(input) {
   if (has(text, ["cibil", "credit score", "score"])) {
     return {
       text: "Checking your own score doesn't lower it. If it's low, we can still look for lenders who consider your profile, and tell you what will help.",
-      links: [link("credit-score-check-service"), { label: "Check eligibility", href: "/eligibility" }],
+      links: [link("credit-score-check-service"), { label: "Check loan eligibility", href: "/eligibility" }],
     };
   }
 

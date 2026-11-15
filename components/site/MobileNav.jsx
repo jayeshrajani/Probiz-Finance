@@ -61,6 +61,7 @@ export default function MobileNav({ user }) {
           {[
             ["Property", "/property"],
             ["About", "/about"],
+            ["Careers", "/Careers"],
             ["Contact", "/contact"],
           ].map(([label, href]) => (
             <Link key={href} href={href} className="block border-b border-border py-4 text-xl font-semibold tracking-[-0.02em]">
@@ -70,7 +71,7 @@ export default function MobileNav({ user }) {
 
           <div className="mt-8 grid gap-3">
             <Button asChild size="lg">
-              <Link href="/eligibility">Check eligibility</Link>
+              <Link href="/eligibility">Check loan eligibility</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
               <a href={primary.href}>

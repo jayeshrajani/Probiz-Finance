@@ -11,6 +11,7 @@
     "seed:areas": "node scripts/seed-areas.js",
     "backfill:leads": "node scripts/backfill-leads.js",
     "seed:site-settings": "node scripts/seed-site-settings.js",
+    "seed:jobs": "node scripts/seed-jobs.js",
     "check:intake": "node scripts/check-intake.mjs",
     "check:staff": "node scripts/check-staff.mjs",
     "emulators": "npx --yes firebase-tools@15.36.0 emulators:start --only firestore,storage --project demo-probiz-finance",

@@ -84,7 +84,7 @@ export default function ScoreMeter() {
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/eligibility">Check eligibility</Link>
+            <Link href="/eligibility">Check loan eligibility</Link>
           </Button>
         </div>
       </div>

@@ -18,6 +18,7 @@ require('./adminPanel.routes')(app);
 require('./account.routes')(app);
 require('./siteSettings.routes')(app);
 require('./files.routes')(app);
+require('./jobs.routes')(app);
 
 // Every lead form (old URLs and POST /api/leads/:formKey) goes through one intake pipeline.
 require('../leads/intake').installLeadIntake(app, routes);
@@ -33,6 +34,7 @@ const PUBLIC_READS = new Set([
     '/api/getAllAreas',
     '/api/getAreaById/:id',
     '/api/site-settings',
+    '/api/jobs',
     // Protected by its own short-lived signed link instead of a bearer token (browsers open it directly).
     '/api/files/:token',
 ]);

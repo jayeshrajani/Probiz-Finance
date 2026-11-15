@@ -69,7 +69,7 @@
           "Multiple loan product comparisons",
           "Personalized recommendations"
         ],
-        "cta": "Check Eligibility →"
+        "cta": "Check Loan Eligibility →"
       },
       {
         "title": "Balance Transfer Calculator",
@@ -96,22 +96,22 @@
       {
         "title": "Personal Loan",
         "description": "Fast & Paperless - Get instant approval with minimal documentation at low-interest rates.",
-        "cta": "CHECK ELIGIBILITY"
+        "cta": "CHECK LOAN ELIGIBILITY"
       },
       {
         "title": "Home Loan",
         "description": "Dream Home Made Easy - Avail home loans at the lowest interest rates with quick approvals.",
-        "cta": "CHECK ELIGIBILITY"
+        "cta": "CHECK LOAN ELIGIBILITY"
       },
       {
         "title": "Loan Against Property",
         "description": "Leverage Your Property - Get high-value loans with attractive interest rates and easy repayment terms.",
-        "cta": "CHECK ELIGIBILITY"
+        "cta": "CHECK LOAN ELIGIBILITY"
       },
       {
         "title": "Business Loan",
         "description": "Fuel Your Business Growth - Competitive interest rates and customized repayment options for entrepreneurs.",
-        "cta": "CHECK ELIGIBILITY"
+        "cta": "CHECK LOAN ELIGIBILITY"
       }
     ]
   },

@@ -18,6 +18,7 @@ const ease = [0.16, 1, 0.3, 1];
 const LINKS = [
   { label: "Property", href: "/property" },
   { label: "About", href: "/about" },
+  { label: "Careers", href: "/Careers" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -215,7 +216,7 @@ export default function SiteHeader() {
           <div className="ml-auto flex items-center gap-1.5">
             <AccountMenu user={user} />
             <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/eligibility">Check eligibility</Link>
+              <Link href="/eligibility">Check loan eligibility</Link>
             </Button>
             <MobileNav user={user} />
           </div>
