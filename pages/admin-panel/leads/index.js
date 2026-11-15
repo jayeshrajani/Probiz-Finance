@@ -35,12 +35,15 @@ function FilterSelect({ label, value, onChange, children, className }) {
 function Leads() {
   const router = useRouter();
   const { config, isAdmin } = useAdmin();
-  const { type = "", status = "", q = "", page = "1", scope = "", channel = "", from = "", to = "" } = router.query;
+  const { type = "", group = "", status = "", q = "", page = "1", scope = "", channel = "", from = "", to = "" } = router.query;
   const typeDef = config.types.find((t) => t.type === type);
+  const groupDef = config.groups.find((g) => g.id === group);
   const owner = config.employees.find((e) => e.id === scope);
   const heading = typeDef
     ? typeDef.label
-    : scope === "mine"
+    : groupDef
+      ? groupDef.label
+      : scope === "mine"
       ? "My leads"
       : scope === "unassigned"
         ? isAdmin
@@ -78,6 +81,7 @@ function Leads() {
 
   const filters = useMemo(() => {
     const p = new URLSearchParams({ type: type || "all" });
+    if (group) p.set("group", group);
     if (status) p.set("status", status);
     if (q) p.set("q", q);
     if (scope) p.set("scope", scope);
@@ -87,7 +91,7 @@ function Leads() {
       p.set("to", to);
     }
     return p;
-  }, [type, status, q, scope, channel, from, to]);
+  }, [type, group, status, q, scope, channel, from, to]);
 
   const path = useMemo(() => {
     if (!router.isReady) return null;
@@ -115,7 +119,7 @@ function Leads() {
         all = all.concat(res.data);
         if (all.length >= res.total || res.data.length === 0) break;
       }
-      downloadCsv(`probiz-${type || "all"}-leads.csv`, [
+      downloadCsv(`probiz-${type || group || "all"}-leads.csv`, [
         { label: "Name", value: (r) => r.name },
         { label: "Product", value: (r) => r.typeLabel },
         { label: "Phone", value: (r) => r.phone },
@@ -196,10 +200,11 @@ function Leads() {
                 </SelectItem>
               ))}
             </FilterSelect>
-            {!typeDef && (
-              <FilterSelect label="Product" value={type} onChange={(v) => setQuery({ type: v, page: "" })} className="sm:min-w-48">
-                <SelectItem value={ANY}>All products</SelectItem>
-                {config.groups.map((g) => (
+            <FilterSelect label="Product" value={type} onChange={(v) => setQuery({ type: v, page: "" })} className="sm:min-w-48">
+              <SelectItem value={ANY}>{groupDef ? `All ${groupDef.label.toLowerCase()}` : "All products"}</SelectItem>
+              {config.groups
+                .filter((g) => !groupDef || g.id === groupDef.id)
+                .map((g) => (
                   <SelectGroup key={g.id}>
                     <SelectSeparator />
                     <SelectLabel>{g.label}</SelectLabel>
@@ -212,8 +217,7 @@ function Leads() {
                       ))}
                   </SelectGroup>
                 ))}
-              </FilterSelect>
-            )}
+            </FilterSelect>
             {from && to && (
               <Button variant="secondary" size="sm" className="h-9 rounded-lg" onClick={() => setQuery({ from: "", to: "", page: "" })} aria-label="Clear date filter">
                 Received {fmtDay(from)} to {fmtDay(to)} <X weight="bold" />

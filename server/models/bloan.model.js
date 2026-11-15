@@ -13,6 +13,7 @@ const BusinessLoanApplicationSchema = new mongoose.Schema(
     totalMonthlyIncome: { type: Number, required: false }, // Total Monthly Income
     incomeTaxReturn: { type: String, required: false }, // Income Tax Return – Yes or No
     businessCertificate: { type: String, required: false }, // Business Certificate
+    gstNumber: { type: String, required: false },
     cibilScore: { type: Number, required: false }, // Cibil Score
     uploadedDocuments: {
       aadharFront: { type: String, required: false }, // Aadhar Front (File Path)

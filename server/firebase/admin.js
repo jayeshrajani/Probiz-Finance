@@ -45,7 +45,13 @@ function getFirebaseApp() {
       throw new Error('Firebase emulators are refused when NODE_ENV=production (set ALLOW_FIREBASE_EMULATORS=1 for a local production build).');
     }
   } else {
-    const { FIREBASE_CLIENT_EMAIL: clientEmail, FIREBASE_PRIVATE_KEY: privateKey } = process.env;
+    // Dashboards may keep surrounding quotes or whitespace from a pasted value.
+    const unquote = (v) => (v || '').trim().replace(/^"([\s\S]*)"$/, '$1').trim();
+    const clientEmail = unquote(process.env.FIREBASE_CLIENT_EMAIL);
+    const privateKey = unquote(process.env.FIREBASE_PRIVATE_KEY);
+    if (process.env.VERCEL && !(clientEmail && privateKey)) {
+      throw new Error(`Vercel has no Google identity: set ${clientEmail ? 'FIREBASE_PRIVATE_KEY' : privateKey ? 'FIREBASE_CLIENT_EMAIL' : 'FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY'} for this environment.`);
+    }
     // Application Default Credentials (managed identity on Google hosting, `gcloud auth application-default login`
     // locally) are preferred; a service-account key is only a fallback. Dashboards store key newlines as "\n".
     options.credential = clientEmail && privateKey

@@ -196,7 +196,8 @@ exports.overview = async (req, res) => {
     // The panel shell also calls this endpoint for badge counts, so the heavier numbers are opt-in.
     if (req.query.analytics === '1') {
       const { start } = resolveRange(req.query);
-      const events = await LeadEvent.find({ type: { $in: ['lead.status_changed', 'lead.note_added'] }, at: { $gte: new Date(start) } }).lean();
+      // Range-only query: type + range together would need a Firestore composite index.
+      const events = (await LeadEvent.find({ at: { $gte: new Date(start) } }).lean()).filter((e) => e.type === 'lead.status_changed' || e.type === 'lead.note_added');
       data.analytics = analytics({ leads: raw, events, employees, query: req.query });
     }
   }
@@ -206,8 +207,11 @@ exports.overview = async (req, res) => {
 exports.list = async (req, res) => {
   const type = String(req.query.type || 'all');
   if (type !== 'all' && !byType[type]) return fail(res, 404, 'Unknown lead type.');
+  const group = String(req.query.group || '');
+  if (group && !GROUPS.some((g) => g.id === group)) return fail(res, 404, 'Unknown lead category.');
 
   let leads = (await loadLeads(type === 'all' ? {} : { type })).filter((l) => canSee(req, l)).sort(byActivity);
+  if (group) leads = leads.filter((l) => byType[l.type]?.group === group);
 
   const scope = String(req.query.scope || '');
   if (scope === 'mine') leads = leads.filter((l) => l.assignedTo === req.staff.id);

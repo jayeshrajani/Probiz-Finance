@@ -10,6 +10,7 @@ import { errorMessage, postJSON } from "@/lib/api";
 import { leadMeta } from "@/lib/attribution";
 import { formatINR } from "@/lib/format";
 import { useSiteSettings } from "@/lib/site-settings";
+import { useTyping } from "@/lib/use-typing";
 import { cn } from "@/lib/utils";
 
 const STORE = "probiz:chat";
@@ -180,6 +181,7 @@ function Message({ m, onChip, topic, last }) {
 export default function Assistant() {
   const { primary } = useSiteSettings();
   const [open, setOpen] = useState(false);
+  const fieldFocused = useTyping();
   const [messages, setMessages] = useState([]);
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState("");
@@ -341,7 +343,7 @@ export default function Assistant() {
         )}
       </AnimatePresence>
 
-      <div className={cn("fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 sm:right-5 sm:bottom-5", open && "max-sm:hidden")}>
+      <div className={cn("fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 sm:right-5 sm:bottom-5", (open || fieldFocused) && "max-sm:hidden")}>
         <AnimatePresence>
           {teaser && !open && (
             <motion.div

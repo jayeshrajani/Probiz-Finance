@@ -13,6 +13,7 @@ const EducationLoanApplicationSchema = new mongoose.Schema({
   courseName: { type: String },
   institutionName: { type: String },
   institutionAddress: { type: String },
+  studyCountry: { type: String },
   admissionDate: { type: String },
   courseDuration: { type: String },
 

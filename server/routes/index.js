@@ -6,7 +6,8 @@ app.get('/api/health', async (req, res) => {
     try {
         await adapter().ping();
         res.status(200).json({ status: 'ok' });
-    } catch {
+    } catch (err) {
+        console.error('[health] database unavailable:', err.message);
         res.status(503).json({ status: 'db_unavailable' });
     }
 });

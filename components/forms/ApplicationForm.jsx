@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, CheckCircle, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
 import FileSlot, { formatBytes } from "@/components/forms/FileSlot";
@@ -40,6 +40,14 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   const [consentError, setConsentError] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const trapRef = useRef(null);
+  const doneRef = useRef(null);
+
+  // The form is taller than the confirmation, so scroll after the swap or the message lands above the screen.
+  useEffect(() => {
+    if (status !== "done") return;
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    doneRef.current?.focus({ preventScroll: true });
+  }, [status]);
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
@@ -118,7 +126,6 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
     if (res.ok) {
       setRepeat(Boolean(res.data?.repeat));
       setStatus("done");
-      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
       setStatus("idle");
       if (res.data?.fields) setErrors(res.data.fields);
@@ -137,13 +144,13 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
 
   if (status === "done") {
     return (
-      <div ref={topRef} className={cn("rounded-2xl border border-border bg-background p-8 sm:p-10", className)}>
+      <div ref={topRef} className={cn("scroll-mt-24 rounded-2xl border border-border bg-background p-8 sm:p-10", className)}>
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
           <span className="relative inline-block">
             <CheckCircle weight="fill" className="size-12 text-brand" />
             <Confetti />
           </span>
-          <h3 className="headline mt-5">
+          <h3 ref={doneRef} tabIndex={-1} className="headline mt-5 outline-none">
             {firstName ? `Thank you, ${firstName}.` : "Thank you."} {repeat ? "We've added this to your request." : "We have your details."}
           </h3>
           <p className="mt-3 max-w-md leading-relaxed text-muted-foreground">
@@ -166,7 +173,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   }
 
   return (
-    <form ref={topRef} noValidate onSubmit={onSubmit} className={cn("rounded-2xl border border-border bg-background p-6 sm:p-8", className)}>
+    <form ref={topRef} noValidate onSubmit={onSubmit} className={cn("scroll-mt-24 rounded-2xl border border-border bg-background p-6 sm:p-8", className)}>
       {steps.length > 1 && (
         <ol className="mb-8 flex gap-1.5" aria-label="Application progress">
           {steps.map((s, i) => (

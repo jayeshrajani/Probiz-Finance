@@ -826,6 +826,7 @@ exports.businessLoanDetail = async (req, res) => {
       incomeTaxReturn,
       businessCertificate,
       cibilScore,
+      gstNumber: req.body.gstNumber ? String(req.body.gstNumber).toUpperCase().trim() : null,
       uploadedDocuments: {
         aadharFront: uploadedDocs.aadharFront?.[0]?.location || null,
         aadharBack: uploadedDocs.aadharBack?.[0]?.location || null,
@@ -871,6 +872,7 @@ exports.updateBusinessLoanDetail = async (req, res) => {
       incomeTaxReturn: req.body.incomeTaxReturn || existingApplication.incomeTaxReturn,
       businessCertificate: req.body.businessCertificate || existingApplication.businessCertificate,
       cibilScore: req.body.cibilScore || existingApplication.cibilScore,
+      gstNumber: req.body.gstNumber ? String(req.body.gstNumber).toUpperCase().trim() : existingApplication.gstNumber || null,
       uploadedDocuments: {
         aadharFront: uploadedDocs.aadharFront?.[0]?.location || existingApplication.uploadedDocuments?.aadharFront || null,
         aadharBack: uploadedDocs.aadharBack?.[0]?.location || existingApplication.uploadedDocuments?.aadharBack || null,
@@ -954,6 +956,7 @@ exports.projectfundiingLoanDetail = async (req, res) => {
       incomeTaxReturn,
       businessCertificate,
       cibilScore,
+      gstNumber: req.body.gstNumber ? String(req.body.gstNumber).toUpperCase().trim() : null,
       uploadedDocuments: {
         aadharFront: uploadedDocs?.aadharFront?.[0]?.location || null,
         aadharBack: uploadedDocs?.aadharBack?.[0]?.location || null,
@@ -1000,6 +1003,7 @@ exports.updateProjectFundingLoanDetail = async (req, res) => {
       incomeTaxReturn: req.body.incomeTaxReturn || existingApplication.incomeTaxReturn,
       businessCertificate: req.body.businessCertificate || existingApplication.businessCertificate,
       cibilScore: req.body.cibilScore || existingApplication.cibilScore,
+      gstNumber: req.body.gstNumber ? String(req.body.gstNumber).toUpperCase().trim() : existingApplication.gstNumber || null,
       uploadedDocuments: {
         aadharFront: uploadedDocs?.aadharFront?.[0]?.location || existingApplication.uploadedDocuments?.aadharFront || null,
         aadharBack: uploadedDocs?.aadharBack?.[0]?.location || existingApplication.uploadedDocuments?.aadharBack || null,
@@ -3436,6 +3440,7 @@ exports.addEducationLoanApplication = async (req, res) => {
       collateralType,
       collateralLocation,
       collateralMarketValue,
+      studyCountry: req.body.studyCountry || null,
 
       uploadedDocuments: { 
         admissionLetter: req.files?.admissionLetter?.[0]?.location || null,
@@ -3476,6 +3481,7 @@ exports.updateEducationLoanApplication = async (req, res) => {
     existing.courseName = req.body.courseName || existing.courseName;
     existing.institutionName = req.body.institutionName || existing.institutionName;
     existing.institutionAddress = req.body.institutionAddress || existing.institutionAddress;
+    existing.studyCountry = req.body.studyCountry || existing.studyCountry;
     existing.admissionDate = req.body.admissionDate || existing.admissionDate;
     existing.courseDuration = req.body.courseDuration || existing.courseDuration;
 

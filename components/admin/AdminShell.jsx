@@ -4,13 +4,10 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import {
-  Archive,
   ArrowSquareOut,
   Briefcase,
   Buildings,
-  CaretDown,
   CurrencyInr,
   EnvelopeSimple,
   Globe,
@@ -34,7 +31,9 @@ import { cn } from "@/lib/utils";
 const AdminContext = createContext(null);
 export const useAdmin = () => useContext(AdminContext);
 
-const GROUP_ICONS = { loans: CurrencyInr, cover: ShieldCheck, services: Briefcase, inbox: EnvelopeSimple, archive: Archive };
+const GROUP_ICONS = { loans: CurrencyInr, cover: ShieldCheck, services: Briefcase, inbox: EnvelopeSimple };
+// Older forms stay reachable through the product filter on the leads page.
+const SIDEBAR_GROUPS = Object.keys(GROUP_ICONS);
 
 function NavLink({ href, icon: Icon, label, active, count, onNavigate }) {
   return (
@@ -57,21 +56,11 @@ function NavLink({ href, icon: Icon, label, active, count, onNavigate }) {
 function Sidebar({ onNavigate }) {
   const { config, counts, staff, isAdmin, signOut } = useAdmin();
   const router = useRouter();
-  const activeType = router.pathname.startsWith("/admin-panel/leads") ? router.query.type || null : null;
+  const onLeads = router.pathname.startsWith("/admin-panel/leads");
+  const activeType = onLeads ? router.query.type || null : null;
   const activeScope = router.pathname === "/admin-panel/leads" ? router.query.scope || "" : null;
-  const activeGroup = config.types.find((t) => t.type === activeType)?.group;
-  const [open, setOpen] = useState(() => new Set(activeGroup ? [activeGroup] : ["loans"]));
-
-  useEffect(() => {
-    if (activeGroup) setOpen((s) => new Set(s).add(activeGroup));
-  }, [activeGroup]);
-
-  const toggle = (id) =>
-    setOpen((s) => {
-      const next = new Set(s);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const activeGroup = onLeads ? router.query.group || config.types.find((t) => t.type === activeType)?.group || null : null;
+  const filteredByProduct = Boolean(activeType || activeGroup);
 
   const is = (path) => router.pathname === path;
 
@@ -86,65 +75,33 @@ function Sidebar({ onNavigate }) {
           <NavLink href="/admin-panel/dashboard" icon={SquaresFour} label={isAdmin ? "Overview" : "My day"} active={is("/admin-panel/dashboard")} onNavigate={onNavigate} />
           {isAdmin ? (
             <>
-              <NavLink href="/admin-panel/leads" icon={Tray} label="All leads" active={activeScope === "" && !activeType} count={counts.open} onNavigate={onNavigate} />
-              <NavLink href="/admin-panel/leads?scope=unassigned" icon={UserCirclePlus} label="Unassigned" active={activeScope === "unassigned" && !activeType} count={counts.unassigned} onNavigate={onNavigate} />
+              <NavLink href="/admin-panel/leads" icon={Tray} label="All leads" active={activeScope === "" && !filteredByProduct} count={counts.open} onNavigate={onNavigate} />
+              <NavLink href="/admin-panel/leads?scope=unassigned" icon={UserCirclePlus} label="Unassigned" active={activeScope === "unassigned" && !filteredByProduct} count={counts.unassigned} onNavigate={onNavigate} />
             </>
           ) : (
             <>
-              <NavLink href="/admin-panel/leads?scope=mine" icon={Tray} label="My leads" active={activeScope === "mine" && !activeType} count={counts.active} onNavigate={onNavigate} />
-              <NavLink href="/admin-panel/leads?scope=unassigned" icon={UserCirclePlus} label="Pick up new leads" active={activeScope === "unassigned" && !activeType} count={counts.unassigned} onNavigate={onNavigate} />
+              <NavLink href="/admin-panel/leads?scope=mine" icon={Tray} label="My leads" active={activeScope === "mine" && !filteredByProduct} count={counts.active} onNavigate={onNavigate} />
+              <NavLink href="/admin-panel/leads?scope=unassigned" icon={UserCirclePlus} label="Pick up new leads" active={activeScope === "unassigned" && !filteredByProduct} count={counts.unassigned} onNavigate={onNavigate} />
             </>
           )}
         </div>
 
         <div>
-          <p className="px-2.5 pb-1.5 text-xs font-medium text-muted-foreground">Leads by product</p>
+          <p className="px-2.5 pb-1.5 text-xs font-medium text-muted-foreground">Categories</p>
           <div className="space-y-0.5">
-            {config.groups.map((g) => {
-              const Icon = GROUP_ICONS[g.id] || Tray;
-              const types = config.types.filter((t) => t.group === g.id);
-              const groupOpen = types.reduce((n, t) => n + (counts.byType[t.type] || 0), 0);
-              const expanded = open.has(g.id);
-              return (
-                <div key={g.id}>
-                  <button
-                    type="button"
-                    onClick={() => toggle(g.id)}
-                    aria-expanded={expanded}
-                    className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm text-foreground/75 transition-colors hover:bg-background/70 hover:text-foreground"
-                  >
-                    <Icon className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="flex-1 text-left">{g.label}</span>
-                    {groupOpen > 0 && !expanded && <span className="text-xs tabular-nums text-muted-foreground">{groupOpen}</span>}
-                    <CaretDown weight="bold" className={cn("size-3 text-muted-foreground transition-transform duration-200", expanded && "rotate-180")} />
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {expanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                        className="overflow-hidden"
-                      >
-                        <div className="ml-[1.1rem] space-y-0.5 border-l border-border py-1 pl-2">
-                          {types.map((t) => (
-                            <NavLink
-                              key={t.type}
-                              href={{ pathname: "/admin-panel/leads", query: { type: t.type } }}
-                              label={t.label}
-                              active={activeType === t.type}
-                              count={counts.byType[t.type] || 0}
-                              onNavigate={onNavigate}
-                            />
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
+            {config.groups
+              .filter((g) => SIDEBAR_GROUPS.includes(g.id))
+              .map((g) => (
+                <NavLink
+                  key={g.id}
+                  href={{ pathname: "/admin-panel/leads", query: { group: g.id } }}
+                  icon={GROUP_ICONS[g.id]}
+                  label={g.label}
+                  active={activeGroup === g.id}
+                  count={config.types.filter((t) => t.group === g.id).reduce((n, t) => n + (counts.byType[t.type] || 0), 0)}
+                  onNavigate={onNavigate}
+                />
+              ))}
           </div>
         </div>
 
