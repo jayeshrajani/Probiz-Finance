@@ -6,7 +6,9 @@ import { useRouter } from "next/router";
 import { Inter } from "next/font/google";
 import { MotionConfig } from "motion/react";
 import { Toaster } from "@/components/ui/sonner";
+import WhatsAppButton from "@/components/site/WhatsAppButton";
 import { captureAttribution } from "@/lib/attribution";
+import { SiteSettingsProvider } from "@/lib/site-settings";
 
 const Assistant = dynamic(() => import("@/components/assistant/Assistant"), { ssr: false });
 
@@ -42,8 +44,15 @@ export default function App({ Component, pageProps }) {
         }
       `}</style>
       <MotionConfig reducedMotion="user">
-        <Component {...pageProps} />
-        {!isAdmin && <Assistant />}
+        {isAdmin ? (
+          <Component {...pageProps} />
+        ) : (
+          <SiteSettingsProvider>
+            <Component {...pageProps} />
+            <WhatsAppButton />
+            <Assistant />
+          </SiteSettingsProvider>
+        )}
       </MotionConfig>
       <Toaster />
     </>

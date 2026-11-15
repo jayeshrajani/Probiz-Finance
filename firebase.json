@@ -1,0 +1,48 @@
+{
+  "apphosting": {
+    "backendId": "probiz-staging",
+    "rootDir": "/",
+    "ignore": [
+      "node_modules",
+      ".git",
+      ".next",
+      ".data",
+      ".env",
+      ".env.*",
+      "*.log",
+      "public/uploads",
+      ".firebase",
+      ".vscode",
+      "docs",
+      "scripts",
+      "setup.md",
+      "apphosting.local.yaml",
+      "*.pem",
+      "*.key",
+      "*service-account*.json",
+      "*serviceAccount*.json",
+      "*-firebase-adminsdk-*.json"
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "emulators": {
+    "singleProjectMode": true,
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8080
+    },
+    "storage": {
+      "host": "127.0.0.1",
+      "port": 9199
+    },
+    "ui": {
+      "enabled": false
+    }
+  }
+}

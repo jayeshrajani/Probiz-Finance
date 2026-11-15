@@ -2,7 +2,8 @@
 // saves the per-form record -> Lead envelope (with 7-day duplicate merge) -> LeadEvent + listeners.
 const jwt = require('jsonwebtoken');
 const config = require('../config/auth.config');
-const { saveTracker } = require('../odm');
+const { saveTracker, transaction } = require('../odm');
+const { deleteStoredFile } = require('../storage');
 const Lead = require('../models/lead.model');
 const User = require('../models/user.model');
 const { parseBody, runChain } = require('../http');
@@ -25,9 +26,16 @@ const loadSchema = () => (schemaPromise ||= import('../../lib/lead-schema.js'));
 const clip = (v, n = 300) => (v === undefined || v === null || v === '' ? null : String(v).slice(0, n));
 
 // Forwarded headers are only trusted behind a proxy that sets them (Vercel always does); otherwise anyone could spoof them.
+// TRUST_PROXY_HOPS=n (Google App Hosting / Cloud Run): use the n-th X-Forwarded-For entry from the right, i.e. the
+// address our own proxies recorded; entries further left are whatever the caller sent.
 function clientIp(req) {
   const first = (v) => String(v || '').split(',')[0].trim();
   const socket = req.socket?.remoteAddress || 'unknown';
+  const hops = Number(process.env.TRUST_PROXY_HOPS);
+  if (Number.isInteger(hops) && hops > 0) {
+    const entries = String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+    return entries.length >= hops ? entries[entries.length - hops] : socket;
+  }
   if (process.env.VERCEL) return first(req.headers['x-real-ip']) || first(req.headers['x-forwarded-for']) || socket;
   if (process.env.TRUST_PROXY === '1') return first(req.headers['x-forwarded-for']) || socket;
   return socket;
@@ -159,42 +167,50 @@ async function upsertLead(ctx, refId, req) {
   const source = { channel: ctx.channel, topic: ctx.meta?.topic || null, ...(ctx.meta?.source || {}) };
   const dedupeKey = phone ? `${def.type}:${phone}` : null;
 
-  const existing = dedupeKey
-    ? await Lead.findOne({ dedupeKey, status: { $in: OPEN }, lastActivityAt: { $gte: new Date(now - DEDUPE_MS) } }).sort({ lastActivityAt: -1 })
-    : null;
-  if (existing) {
-    existing.refIds = [...(existing.refIds || []), refId];
-    existing.refId = refId;
-    existing.repeatCount = (existing.repeatCount || 0) + 1;
-    existing.lastActivityAt = now;
-    for (const k of ['name', 'email', 'amount', 'detail']) if (s[k]) existing[k] = String(s[k]);
-    if (!existing.userId && ctx.userId) existing.userId = ctx.userId;
-    if (ctx.meta?.consent) existing.consent = { ...ctx.meta.consent, at: now };
-    await existing.save();
-    await emit(existing, 'lead.repeat', actor, { refId, source });
-    return { lead: existing, repeat: true };
-  }
+  // One transaction, locked on the duplicate key and the record: concurrent submissions from the same phone
+  // produce one lead plus repeats, and the backfill cannot create a second envelope for the same record.
+  return transaction(async (tx) => {
+    await tx.lock(dedupeKey && `lead:dedupe:${dedupeKey}`, `lead:ref:${def.type}:${refId}`);
+    const owner = await Lead.findOne({ type: def.type, refIds: refId });
+    if (owner) return { lead: owner, repeat: false };
 
-  const lead = await Lead.create({
-    type: def.type,
-    formKey: def.formKey,
-    refId,
-    refIds: [refId],
-    name: s.name ? String(s.name) : null,
-    phone: phone || (s.phone ? String(s.phone) : null),
-    email: s.email ? String(s.email) : null,
-    amount: s.amount ? String(s.amount) : null,
-    detail: s.detail ? String(s.detail).slice(0, 300) : null,
-    status: 'new',
-    userId: ctx.userId,
-    source,
-    consent: ctx.meta?.consent ? { ...ctx.meta.consent, at: now } : null,
-    dedupeKey,
-    repeatCount: 0,
-    lastActivityAt: now,
+    const existing = dedupeKey
+      ? await Lead.findOne({ dedupeKey, status: { $in: OPEN }, lastActivityAt: { $gte: new Date(now - DEDUPE_MS) } }).sort({ lastActivityAt: -1 })
+      : null;
+    if (existing) {
+      existing.refIds = [...(existing.refIds || []), refId];
+      existing.refId = refId;
+      existing.repeatCount = (existing.repeatCount || 0) + 1;
+      existing.lastActivityAt = now;
+      for (const k of ['name', 'email', 'amount', 'detail']) if (s[k]) existing[k] = String(s[k]);
+      if (!existing.userId && ctx.userId) existing.userId = ctx.userId;
+      if (ctx.meta?.consent) existing.consent = { ...ctx.meta.consent, at: now };
+      await existing.save();
+      tx.afterCommit(() => emit(existing, 'lead.repeat', actor, { refId, source }));
+      return { lead: existing, repeat: true };
+    }
+
+    const lead = await Lead.create({
+      type: def.type,
+      formKey: def.formKey,
+      refId,
+      refIds: [refId],
+      name: s.name ? String(s.name) : null,
+      phone: phone || (s.phone ? String(s.phone) : null),
+      email: s.email ? String(s.email) : null,
+      amount: s.amount ? String(s.amount) : null,
+      detail: s.detail ? String(s.detail).slice(0, 300) : null,
+      status: 'new',
+      userId: ctx.userId,
+      source,
+      consent: ctx.meta?.consent ? { ...ctx.meta.consent, at: now } : null,
+      dedupeKey,
+      repeatCount: 0,
+      lastActivityAt: now,
+    });
+    tx.afterCommit(() => emit(lead, 'lead.created', actor, { refId, source }));
+    return { lead, repeat: false };
   });
-  await emit(lead, 'lead.created', actor, { refId, source });
-  return { lead, repeat: false };
 }
 
 function persist(controller) {
@@ -206,6 +222,10 @@ function persist(controller) {
       await controller(req, shim, () => {});
       await Promise.race([done, new Promise((r) => setTimeout(r, RESPONSE_TIMEOUT_MS))]);
     });
+    if (!out.sent || out.status < 200 || out.status >= 300) {
+      // The record was not saved, so files stored for it would be unreachable.
+      for (const value of req.storedFiles || []) deleteStoredFile(value);
+    }
     if (!out.sent) return res.status(500).json({ message: 'Internal server error', status: 500 });
 
     const ok = out.status >= 200 && out.status < 300;
@@ -272,4 +292,4 @@ on('lead.created', async function whatsappAlert(lead) {
   await notifyNewLead(lead, byType[lead.type]?.label || lead.type);
 });
 
-module.exports = { installLeadIntake, upsertLead, normalizePhone, HONEYPOT };
+module.exports = { installLeadIntake, upsertLead, normalizePhone, HONEYPOT, clientIp };

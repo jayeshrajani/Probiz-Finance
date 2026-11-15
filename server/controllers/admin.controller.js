@@ -1,4 +1,6 @@
 const bcrypt = require("bcryptjs");
+const { ci, transaction } = require('../odm');
+const { deleteStoredFile } = require('../storage');
 const { signAdminToken } = require("../middlewares/staffAuth");
 const admin = require('../models/admin.model');
 const user = require("../models/user.model");
@@ -8,6 +10,9 @@ const Property = require("../models/property.model");
 const PropertyInHouse = require("../models/inHouse.model");
 const AdminRole = require('../models/adminRole.model');
 const Area = require('../models/area.model');
+
+// Request text used in a regex filter is matched literally (no injected patterns).
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 exports.createAdmin = async (req, res) => {
     try {
@@ -35,17 +40,21 @@ exports.createAdmin = async (req, res) => {
 
 
 
-        const checkEmail = await admin.findOne({ admin_Email }).lean();
-        if (checkEmail) {
+        // Checked and created in one transaction locked on the email, so two requests cannot both succeed.
+        // The check ignores case because the email is stored in lower case.
+        const hash = bcrypt.hashSync(password,);
+        const data = await transaction(async (tx) => {
+            await tx.lock(`unique:admin:email:${String(admin_Email).trim().toLowerCase()}`);
+            if (await admin.findOne({ admin_Email: ci(admin_Email) }).lean()) return null;
+            return admin.create({
+                admin_Name: admin_Name,
+                admin_Email: admin_Email.toLowerCase(),
+                password: hash
+            });
+        });
+        if (!data) {
             return res.status(409).send({ message: 'Email already exists', status: 409 });
         }
-
-
-        const data = await admin.create({
-            admin_Name: admin_Name,
-            admin_Email: admin_Email.toLowerCase(),
-            password: bcrypt.hashSync(password,)
-        });
 
         const { password: _hash, ...adminData } = data.toObject();
         return res.status(200).send({ data: adminData, message: "Congratulations! Your account has been created successfully!", status: 200 });
@@ -262,7 +271,7 @@ exports.AddProperty = async (req, res) => {
       
       // Try to find matching area in database (case-insensitive)
       const areaExists = await Area.findOne({ 
-        name: { $regex: new RegExp(`^${areaNameValue}$`, 'i') },
+        name: ci(areaNameValue),
         deleteFlag: false 
       });
       
@@ -372,7 +381,7 @@ exports.UpdatePropertyById = async (req, res) => {
         
         // Try to find matching area in database (case-insensitive)
         const areaExists = await Area.findOne({ 
-          name: { $regex: new RegExp(`^${areaNameValue}$`, 'i') },
+          name: ci(areaNameValue),
           deleteFlag: false 
         });
         
@@ -504,6 +513,8 @@ exports.deleteProperty = async (req, res) => {
       if (!deletedProperty) {
         return res.status(404).json({ success: false, message: "Property not found" });
       }
+      // Listing media stored by the current provider goes with the listing; older files are left untouched.
+      for (const value of [...(deletedProperty.propertyImage || []), deletedProperty.propertyVideo]) await deleteStoredFile(value);
   
       res.status(200).json({ success: true, message: "Property deleted successfully", data: deletedProperty });
     } catch (err) {
@@ -527,7 +538,7 @@ exports.getFilteredProperties = async (req, res) => {
     
     // Handle areaName filter (case-insensitive)
     if (areaName) {
-      match.areaName = { $regex: new RegExp(areaName, 'i') };
+      match.areaName = { $regex: new RegExp(escapeRegex(areaName), 'i') };
     }
 
     // Handle price filter correctly
@@ -1014,16 +1025,17 @@ exports.getAllAreas = async (req, res) => {
     const filter = { deleteFlag: false };
 
     // Apply filters
-    if (city) filter.city = new RegExp(city, 'i');
-    if (state) filter.state = new RegExp(state, 'i');
+    if (city) filter.city = new RegExp(escapeRegex(city), 'i');
+    if (state) filter.state = new RegExp(escapeRegex(state), 'i');
     if (isActive !== undefined) filter.isActive = isActive === 'true';
     
     // Search filter (searches in name, city, state)
     if (search) {
+      const term = escapeRegex(search);
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { city: new RegExp(search, 'i') },
-        { state: new RegExp(search, 'i') }
+        { name: new RegExp(term, 'i') },
+        { city: new RegExp(term, 'i') },
+        { state: new RegExp(term, 'i') }
       ];
     }
 

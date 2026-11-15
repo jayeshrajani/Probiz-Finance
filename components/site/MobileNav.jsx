@@ -8,12 +8,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { hrefFor, nav } from "@/lib/catalog";
-import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 import { signOut } from "@/lib/use-user";
 
 export default function MobileNav({ user }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { primary } = useSiteSettings();
 
   useEffect(() => {
     const close = () => setOpen(false);
@@ -72,8 +73,8 @@ export default function MobileNav({ user }) {
               <Link href="/eligibility">Check eligibility</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <a href={site.phoneHref}>
-                <Phone weight="bold" /> {site.phoneDisplay}
+              <a href={primary.href}>
+                <Phone weight="bold" /> {primary.display}
               </a>
             </Button>
             {user ? (

@@ -55,12 +55,12 @@ export function StatusBadge({ status, className }) {
   );
 }
 
-export function AdminOnly({ children }) {
+export function AdminOnly({ children, body = "Customer and subscriber lists are limited to admins. Ask an admin if you need something from here." }) {
   const { isAdmin } = useAdmin();
   if (isAdmin) return children;
   return (
     <Card>
-      <Empty title="Admins only" body="Customer and subscriber lists are limited to admins. Ask an admin if you need something from here." />
+      <Empty title="Admins only" body={body} />
     </Card>
   );
 }

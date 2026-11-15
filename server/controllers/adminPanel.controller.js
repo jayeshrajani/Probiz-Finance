@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const { ci, transaction } = require('../odm');
 const Admin = require('../models/admin.model');
 const Employee = require('../models/employee.model');
 const Lead = require('../models/lead.model');
@@ -11,6 +12,7 @@ const { LEAD_TYPES, GROUPS, byType } = require('../admin/leads');
 const { analytics, dayKey, resolveRange, parseDayRange } = require('../admin/analytics');
 const { ensureBackfilled } = require('../leads/backfill');
 const { emit } = require('../leads/events');
+const { withFileLinks, storedValues, deleteStoredFile } = require('../storage');
 
 const STATUSES = ['new', 'contacted', 'in_progress', 'won', 'lost'];
 const OPEN = new Set(['new', 'contacted', 'in_progress']);
@@ -98,8 +100,7 @@ exports.employeeLogin = async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '');
   if (!email || !password) return fail(res, 400, 'Enter your email and password.');
-  const employees = await Employee.find({ deleteFlag: false }).lean();
-  const found = employees.find((e) => String(e.email).toLowerCase() === email);
+  const found = await Employee.findOne({ email: ci(email), deleteFlag: false }).lean();
   if (!found || !bcrypt.compareSync(password, found.password)) return fail(res, 401, "That email and password don't match an employee account.");
   res.json({ accessToken: signStaffToken(String(found._id), 'employee'), data: { name: found.name, email: found.email } });
 };
@@ -112,12 +113,13 @@ exports.staffLogin = async (req, res) => {
   if (isPlatformManager(email, password)) {
     return res.json({ accessToken: signPlatformToken(), role: 'admin', data: { name: 'Platform manager', email } });
   }
-  const [admins, employees] = await Promise.all([Admin.find({ deleteFlag: false }).lean(), Employee.find({ deleteFlag: false }).lean()]);
-  const admin = admins.find((a) => String(a.admin_Email).toLowerCase() === email);
+  const [admin, employee] = await Promise.all([
+    Admin.findOne({ admin_Email: ci(email), deleteFlag: false }).lean(),
+    Employee.findOne({ email: ci(email), deleteFlag: false }).lean(),
+  ]);
   if (admin && bcrypt.compareSync(password, admin.password)) {
     return res.json({ accessToken: signStaffToken(String(admin._id), 'admin'), role: 'admin', data: { name: admin.admin_Name, email: admin.admin_Email } });
   }
-  const employee = employees.find((e) => String(e.email).toLowerCase() === email);
   if (employee && bcrypt.compareSync(password, employee.password)) {
     return res.json({ accessToken: signStaffToken(String(employee._id), 'employee'), role: 'employee', data: { name: employee.name, email: employee.email } });
   }
@@ -271,11 +273,13 @@ exports.get = async (req, res) => {
   const refs = lead.refIds?.length ? lead.refIds : [lead.refId];
   const docs = (await Promise.all(refs.map((ref) => def.model.findById(ref).lean()))).filter(Boolean).sort(byNewest);
   const customer = lead.userId ? await User.findById(lead.userId).lean() : null;
+  // findLead has checked canSee, so private documents get short-lived links; the response is never cached.
+  res.setHeader('Cache-Control', 'no-store');
   res.json({
     data: {
       lead: { ...row(lead), page: def.page || null, source: lead.source || null, consent: lead.consent || null },
-      fields: docs[0] ? clean(docs[0]) : {},
-      submissions: docs.map((d) => ({ id: String(d._id), createdAt: d.createdAt, fields: clean(d) })),
+      fields: docs[0] ? withFileLinks(clean(docs[0])) : {},
+      submissions: docs.map((d) => ({ id: String(d._id), createdAt: d.createdAt, fields: withFileLinks(clean(d)) })),
       customer: customer ? { id: String(customer._id), name: customer.user_Name || null, email: customer.user_Email || null } : null,
       ...(await view(lead)),
     },
@@ -285,54 +289,71 @@ exports.get = async (req, res) => {
 exports.update = async (req, res) => {
   const found = await findLead(req, res);
   if (!found) return;
-  const { lead } = found;
   const body = req.body || {};
   const note = String(body.note || '').trim().slice(0, 2000);
   if (body.status !== undefined && !STATUSES.includes(body.status)) return fail(res, 400, 'Unknown status.');
-  const events = [];
+  if (body.assignTo !== undefined && !isAdmin(req)) return fail(res, 403, 'Only admins can reassign leads.');
 
-  if (body.assignTo !== undefined) {
-    if (!isAdmin(req)) return fail(res, 403, 'Only admins can reassign leads.');
-    if (body.assignTo) {
-      const employee = await Employee.findOne({ _id: body.assignTo, deleteFlag: false }).lean();
-      if (!employee) return fail(res, 400, 'That employee no longer exists.');
-      lead.assignedTo = String(employee._id);
-      lead.assignedName = employee.name;
-      events.push(['lead.assigned', { to: lead.assignedTo, name: employee.name }]);
-    } else if (lead.assignedTo) {
-      lead.assignedTo = null;
-      lead.assignedName = null;
-      events.push(['lead.unassigned', {}]);
+  // Read-modify-write in one transaction: a claim only succeeds if the lead is still unassigned, and
+  // concurrent status, note and assignment changes cannot overwrite each other.
+  const result = await transaction(async (tx) => {
+    const lead = await Lead.findById(found.lead._id);
+    if (!lead) return { error: [404, 'Lead not found.'] };
+    if (!canSee(req, lead)) return { error: [403, 'This lead belongs to another advisor.'] };
+    const events = [];
+
+    if (body.assignTo !== undefined) {
+      if (body.assignTo) {
+        const employee = await Employee.findOne({ _id: body.assignTo, deleteFlag: false }).lean();
+        if (!employee) return { error: [400, 'That employee no longer exists.'] };
+        lead.assignedTo = String(employee._id);
+        lead.assignedName = employee.name;
+        events.push(['lead.assigned', { to: lead.assignedTo, name: employee.name }]);
+      } else if (lead.assignedTo) {
+        lead.assignedTo = null;
+        lead.assignedName = null;
+        events.push(['lead.unassigned', {}]);
+      }
     }
-  }
 
-  // An employee who works an unassigned lead takes ownership of it.
-  if (!isAdmin(req) && !lead.assignedTo && (body.claim || body.status || note)) {
-    lead.assignedTo = req.staff.id;
-    lead.assignedName = req.staff.name;
-    events.push(['lead.assigned', { to: req.staff.id, name: req.staff.name, claimed: true }]);
-  }
+    // An employee who works an unassigned lead takes ownership of it.
+    if (!isAdmin(req) && !lead.assignedTo && (body.claim || body.status || note)) {
+      lead.assignedTo = req.staff.id;
+      lead.assignedName = req.staff.name;
+      events.push(['lead.assigned', { to: req.staff.id, name: req.staff.name, claimed: true }]);
+    }
 
-  if (body.status && body.status !== lead.status) {
-    events.push(['lead.status_changed', { from: lead.status, to: body.status }]);
-    lead.status = body.status;
-  }
-  if (note) events.push(['lead.note_added', { text: note }]);
-  if (events.length) {
-    lead.lastActivityAt = new Date();
-    await lead.save();
-    for (const [type, data] of events) await emit(lead, type, staffActor(req), data);
-  }
-  res.json({ data: await view(lead) });
+    if (body.status && body.status !== lead.status) {
+      events.push(['lead.status_changed', { from: lead.status, to: body.status }]);
+      lead.status = body.status;
+    }
+    if (note) events.push(['lead.note_added', { text: note }]);
+    if (events.length) {
+      lead.lastActivityAt = new Date();
+      await lead.save();
+      tx.afterCommit(async () => {
+        for (const [type, data] of events) await emit(lead, type, staffActor(req), data);
+      });
+    }
+    return { lead };
+  });
+  if (result.error) return fail(res, ...result.error);
+  res.json({ data: await view(result.lead) });
 };
 
 exports.remove = async (req, res) => {
   const found = await findLead(req, res);
   if (!found) return;
   const { def, lead } = found;
-  for (const ref of lead.refIds?.length ? lead.refIds : [lead.refId]) await def.model.findByIdAndDelete(ref);
+  const files = [];
+  for (const ref of lead.refIds?.length ? lead.refIds : [lead.refId]) {
+    const removed = await def.model.findByIdAndDelete(ref).lean();
+    if (removed) files.push(...storedValues(removed));
+  }
   await LeadEvent.deleteMany({ leadId: String(lead._id) });
   await Lead.findByIdAndDelete(lead._id);
+  // After the records are gone; only files created by the current storage provider are deleted (best effort).
+  for (const value of files) await deleteStoredFile(value);
   res.json({ message: 'Lead deleted.' });
 };
 
@@ -367,18 +388,25 @@ exports.addEmployee = async (req, res) => {
   if (!name || !email || !mobile || !employeeId || !password) return fail(res, 400, 'Name, email, mobile, employee ID and password are all required.');
   if (!/^\S+@\S+\.\S+$/.test(email)) return fail(res, 400, 'Enter a valid email.');
   if (String(password).length < 8) return fail(res, 400, 'Use a password of at least 8 characters.');
-  const existing = (await Employee.find({ deleteFlag: false }).lean()).find(
-    (e) => String(e.email).toLowerCase() === String(email).toLowerCase() || String(e.employeeId) === String(employeeId)
-  );
-  if (existing) return fail(res, 409, 'An employee with that email or ID already exists.');
-  const saved = await Employee.create({
-    name: String(name).trim(),
-    email: String(email).trim().toLowerCase(),
-    mobile: String(mobile).trim(),
-    employeeId: String(employeeId).trim(),
-    roll: String(title || 'Advisor').trim(),
-    password: bcrypt.hashSync(String(password), 10),
+  const emailKey = String(email).trim().toLowerCase();
+  const idKey = String(employeeId).trim();
+  const hash = bcrypt.hashSync(String(password), 10);
+  // The duplicate check and the create run in one transaction locked on both values, so two requests with
+  // the same email or ID cannot both succeed.
+  const saved = await transaction(async (tx) => {
+    await tx.lock(`unique:employee:email:${emailKey}`, `unique:employee:employeeId:${idKey}`);
+    const existing = await Employee.findOne({ deleteFlag: false, $or: [{ email: ci(emailKey) }, { employeeId: idKey }] }).lean();
+    if (existing) return null;
+    return Employee.create({
+      name: String(name).trim(),
+      email: emailKey,
+      mobile: String(mobile).trim(),
+      employeeId: idKey,
+      roll: String(title || 'Advisor').trim(),
+      password: hash,
+    });
   });
+  if (!saved) return fail(res, 409, 'An employee with that email or ID already exists.');
   const { password: _hash, ...data } = saved.toObject();
   res.status(201).json({ data });
 };
@@ -388,15 +416,19 @@ exports.removeEmployee = async (req, res) => {
   if (!target) return fail(res, 404, 'Employee not found.');
   target.deleteFlag = true;
   await target.save();
-  // Their open leads go back to the pool so nothing is stranded.
+  // Their open leads go back to the pool so nothing is stranded; each lead is re-read in its own transaction.
   await ensureBackfilled();
-  const theirs = await Lead.find({ assignedTo: String(target._id) });
-  for (const lead of theirs) {
-    if (!OPEN.has(lead.status)) continue;
-    lead.assignedTo = null;
-    lead.assignedName = null;
-    await lead.save();
-    await emit(lead, 'lead.unassigned', staffActor(req), { reason: `${target.name} left; moved back to the unassigned pool` });
+  const employeeId = String(target._id);
+  const theirs = await Lead.find({ assignedTo: employeeId }).lean();
+  for (const { _id } of theirs) {
+    await transaction(async (tx) => {
+      const lead = await Lead.findById(_id);
+      if (!lead || lead.assignedTo !== employeeId || !OPEN.has(lead.status)) return;
+      lead.assignedTo = null;
+      lead.assignedName = null;
+      await lead.save();
+      tx.afterCommit(() => emit(lead, 'lead.unassigned', staffActor(req), { reason: `${target.name} left; moved back to the unassigned pool` }));
+    });
   }
   res.json({ message: 'Employee removed.' });
 };
@@ -422,4 +454,17 @@ exports.changePassword = async (req, res) => {
   me.password = bcrypt.hashSync(next, 10);
   await me.save();
   res.json({ message: 'Password updated.' });
+};
+
+// The forwarded chain as received and the address the rate limits use; the admin's own request only.
+exports.clientIp = (req, res) => {
+  const { clientIp } = require('../leads/intake');
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    data: {
+      forwardedFor: String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean),
+      trustProxyHops: process.env.TRUST_PROXY_HOPS || null,
+      resolved: clientIp(req),
+    },
+  });
 };

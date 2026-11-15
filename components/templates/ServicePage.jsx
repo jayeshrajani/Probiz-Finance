@@ -9,7 +9,7 @@ import SiteLayout from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { serviceBySlug, services } from "@/lib/catalog";
 import { getService } from "@/lib/services-content";
-import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 
 const NEXT = [
   "We call you to understand exactly what you need.",
@@ -21,6 +21,7 @@ export default function ServicePage({ slug }) {
   const meta = serviceBySlug[slug];
   const content = getService(slug);
   const others = services.filter((s) => s.slug !== slug).slice(0, 4);
+  const { primary } = useSiteSettings();
 
   return (
     <SiteLayout title={content.title} description={content.summary} path={`/${slug}`}>
@@ -36,7 +37,7 @@ export default function ServicePage({ slug }) {
                 <a href="#enquire">Send an enquiry</a>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <a href={site.phoneHref}>
+                <a href={primary.href}>
                   <Phone weight="bold" /> Call us
                 </a>
               </Button>

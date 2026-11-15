@@ -21,4 +21,6 @@ module.exports = (app) => {
     app.post('/api/admin/employees', requireAdmin, panel.addEmployee);
     app.delete('/api/admin/employees/:id', requireAdmin, panel.removeEmployee);
     app.put('/api/admin/employees/:id/password', requireAdmin, panel.resetEmployeePassword);
+    // Admin-only: shows how the client address is resolved behind the hosting proxy (sets TRUST_PROXY_HOPS).
+    app.get('/api/admin/client-ip', requireAdmin, panel.clientIp);
 };

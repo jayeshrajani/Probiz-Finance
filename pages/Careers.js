@@ -5,10 +5,11 @@ import SiteLayout from "@/components/site/SiteLayout";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import company from "@/content/company.json";
-import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 
 export default function CareersPage() {
   const { introParagraphs, roles, cities } = company.careers;
+  const { primary, contactEmail, emailHref } = useSiteSettings();
 
   return (
     <SiteLayout title="Careers" description="Probiz Finance is hiring relationship executives and channel managers across Madhya Pradesh." path="/Careers">
@@ -81,13 +82,13 @@ export default function CareersPage() {
         <h2 className="headline">Interested? Send us your CV or call.</h2>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild size="lg">
-            <a href={`mailto:${site.email}?subject=Job application`}>
-              <EnvelopeSimple weight="bold" /> {site.email}
+            <a href={`${emailHref}?subject=Job application`}>
+              <EnvelopeSimple weight="bold" /> {contactEmail}
             </a>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <a href={site.phoneHref}>
-              <Phone weight="bold" /> {site.phoneDisplay}
+            <a href={primary.href}>
+              <Phone weight="bold" /> {primary.display}
             </a>
           </Button>
         </div>

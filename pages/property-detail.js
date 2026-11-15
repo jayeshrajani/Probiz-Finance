@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { getJSON } from "@/lib/api";
 import { formatINR } from "@/lib/format";
 import { hasValue, typeLabel } from "@/lib/property";
-import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 
 function Gallery({ images, name }) {
@@ -51,6 +51,7 @@ export default function PropertyDetailPage() {
   const router = useRouter();
   const { id } = router.query;
   const [state, setState] = useState({ status: "loading", data: null });
+  const { primary } = useSiteSettings();
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -138,7 +139,7 @@ export default function PropertyDetailPage() {
                 <p className="mt-1 font-display text-4xl font-semibold tracking-[-0.03em] tabular-nums">{Number(p.price) > 0 ? formatINR(p.price) : "On request"}</p>
                 <div className="mt-8 grid gap-3">
                   <Button asChild size="lg">
-                    <a href={site.phoneHref}>
+                    <a href={primary.href}>
                       <Phone weight="bold" /> Enquire about this property
                     </a>
                   </Button>

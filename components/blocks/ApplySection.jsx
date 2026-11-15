@@ -1,6 +1,6 @@
 import { Phone } from "@phosphor-icons/react";
 import ApplicationForm from "@/components/forms/ApplicationForm";
-import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 
 const defaultNext = [
   "An advisor reviews your details and calls you to discuss your options.",
@@ -10,6 +10,7 @@ const defaultNext = [
 
 export default function ApplySection({ id = "apply", title, intro, formKey, preset, productName, next, formTitle }) {
   const steps = next || defaultNext;
+  const { primary } = useSiteSettings();
   return (
     <section id={id} className="section border-t border-border bg-secondary/50">
       <div className="container-page grid gap-12 lg:grid-cols-12">
@@ -27,10 +28,10 @@ export default function ApplySection({ id = "apply", title, intro, formKey, pres
                 </li>
               ))}
             </ol>
-            <a href={site.phoneHref} className="mt-10 inline-flex items-center gap-3 rounded-full bg-background px-5 py-3 text-sm shadow-[0_0_0_1px_var(--border)] transition-colors hover:bg-accent">
+            <a href={primary.href} className="mt-10 inline-flex items-center gap-3 rounded-full bg-background px-5 py-3 text-sm shadow-[0_0_0_1px_var(--border)] transition-colors hover:bg-accent">
               <Phone weight="duotone" className="size-5 text-brand-ink" />
               <span>
-                Prefer to talk? <span className="font-semibold">{site.phoneDisplay}</span>
+                Prefer to talk? <span className="font-semibold">{primary.display}</span>
               </span>
             </a>
           </div>

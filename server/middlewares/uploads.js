@@ -2,10 +2,10 @@ const { multipart } = require('../http');
 
 const DOCUMENT_TYPES = ['image/png', 'image/jpg', 'image/jpeg', 'application/pdf'];
 
-const documents = multipart(DOCUMENT_TYPES);
+const documents = multipart(DOCUMENT_TYPES, { visibility: 'private' });
 
 module.exports = {
-    property: multipart([...DOCUMENT_TYPES, 'video/mp4']),
+    property: multipart([...DOCUMENT_TYPES, 'video/mp4'], { visibility: 'public' }),
     homeloan: documents,
     homeloanrenovation: documents,
     educationloan: documents,

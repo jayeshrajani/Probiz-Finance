@@ -12,7 +12,7 @@ import { errorMessage, postForm, postJSON } from "@/lib/api";
 import { leadMeta } from "@/lib/attribution";
 import { forms } from "@/lib/forms";
 import { CONSENT_TEXT, HONEYPOT, isEmpty, validateField, visible } from "@/lib/lead-schema";
-import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 
 // Hosting (Vercel) rejects request bodies above 4.5 MB.
@@ -20,6 +20,7 @@ const MAX_UPLOAD = 4.4 * 1024 * 1024;
 
 export default function ApplicationForm({ formKey, preset = {}, productName, className }) {
   const config = forms[formKey];
+  const { primary } = useSiteSettings();
   const idPrefix = useId().replace(/:/g, "");
   const topRef = useRef(null);
 
@@ -149,7 +150,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
             {repeat
               ? "You sent us a similar request recently, so your advisor will see both together instead of calling twice."
               : `A Probiz advisor will call you${phone ? ` on ${phone}` : ""} to take your ${productName ? productName.toLowerCase() : "request"} forward.`}{" "}
-            If it's urgent, call us on <a href={site.phoneHref} className="font-medium text-foreground underline-offset-4 hover:underline">{site.phoneDisplay}</a>.
+            If it's urgent, call us on <a href={primary.href} className="font-medium text-foreground underline-offset-4 hover:underline">{primary.display}</a>.
           </p>
           <div className="mt-8 flex flex-wrap gap-2">
             <Button asChild>

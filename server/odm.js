@@ -1,18 +1,15 @@
-// Minimal Mongoose-compatible ODM backed by Postgres: one table per model, documents stored as JSONB.
-// Supports the subset of the Mongoose API used by server/controllers.
+// Minimal Mongoose-compatible ODM: one table/collection per model. Persistence goes through the adapter
+// chosen in server/data (Postgres/PGlite by default). Supports the subset of the Mongoose API used by server/controllers.
 const { randomUUID } = require('crypto');
 const { AsyncLocalStorage } = require('async_hooks');
-const db = require('./db');
+const { adapter, transaction, currentTransaction } = require('./data');
+const { isPlainObject, CastError, castScalar, hideValuesInLogs } = require('./data/values');
 
 // Collects inserts made while handling one request, so the lead pipeline can find the record a controller saved.
 const saveTracker = new AsyncLocalStorage();
 
 const OBJECT_ID = 'ObjectId';
 const MIXED = 'Mixed';
-
-const isPlainObject = (v) =>
-  v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date) &&
-  (Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null);
 
 // A function (not a class) because some models call `mongoose.Schema({...})` without `new`.
 function Schema(definition = {}, options = {}) {
@@ -53,65 +50,13 @@ function compileField(spec) {
   return { kind: kindOf(spec) };
 }
 
-class CastError extends Error {
-  constructor(kind, value, path) {
-    const shown = typeof value === 'string' ? `"${value}"` : JSON.stringify(value);
-    super(`Cast to ${kind} failed for value ${shown} (type ${typeof value}) at path "${path}"`);
-    this.name = 'CastError';
-    this.kind = kind;
-    this.path = path;
-    this.value = value;
-  }
-}
-
 class ValidationError extends Error {
   constructor(modelName, errors) {
     const list = Object.values(errors);
     super(`${modelName} validation failed: ${list.map((e) => `${e.path}: ${e.message}`).join(', ')}`);
     this.name = 'ValidationError';
     this.errors = errors;
-  }
-}
-
-const unwrapSingle = (v) => (Array.isArray(v) && v.length === 1 ? v[0] : v);
-const TRUE_VALUES = [true, 'true', 1, '1', 'yes'];
-const FALSE_VALUES = [false, 'false', 0, '0', 'no'];
-
-function castScalar(field, raw, path) {
-  if (raw === undefined || raw === null) return raw;
-  const value = unwrapSingle(raw);
-  switch (field.kind) {
-    case 'string': {
-      if (typeof value === 'object' && !(value instanceof Date)) throw new CastError('string', value, path);
-      let s = String(value);
-      if (field.trim) s = s.trim();
-      if (field.lowercase) s = s.toLowerCase();
-      if (field.uppercase) s = s.toUpperCase();
-      return s;
-    }
-    case 'number': {
-      if (value === '') return null;
-      const n = typeof value === 'string' ? Number(value.trim()) : Number(value);
-      if (typeof value === 'object' || Number.isNaN(n)) throw new CastError('Number', value, path);
-      return n;
-    }
-    case 'boolean':
-      if (value === '') return null;
-      if (TRUE_VALUES.includes(value)) return true;
-      if (FALSE_VALUES.includes(value)) return false;
-      throw new CastError('Boolean', value, path);
-    case 'date': {
-      if (value === '') return null;
-      const d = value instanceof Date ? value : new Date(value);
-      if (Number.isNaN(d.getTime())) throw new CastError('date', value, path);
-      return d;
-    }
-    case 'objectid':
-      if (value === '') return null;
-      if (isPlainObject(value) || (value && typeof value === 'object' && value._id)) return String(value._id);
-      return String(value);
-    default:
-      return raw;
+    hideValuesInLogs(this, `ValidationError: ${modelName} validation failed at ${list.map((e) => `${e.path} (${e.kind})`).join(', ')} (values hidden)`);
   }
 }
 
@@ -216,125 +161,7 @@ function validateFields(fields, data, prefix, doc, errors) {
   }
 }
 
-// ---------- SQL helpers ----------
-
-function fieldAt(fields, path) {
-  let current = { kind: 'nested', fields };
-  for (const part of path.split('.')) {
-    if (current.kind === 'array') current = current.of;
-    if (/^\d+$/.test(part) && current.kind === 'array') continue;
-    if (current.kind !== 'nested' || !current.fields[part]) return { kind: 'mixed' };
-    current = current.fields[part];
-  }
-  return current;
-}
-
-function jsonPath(path) {
-  const parts = path.split('.');
-  for (const p of parts) if (!/^[\w$-]+$/.test(p)) throw new Error(`Invalid field path: ${path}`);
-  return `'{${parts.map((p) => `"${p}"`).join(',')}}'`;
-}
-
-const COLUMN_PATHS = { _id: 'id', id: 'id', createdAt: 'created_at', updatedAt: 'updated_at' };
-
-function toJsonValue(field, value, path) {
-  if (value instanceof Date) return value.toISOString();
-  if (field.kind === 'mixed' || field.kind === 'nested') return value;
-  const kind = field.kind === 'array' ? field.of : field;
-  try {
-    const v = castScalar(kind, value, path);
-    return v instanceof Date ? v.toISOString() : v;
-  } catch {
-    return value;
-  }
-}
-
-function buildWhere(filter, fields, params) {
-  const add = (v) => { params.push(v); return `$${params.length}`; };
-  const clauses = [];
-  for (const [key, value] of Object.entries(filter || {})) {
-    if (value === undefined) continue;
-    if (key === '$or' || key === '$and' || key === '$nor') {
-      const parts = value.map((f) => `(${buildWhere(f, fields, params)})`);
-      if (!parts.length) continue;
-      const joined = parts.join(key === '$and' ? ' AND ' : ' OR ');
-      clauses.push(key === '$nor' ? `NOT (${joined})` : `(${joined})`);
-      continue;
-    }
-    clauses.push(condition(key, value, fields, add));
-  }
-  return clauses.length ? clauses.join(' AND ') : 'TRUE';
-}
-
-function condition(key, value, fields, add) {
-  const column = COLUMN_PATHS[key];
-  const field = column ? { kind: column === 'id' ? 'id' : 'date' } : fieldAt(fields, key);
-  const json = column ? null : `(data #> ${jsonPath(key)})`;
-  const text = column ? `${column}::text` : `(data #>> ${jsonPath(key)})`;
-
-  const eq = (v) => {
-    if (column === 'id') return v == null ? 'FALSE' : `id = ${add(String(v._id || v))}`;
-    if (column) return v == null ? 'FALSE' : `${column} = ${add(new Date(v).toISOString())}::timestamptz`;
-    if (v === null) return `(${json} IS NULL OR ${json} = 'null'::jsonb)`;
-    const jv = toJsonValue(field, v, key);
-    if (field.kind === 'array' && !Array.isArray(v)) return `COALESCE(${json} @> ${add(JSON.stringify([jv]))}::text::jsonb, FALSE)`;
-    return `COALESCE(${json} = ${add(JSON.stringify(jv))}::text::jsonb, FALSE)`;
-  };
-  const regex = (re, options = '') => {
-    const source = re instanceof RegExp ? re.source : String(re);
-    const flags = re instanceof RegExp ? re.flags : options;
-    return `COALESCE(${text} ${flags.includes('i') ? '~*' : '~'} ${add(source)}, FALSE)`;
-  };
-  const compare = (op, v) => {
-    if (column === 'id') return `id ${op} ${add(String(v))}`;
-    if (column) return `${column} ${op} ${add(new Date(v).toISOString())}::timestamptz`;
-    if (field.kind === 'number') {
-      return `COALESCE(CASE WHEN jsonb_typeof(${json}) = 'number' THEN (${text})::numeric END ${op} ${add(String(Number(v)))}::numeric, FALSE)`;
-    }
-    if (field.kind === 'date') {
-      const d = v instanceof Date ? v : new Date(v);
-      return `COALESCE(CASE WHEN jsonb_typeof(${json}) = 'string' THEN (${text})::timestamptz END ${op} ${add(d.toISOString())}::timestamptz, FALSE)`;
-    }
-    return `COALESCE(${text} ${op} ${add(String(v))}, FALSE)`;
-  };
-
-  if (value instanceof RegExp) return regex(value);
-  if (!isPlainObject(value) || !Object.keys(value).some((k) => k.startsWith('$'))) return eq(value);
-
-  const parts = [];
-  for (const [op, v] of Object.entries(value)) {
-    switch (op) {
-      case '$eq': parts.push(eq(v)); break;
-      case '$ne': parts.push(`NOT (${eq(v)})`); break;
-      case '$in': parts.push(v.length ? `(${v.map(eq).join(' OR ')})` : 'FALSE'); break;
-      case '$nin': parts.push(v.length ? `NOT (${v.map(eq).join(' OR ')})` : 'TRUE'); break;
-      case '$gt': parts.push(compare('>', v)); break;
-      case '$gte': parts.push(compare('>=', v)); break;
-      case '$lt': parts.push(compare('<', v)); break;
-      case '$lte': parts.push(compare('<=', v)); break;
-      case '$regex': parts.push(regex(v, value.$options)); break;
-      case '$options': break;
-      case '$exists':
-        parts.push(column ? (v ? 'TRUE' : 'FALSE') : `${json} IS ${v ? 'NOT ' : ''}NULL`);
-        break;
-      default: throw new Error(`Unsupported query operator ${op}`);
-    }
-  }
-  return parts.length ? parts.join(' AND ') : 'TRUE';
-}
-
-function buildOrder(sort) {
-  if (!sort) return 'created_at ASC, id ASC';
-  const entries = typeof sort === 'string'
-    ? sort.split(/\s+/).filter(Boolean).map((k) => (k.startsWith('-') ? [k.slice(1), -1] : [k, 1]))
-    : Object.entries(sort);
-  const parts = entries.map(([key, dir]) => {
-    const desc = dir === -1 || dir === '-1' || /^desc/i.test(String(dir));
-    const col = key === '_id' || key === 'id' ? 'created_at' : COLUMN_PATHS[key] || `(data #> ${jsonPath(key)})`;
-    return `${col} ${desc ? 'DESC' : 'ASC'}`;
-  });
-  return [...parts, 'id ASC'].join(', ');
-}
+// ---------- Projection and update helpers ----------
 
 function applyProjection(obj, projection) {
   if (!projection) return obj;
@@ -434,35 +261,47 @@ function model(modelName, schema) {
       if (err) throw err;
     }
 
+    // options.createdAt (inserts only) keeps the original creation time of imported records.
     async save(options = {}) {
       const { data, errors } = this.$data();
       if (options.validateBeforeSave !== false) validateFields(fields, data, '', this, errors);
       if (Object.keys(errors).length) throw new ValidationError(modelName, errors);
+      const locks = uniqueLocks(data);
+      const tx = currentTransaction();
+      // Unique values are checked and written in one transaction, locked on the value.
+      if (locks.length && !tx) return transaction(() => this.save(options));
+      if (locks.length) await tx.lock(locks);
       await checkUnique(this._id, data);
-      await db.ensureTable(table);
-      const json = JSON.stringify(data);
       const inserting = this.$isNew;
-      // ::text::jsonb stops postgres.js from JSON-encoding the already-serialized string again.
-      const rows = this.$isNew
-        ? await db.query(`INSERT INTO "${table}" (id, data) VALUES ($1, $2::text::jsonb) RETURNING created_at, updated_at`, [this._id, json])
-        : await db.query(
-          `UPDATE "${table}" SET data = ${this.$partial ? 'data || $2::text::jsonb' : '$2::text::jsonb'}, updated_at = now() WHERE id = $1 RETURNING created_at, updated_at`,
-          [this._id, json],
-        );
+      const before = { createdAt: this.createdAt, updatedAt: this.updatedAt };
+      const stored = this.$isNew
+        ? await adapter().insert(Document, this._id, data, { createdAt: options.createdAt || null })
+        : await adapter().update(Document, this._id, data, { partial: this.$partial, createdAt: this.createdAt });
       Object.assign(this, data);
-      if (schema.timestamps && rows[0]) {
-        this.createdAt = new Date(rows[0].created_at);
-        this.updatedAt = new Date(rows[0].updated_at);
+      if (schema.timestamps && stored) {
+        if (stored.created_at) this.createdAt = new Date(stored.created_at);
+        this.updatedAt = new Date(stored.updated_at);
       }
       this.$isNew = false;
       this.$errors = {};
-      if (inserting) saveTracker.getStore()?.push({ model: Document, id: this._id });
+      if (tx) {
+        tx.onRetry(() => {
+          this.$isNew = inserting;
+          this.createdAt = before.createdAt;
+          this.updatedAt = before.updatedAt;
+        });
+      }
+      const tracked = inserting && saveTracker.getStore();
+      if (tracked) {
+        const record = () => tracked.push({ model: Document, id: this._id });
+        if (tx) tx.afterCommit(record);
+        else record();
+      }
       return this;
     }
 
     async deleteOne() {
-      await db.ensureTable(table);
-      await db.query(`DELETE FROM "${table}" WHERE id = $1`, [this._id]);
+      await adapter().remove(Document, this._id);
       return this;
     }
 
@@ -550,14 +389,15 @@ function model(modelName, schema) {
     }
   }
 
+  const uniqueLocks = (data) =>
+    Object.entries(fields)
+      .filter(([key, field]) => field.unique && data[key] != null)
+      .map(([key]) => `unique:${table}:${key}:${JSON.stringify(data[key])}`);
+
   async function checkUnique(id, data) {
     for (const [key, field] of Object.entries(fields)) {
       if (!field.unique || data[key] == null) continue;
-      await db.ensureTable(table);
-      const params = [id];
-      const where = buildWhere({ [key]: data[key] }, fields, params);
-      const rows = await db.query(`SELECT 1 FROM "${table}" WHERE id <> $1 AND ${where} LIMIT 1`, params);
-      if (rows.length) {
+      if (await adapter().hasOther(Document, id, { [key]: data[key] })) {
         const err = new Error(`E11000 duplicate key error collection: ${table} index: ${key}_1 dup key: { ${key}: ${JSON.stringify(data[key])} }`);
         err.name = 'MongoServerError';
         err.code = 11000;
@@ -601,15 +441,11 @@ class Query {
 
   async rows(single) {
     if (this.filter === null) return [];
-    const { Model } = this;
-    await db.ensureTable(Model.tableName);
-    const params = [];
-    const where = buildWhere(this.filter, Model.$fields, params);
-    let sql = `SELECT id, data, created_at, updated_at FROM "${Model.tableName}" WHERE ${where} ORDER BY ${buildOrder(this.sortSpec)}`;
-    const limit = single ? 1 : this.limitN;
-    if (limit) sql += ` LIMIT ${Number(limit)}`;
-    if (this.skipN) sql += ` OFFSET ${Number(this.skipN)}`;
-    return db.query(sql, params);
+    return adapter().find(this.Model, this.filter, {
+      sort: this.sortSpec,
+      skip: this.skipN,
+      limit: single ? 1 : this.limitN,
+    });
   }
 
   hydrate(row) {
@@ -630,13 +466,8 @@ class Query {
         const [row] = await this.rows(true);
         return row ? this.hydrate(row) : null;
       }
-      case 'count': {
-        await db.ensureTable(Model.tableName);
-        const params = [];
-        const where = buildWhere(this.filter, Model.$fields, params);
-        const [row] = await db.query(`SELECT count(*)::int AS n FROM "${Model.tableName}" WHERE ${where}`, params);
-        return Number(row.n);
-      }
+      case 'count':
+        return adapter().count(Model, this.filter);
       case 'update': {
         const [row] = await this.rows(true);
         if (!row) return null;
@@ -661,12 +492,12 @@ class Query {
       case 'delete': {
         const [row] = await this.rows(true);
         if (!row) return null;
-        await db.query(`DELETE FROM "${Model.tableName}" WHERE id = $1`, [row.id]);
+        await adapter().remove(Model, row.id);
         return this.hydrate(row);
       }
       case 'deleteMany': {
         const rows = await this.rows(false);
-        for (const row of rows) await db.query(`DELETE FROM "${Model.tableName}" WHERE id = $1`, [row.id]);
+        await adapter().removeMany(Model, rows.map((r) => r.id));
         return { acknowledged: true, deletedCount: rows.length };
       }
       default:
@@ -681,4 +512,7 @@ const Types = {
   }),
 };
 
-module.exports = { Schema, model, Types, ValidationError, CastError, Promise: global.Promise, saveTracker };
+// Case-insensitive exact match for filters, e.g. `{ admin_Email: ci(email) }`.
+const ci = (value) => ({ $ci: value });
+
+module.exports = { Schema, model, Types, ValidationError, CastError, Promise: global.Promise, saveTracker, ci, transaction };

@@ -1,5 +1,11 @@
 const bcrypt = require('bcryptjs');
+const { transaction } = require('../odm');
 const Employee = require('../models/employee.model');
+
+const withoutPassword = (doc) => {
+  const { password, ...rest } = doc.toObject ? doc.toObject() : doc;
+  return rest;
+};
 
 // POST /api/employees
 exports.AddEmployee = async (req, res) => {
@@ -10,29 +16,34 @@ exports.AddEmployee = async (req, res) => {
       return res.status(400).json({ message: "All fields are required." });
     }
 
-    const existing = await Employee.findOne({ $or: [{ email }, { employeeId }] });
-    if (existing) {
-      return res.status(400).json({ message: "Employee already exists." });
-    }
-
     // Hash password before saving
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newEmployee = new Employee({
-      name,
-      mobile,
-      email,
-      roll,
-      password: hashedPassword,
-      employeeId
-    });
+    // Checked and created in one transaction locked on both values, so two requests cannot both succeed.
+    const savedEmployee = await transaction(async (tx) => {
+      await tx.lock(`unique:employee:email:${String(email).trim().toLowerCase()}`, `unique:employee:employeeId:${String(employeeId).trim()}`);
+      const existing = await Employee.findOne({ $or: [{ email }, { employeeId }] });
+      if (existing) return null;
 
-    const savedEmployee = await newEmployee.save();
+      const newEmployee = new Employee({
+        name,
+        mobile,
+        email,
+        roll,
+        password: hashedPassword,
+        employeeId
+      });
+
+      return newEmployee.save();
+    });
+    if (!savedEmployee) {
+      return res.status(400).json({ message: "Employee already exists." });
+    }
 
     res.status(201).json({
       message: 'Employee created successfully',
-      data: savedEmployee,
+      data: withoutPassword(savedEmployee),
        status:200
     });
   } catch (err) {
@@ -68,7 +79,7 @@ exports.UpdateEmployee = async (req, res) => {
 
     res.status(200).json({
       message: 'Employee updated successfully',
-      data: updatedEmployee,
+      data: withoutPassword(updatedEmployee),
        status:200
     });
   } catch (err) {
@@ -80,7 +91,7 @@ exports.UpdateEmployee = async (req, res) => {
 exports.GetAllEmployee = async (req, res) => {
   try {
     // Fetch only non-deleted employees
-    const employees = await Employee.find({ deleteFlag: false }).sort({ createdAt: -1 });
+    const employees = await Employee.find({ deleteFlag: false }).select('-password').sort({ createdAt: -1 });
 
     res.status(200).json({
       message: 'Employees get successfully',
@@ -103,7 +114,7 @@ exports.DeleteEmployee = async (req, res) => {
 
     res.status(200).json({
       message: 'Employee deleted',
-      data: deletedEmployee
+      data: withoutPassword(deletedEmployee)
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });

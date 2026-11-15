@@ -20,6 +20,13 @@ public/uploads/
 **/*.key
 **/*.pem
 
+# Firebase service-account keys and CLI state (emulator logs are covered by *.log, exports go under .data/)
+**/*service-account*.json
+**/*serviceAccount*.json
+**/*-firebase-adminsdk-*.json
+.firebase/
+.runtimeconfig.json
+
 # Local logs and operating-system files
 **/*.log
 .DS_Store
