@@ -29,9 +29,11 @@ Rules: don't commit or push anything, don't edit tracked files unless a step fai
 
 | Role | Email | Password | Where |
 | --- | --- | --- | --- |
+| Platform manager (developers) | platformmanager | platformmanager | `/sign-in` → Probiz staff (built in, full admin) |
 | Admin | admin@probiz.com | Admin@12345 | `/sign-in` → Probiz staff, or `/admin-panel` |
 | Employee | neha@probiz.com | Staff@1234 | same |
 | Employee | arjun@probiz.com | Staff@1234 | same |
 | Customer | priya@example.com | Demo@1234 | `/sign-in` → Customer |
 
 These accounts exist only in your local `.data/pglite` database. Never create them on a deployed site.
+The platform manager isn't stored in the database: it's on by default in local dev and off in production unless `PLATFORM_MANAGER_USERNAME` and `PLATFORM_MANAGER_PASSWORD` are set.

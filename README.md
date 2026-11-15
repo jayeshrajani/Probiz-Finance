@@ -168,6 +168,7 @@ On Vercel, certificates are issued and renewed automatically with the full chain
 | `NEXT_PUBLIC_API_URL` | no | Use an API on another host instead of this app's `/api` |
 | `FORCE_HTTPS` | no | Set to `1` at build time to send HSTS and `upgrade-insecure-requests` outside Vercel |
 | `TRUST_PROXY` | no | `1` to take the visitor IP from `X-Forwarded-For` (only behind a proxy that sets it; automatic on Vercel) |
+| `PLATFORM_MANAGER_USERNAME`, `PLATFORM_MANAGER_PASSWORD` | no | Developer superuser that signs in on the Probiz staff tab with full admin access. Defaults to `platformmanager` / `platformmanager` outside production; in production it is off unless both are set (use a strong password) |
 | `SITE_URL` | no | Public site URL used in alert links, default `https://probizfinance.com` |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TEMPLATE`, `WHATSAPP_ALERT_TO` | no | New-lead WhatsApp alerts; see below |
 | `WHATSAPP_TEMPLATE_LANG`, `WHATSAPP_API_VERSION` | no | Template language (default `en`) and Graph API version (default `v21.0`) |

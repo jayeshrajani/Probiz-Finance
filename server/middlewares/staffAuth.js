@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const config = require('../config/auth.config');
 const Admin = require('../models/admin.model');
@@ -7,6 +8,39 @@ const TOKEN_TTL = '7d';
 
 const signStaffToken = (id, role) => jwt.sign({ id, role }, config.secret, { expiresIn: TOKEN_TTL });
 const signAdminToken = (id) => signStaffToken(id, 'admin');
+
+const PLATFORM_ID = 'platform';
+
+// Developer superuser kept outside the database; in production it only exists when both env vars are set.
+function platformManager() {
+  const dev = process.env.NODE_ENV !== 'production';
+  const username = process.env.PLATFORM_MANAGER_USERNAME || (dev ? 'platformmanager' : '');
+  const password = process.env.PLATFORM_MANAGER_PASSWORD || (dev ? 'platformmanager' : '');
+  return username && password ? { username: username.trim().toLowerCase(), password } : null;
+}
+
+const digest = (s) => crypto.createHash('sha256').update(String(s)).digest();
+const sameText = (a, b) => crypto.timingSafeEqual(digest(a), digest(b));
+
+function isPlatformManager(login, password) {
+  const pm = platformManager();
+  if (!pm) return false;
+  const userOk = sameText(String(login).trim().toLowerCase(), pm.username);
+  const passOk = sameText(password, pm.password);
+  return userOk && passOk;
+}
+
+const signPlatformToken = () => signStaffToken(PLATFORM_ID, 'platform');
+
+// Acts as an admin everywhere; `platform` lets the UI label it and skip DB-only features.
+const platformStaff = (pm) => ({
+  id: PLATFORM_ID,
+  role: 'admin',
+  platform: true,
+  name: 'Platform manager',
+  email: pm.username,
+  admin: { admin_Name: 'Platform manager', admin_Email: pm.username },
+});
 
 // Resolves the Bearer token to a live admin or employee; removed accounts lose access immediately.
 async function staffFromRequest(req) {
@@ -20,6 +54,10 @@ async function staffFromRequest(req) {
     return null;
   }
   if (!payload.id) return null;
+  if (payload.role === 'platform') {
+    const pm = platformManager();
+    return pm && payload.id === PLATFORM_ID ? platformStaff(pm) : null;
+  }
   if (payload.role === 'admin') {
     const found = await Admin.findOne({ _id: payload.id, deleteFlag: false }).lean();
     if (!found) return null;
@@ -60,4 +98,4 @@ async function requireAdminUnlessFirst(req, res, next) {
   return requireAdmin(req, res, next);
 }
 
-module.exports = { requireAdmin, requireStaff, requireAdminUnlessFirst, signAdminToken, signStaffToken };
+module.exports = { requireAdmin, requireStaff, requireAdminUnlessFirst, signAdminToken, signStaffToken, isPlatformManager, signPlatformToken };

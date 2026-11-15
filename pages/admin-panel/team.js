@@ -266,28 +266,32 @@ function MyAccount() {
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-muted-foreground">Role</dt>
-          <dd className="font-medium">{isAdmin ? "Admin" : [staff.title, staff.employeeId].filter(Boolean).join(", ")}</dd>
+          <dd className="font-medium">{staff.platform ? "Platform manager" : isAdmin ? "Admin" : [staff.title, staff.employeeId].filter(Boolean).join(", ")}</dd>
         </div>
       </dl>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (v.next !== v.confirm) return toast.error("The new passwords don't match.");
-          run(async () => {
-            await adminFetch("admin/me/password", { method: "PUT", body: { current: v.current, next: v.next } });
-            toast.success("Password updated");
-            setV({ current: "", next: "", confirm: "" });
-          });
-        }}
-        className="grid gap-4 border-t border-border pt-5"
-      >
-        <Field label="Current password" type="password" required value={v.current} onChange={(e) => setV({ ...v, current: e.target.value })} autoComplete="current-password" />
-        <Field label="New password" type="password" required minLength={8} value={v.next} onChange={(e) => setV({ ...v, next: e.target.value })} autoComplete="new-password" />
-        <Field label="Repeat new password" type="password" required value={v.confirm} onChange={(e) => setV({ ...v, confirm: e.target.value })} autoComplete="new-password" />
-        <Button type="submit" variant="outline" disabled={busy} className="justify-self-start">
-          {busy && <SpinnerGap className="animate-spin" />} Update password
-        </Button>
-      </form>
+      {staff.platform ? (
+        <p className="border-t border-border pt-5 text-sm text-muted-foreground">Developer account. Its username and password come from PLATFORM_MANAGER_USERNAME and PLATFORM_MANAGER_PASSWORD.</p>
+      ) : (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (v.next !== v.confirm) return toast.error("The new passwords don't match.");
+            run(async () => {
+              await adminFetch("admin/me/password", { method: "PUT", body: { current: v.current, next: v.next } });
+              toast.success("Password updated");
+              setV({ current: "", next: "", confirm: "" });
+            });
+          }}
+          className="grid gap-4 border-t border-border pt-5"
+        >
+          <Field label="Current password" type="password" required value={v.current} onChange={(e) => setV({ ...v, current: e.target.value })} autoComplete="current-password" />
+          <Field label="New password" type="password" required minLength={8} value={v.next} onChange={(e) => setV({ ...v, next: e.target.value })} autoComplete="new-password" />
+          <Field label="Repeat new password" type="password" required value={v.confirm} onChange={(e) => setV({ ...v, confirm: e.target.value })} autoComplete="new-password" />
+          <Button type="submit" variant="outline" disabled={busy} className="justify-self-start">
+            {busy && <SpinnerGap className="animate-spin" />} Update password
+          </Button>
+        </form>
+      )}
     </Panel>
   );
 }

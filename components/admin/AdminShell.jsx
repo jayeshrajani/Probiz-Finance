@@ -169,7 +169,7 @@ function Sidebar({ onNavigate }) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium">{staff.name}</span>
-            <span className="block truncate text-xs text-muted-foreground">{isAdmin ? "Admin" : [staff.title || "Employee", staff.employeeId].filter(Boolean).join(", ")}</span>
+            <span className="block truncate text-xs text-muted-foreground">{staff.platform ? "Platform manager" : isAdmin ? "Admin" : [staff.title || "Employee", staff.employeeId].filter(Boolean).join(", ")}</span>
           </span>
           <button type="button" onClick={signOut} aria-label="Sign out" className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-background hover:text-foreground">
             <SignOut className="size-4" />

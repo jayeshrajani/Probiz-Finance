@@ -6,7 +6,7 @@ const LeadEvent = require('../models/leadEvent.model');
 const User = require('../models/user.model');
 const Property = require('../models/property.model');
 const Newsletter = require('../models/newslatter.model');
-const { signStaffToken } = require('../middlewares/staffAuth');
+const { signStaffToken, isPlatformManager, signPlatformToken } = require('../middlewares/staffAuth');
 const { LEAD_TYPES, GROUPS, byType } = require('../admin/leads');
 const { analytics, dayKey, resolveRange, parseDayRange } = require('../admin/analytics');
 const { ensureBackfilled } = require('../leads/backfill');
@@ -90,7 +90,7 @@ function activity(events) {
     }));
 }
 
-const staffView = (s) => ({ id: s.id, role: s.role, name: s.name, email: s.email, employeeId: s.employeeId || null, title: s.title || null });
+const staffView = (s) => ({ id: s.id, role: s.role, platform: Boolean(s.platform), name: s.name, email: s.email, employeeId: s.employeeId || null, title: s.title || null });
 
 exports.me = (req, res) => res.json({ data: staffView(req.staff) });
 
@@ -109,6 +109,9 @@ exports.staffLogin = async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '');
   if (!email || !password) return fail(res, 400, 'Enter your email and password.');
+  if (isPlatformManager(email, password)) {
+    return res.json({ accessToken: signPlatformToken(), role: 'admin', data: { name: 'Platform manager', email } });
+  }
   const [admins, employees] = await Promise.all([Admin.find({ deleteFlag: false }).lean(), Employee.find({ deleteFlag: false }).lean()]);
   const admin = admins.find((a) => String(a.admin_Email).toLowerCase() === email);
   if (admin && bcrypt.compareSync(password, admin.password)) {
@@ -412,6 +415,7 @@ exports.changePassword = async (req, res) => {
   const current = String(req.body?.current || '');
   const next = String(req.body?.next || '');
   if (next.length < 8) return fail(res, 400, 'Use at least 8 characters.');
+  if (req.staff.platform) return fail(res, 400, 'The platform manager password is set with PLATFORM_MANAGER_PASSWORD.');
   const Model = isAdmin(req) ? Admin : Employee;
   const me = await Model.findById(req.staff.id);
   if (!me || !bcrypt.compareSync(current, me.password)) return fail(res, 400, 'Current password is wrong.');
