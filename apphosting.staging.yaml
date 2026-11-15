@@ -1,0 +1,16 @@
+# Staging backend only (environment name "staging"). Synthetic test data only, never customer records.
+# Replace the IDs if the project is created with a different ID.
+env:
+  - variable: FIREBASE_PROJECT_ID
+    value: probiz-finance-staging
+    availability:
+      - RUNTIME
+  # Must repeat FIREBASE_PROJECT_ID: the app's explicit opt-in for a real project (server/firebase/admin.js).
+  - variable: FIREBASE_CONFIRM_PROJECT
+    value: probiz-finance-staging
+    availability:
+      - RUNTIME
+  - variable: FIREBASE_STORAGE_BUCKET
+    value: probiz-finance-staging.firebasestorage.app
+    availability:
+      - RUNTIME

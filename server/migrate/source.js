@@ -30,8 +30,10 @@ async function listTables() {
   return rows.map((r) => r.table_name);
 }
 
-const readPage = (table, afterId, limit) =>
-  db.query(`SELECT ${COLUMNS} FROM ${ident(table)} WHERE ($1::text IS NULL OR id > $1::text) ORDER BY id LIMIT ${Math.max(1, limit | 0)}`, [afterId]);
+// `since` (ISO time) limits the pages to rows changed after that moment (catch-up copies).
+const readPage = (table, afterId, limit, since = null) =>
+  db.query(`SELECT ${COLUMNS} FROM ${ident(table)} WHERE ($1::text IS NULL OR id > $1::text)
+    AND ($2::timestamptz IS NULL OR updated_at > $2::timestamptz) ORDER BY id LIMIT ${Math.max(1, limit | 0)}`, [afterId, since]);
 
 const readByIds = (table, ids) =>
   ids.length ? db.query(`SELECT ${COLUMNS} FROM ${ident(table)} WHERE id = ANY($1::text[]) ORDER BY id`, [ids]) : Promise.resolve([]);

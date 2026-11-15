@@ -1,7 +1,7 @@
 // File storage facade. FILE_STORAGE_BACKEND selects the provider:
 // - legacy (default): the original behaviour, public URLs on Supabase Storage or public/uploads in development.
 // - firebase: Cloud Storage for Firebase; private documents are stored as `pf:<path>` references and are only
-//   readable through short-lived signed links from server/routes/files.routes.js. Emulator only until approved.
+//   readable through short-lived signed links from server/routes/files.routes.js. Emulator, or a confirmed real project.
 const fs = require('fs/promises');
 const path = require('path');
 const { randomUUID, createHmac, hkdfSync, timingSafeEqual } = require('crypto');
@@ -53,8 +53,9 @@ function provider() {
   const name = String(process.env.FILE_STORAGE_BACKEND || 'legacy').trim().toLowerCase();
   if (name === 'legacy') return legacy;
   if (name !== 'firebase') throw new Error(`Unknown FILE_STORAGE_BACKEND "${name}" (expected "legacy" or "firebase").`);
-  if (!process.env.FIREBASE_STORAGE_EMULATOR_HOST) {
-    throw new Error('FILE_STORAGE_BACKEND=firebase is only available with the Storage emulator (FIREBASE_STORAGE_EMULATOR_HOST).');
+  const { firebaseTarget } = require('./firebase/admin');
+  if (firebaseTarget().mode === 'emulator' && !process.env.FIREBASE_STORAGE_EMULATOR_HOST) {
+    throw new Error('FILE_STORAGE_BACKEND=firebase with the emulators needs FIREBASE_STORAGE_EMULATOR_HOST.');
   }
   return require('./storage/firebase');
 }

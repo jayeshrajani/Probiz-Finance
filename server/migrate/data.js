@@ -148,7 +148,7 @@ async function migrateCollection(ctx, Model) {
   const coll = ctx.db.collection(table);
 
   for (;;) {
-    const rows = await source.readPage(table, after, ctx.batchSize);
+    const rows = await source.readPage(table, after, ctx.batchSize, ctx.since);
     if (!rows.length) break;
     const items = rows.map((row) => ({ row, ...toTarget(Model, row, fileMap) }));
     for (const i of items) if (i.invalid) i.state = 'invalid';

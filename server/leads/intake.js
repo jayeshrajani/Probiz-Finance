@@ -26,9 +26,16 @@ const loadSchema = () => (schemaPromise ||= import('../../lib/lead-schema.js'));
 const clip = (v, n = 300) => (v === undefined || v === null || v === '' ? null : String(v).slice(0, n));
 
 // Forwarded headers are only trusted behind a proxy that sets them (Vercel always does); otherwise anyone could spoof them.
+// TRUST_PROXY_HOPS=n (Google App Hosting / Cloud Run): use the n-th X-Forwarded-For entry from the right, i.e. the
+// address our own proxies recorded; entries further left are whatever the caller sent.
 function clientIp(req) {
   const first = (v) => String(v || '').split(',')[0].trim();
   const socket = req.socket?.remoteAddress || 'unknown';
+  const hops = Number(process.env.TRUST_PROXY_HOPS);
+  if (Number.isInteger(hops) && hops > 0) {
+    const entries = String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+    return entries.length >= hops ? entries[entries.length - hops] : socket;
+  }
   if (process.env.VERCEL) return first(req.headers['x-real-ip']) || first(req.headers['x-forwarded-for']) || socket;
   if (process.env.TRUST_PROXY === '1') return first(req.headers['x-forwarded-for']) || socket;
   return socket;

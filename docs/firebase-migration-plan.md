@@ -1,17 +1,16 @@
 # Probiz Finance: Postgres to Firestore Migration Plan
 
-Stage 5 design document. The migration utility was built in Stage 10 and tested only against the Firebase emulators and isolated PGlite copies. Running it against any real Firebase project or legacy bucket needs separate, explicit approval.
+Stage 5 design document. The migration utility was built in Stage 10, and the rollback copy, catch-up and real-project support in Stage 13A; all tested only against the Firebase emulators and isolated PGlite copies. Running it against any real Firebase project, Postgres database or legacy bucket needs separate, explicit approval.
 
-## 0. Stage 10 implementation status
+## 0. Implementation status (Stages 10 and 13A)
 
 | Item | Status |
 |---|---|
-| Commands | `npm run migrate:firestore` (data), `npm run migrate:files` (KYC files), `npm run migrate:verify`; all run `scripts/migrate-firestore.js <data\|files\|verify>`. Modules in `server/migrate/` (`guards`, `source`, `transform`, `data`, `files`, `verify`, `manifest`, `run`). Tests: `scripts/check-migration.js` |
-| Implemented options | `--dry-run` (default), `--apply`, `--resume`, `--update-older`, `--collections`, `--batch-size`, `--max-writes`, `--sample`, `--uploads-dir`, `--state-dir`, `--report-dir` |
-| Deferred (approved) | `--direction=to-postgres` (rollback copy), `--since` (catch-up) and `--confirm-project` (real projects). **A tested rollback and cutover procedure is mandatory before any production migration.** |
-| Safety checks | Run before anything is opened: only an existing PGlite folder outside the repository (never `.data/pglite`), no `DATABASE_URL`, local emulators only, `demo-` project only, legacy bucket reader limited to a local address. Environment files are not loaded; every source and target is given explicitly |
-| Changes from this design | Uniqueness: no `unique_keys` reservations (Stage 8 replaced them); duplicates in the source refuse that collection. Checkpoints are local files (`--state-dir`); the file manifest is the Firestore collection `_migration_files` (approved). Section 8: originals are **never deleted** by the utility; a retirement report lists them for a separately approved step |
-| Exit codes | 0 done; 1 refused, conflicts, invalid records or file problems (see the report); 2 stopped at `--max-writes` (rerun with `--resume`) |
+| Commands | `npm run migrate:firestore` (data), `npm run migrate:files` (KYC files), `npm run migrate:verify`; all run `scripts/migrate-firestore.js <data\|files\|verify>`. Modules in `server/migrate/` (`guards`, `source`, `transform`, `data`, `files`, `verify`, `reverse`, `manifest`, `run`). Tests: `scripts/check-migration.js` (Stage 10), `scripts/check-rollback.js` (Stage 13A) |
+| Implemented options | `--dry-run` (default), `--apply`, `--resume`, `--update-older`, `--collections`, `--batch-size`, `--max-writes`, `--sample`, `--uploads-dir`, `--state-dir`, `--report-dir`; Stage 13A: `--direction=to-firestore\|to-postgres`, `--since=<ISO time>`, `--max-reads` (to-postgres, default 45,000), `--confirm-project`, `--confirm-source`, `--confirm-legacy-host`; Stage 13B: `--compare-ids` (verify only) |
+| Safety checks | Run before anything is opened. Local: an existing PGlite folder outside the repository (never `.data/pglite`), local emulators with a `demo-` project, a local legacy-bucket stand-in. Real systems only when named on the command line: `--confirm-project` must equal `FIREBASE_PROJECT_ID` with no emulator variables set; `--confirm-source` must equal the `DATABASE_URL` host; `--confirm-legacy-host` must equal the HTTPS legacy bucket host. Environment files are not loaded |
+| Changes from this design | Uniqueness: no `unique_keys` reservations (Stage 8 replaced them); duplicates in the source refuse that collection. Checkpoints are local files (`--state-dir`); the file manifest is the Firestore collection `_migration_files` (approved). Section 8: originals are **never deleted** by the utility; a retirement report lists them for a separately approved step. Rollback keeps private files in Firebase Storage (section 11) |
+| Exit codes | 0 done; 1 refused, conflicts, invalid records or file problems (see the report); 2 stopped at `--max-writes` or `--max-reads` (rerun with `--resume`) |
 
 ## 1. Goals and guarantees
 
@@ -80,6 +79,7 @@ Resolving customer email duplicates (defect 1) is a business decision: the repor
 4. Lead integrity: every `lead.refId` points to an existing application document; every `lead_event.leadId` points to an existing lead (reported, not fixed).
 5. **Admin bootstrap check:** the target must contain at least one active admin. `POST /api/createAdmin` allows creating the first admin without a token while no admin exists (`requireAdminUnlessFirst`), so production must never be switched to an empty or admin-less database.
 6. Backfill: `verify` reports application records without a lead (`applicationsWithoutLead`). If any, run `npm run backfill:leads` in Firestore mode (there is no marker document; Stage 8 decision).
+7. **ID comparison (`--compare-ids`, Stage 13B, both directions):** reads the full ID lists. Records missing in the target fail the verify; records only in the target (usually deleted at the source after the copy started) are listed under `review` with up to 50 IDs per collection. Nothing is deleted automatically; a person decides.
 
 ## 7. Report
 
@@ -120,25 +120,28 @@ Never use the original `C:\Users\skhare\Probiz-Finance\.data\pglite`. Its file m
 
 Test and demo accounts exist only in these local copies and the emulator, never in any real project.
 
-Stage 10 results (`scripts/check-migration.js`, 26 checks plus 4 through the app): steps 1 to 7, 9 (sign-in, lead detail and signed links on the migrated data) and 10 passed; step 8 (reverse direction) is deferred. Details in the implementation log.
+Stage 10 results (`scripts/check-migration.js`, 26 checks plus 4 through the app): steps 1 to 7, 9 (sign-in, lead detail and signed links on the migrated data) and 10 passed.
+
+Stage 13A results (`scripts/check-rollback.js`, 15 checks plus 3 through the app): step 8 (reverse direction) and the catch-up and rollback runbooks passed on the emulators, including an interrupted and resumed rollback copy and a Postgres → Firestore → Postgres round trip with identical rows (only moved file references differ). Details in the implementation log.
 
 ## 10. Production cutover runbook (later prompt, needs approval)
 
 Prerequisites:
 
-- Firebase project on the no-cost Spark plan (no billing account, unless a paid option is explicitly approved), in the approved region (D3), default Firestore database, Standard edition.
-- Production host decided and approved (F5 in [FIREBASE_FREE_TIER_STRATEGY.md](FIREBASE_FREE_TIER_STRATEGY.md)); the migration's write budget fits the free daily quota (`--max-writes`).
+- Firebase project on the Blaze plan (approved in principle in Stage 13; activation needs separate approval), Firestore and the private Storage bucket in `asia-south1` (preferred; costs to be checked in Stage 13B), default Firestore database, Standard edition.
+- Production host decided and approved (Firebase App Hosting preferred; evaluated in Stage 13B); the migration's write budget fits the daily quota or the approved budget (`--max-writes`).
 - Rules (deny all) and composite indexes deployed; all indexes finished building.
-- Dedicated service account with least privilege (security plan, section 8.4); variables set first in a Vercel Preview environment.
-- A Vercel Preview deployment with `DATA_BACKEND=firestore` passes the smoke tests against a staging project or the emulator.
+- Credentials: Application Default Credentials / the host's managed service identity with least privilege (security plan, section 8.4); no service-account key unless unavoidable.
+- A staging deployment with `DATA_BACKEND=firestore` passes the smoke tests against a staging project.
+- The rollback (section 11) has been rehearsed on staging.
 
 Steps:
 
-1. Note the start time `T0`. Run a dry run against production Postgres and review the report (duplicates, size, write budget).
-2. Run `--apply --confirm-project=<id>` (repeat with `--resume` on following days if the free write quota is reached).
+1. Note the start time `T0`. Run a dry run against production Postgres (`--confirm-source=<host> --confirm-project=<id>`) and review the report (duplicates, size, write budget).
+2. Run `--apply` (repeat with `--resume` on following days if the write budget is reached).
 3. Verify (section 6), including the admin bootstrap check.
 4. Switch the production `DATA_BACKEND` to `firestore` and redeploy. Note the switch time `T1`.
-5. Run `--apply --since=T0` to copy records written to Postgres between `T0` and `T1`.
+5. Run `--apply --since=T0 --update-older` to copy records written to Postgres between `T0` and `T1` (without `--update-older`, edited records are reported as conflicts and not copied). Records deleted in Postgres in that window are not removed from Firestore; `npm run migrate:verify -- --compare-ids` lists them under `review` for a decision.
 6. Post-checks: health endpoint, one staff sign-in, the admin lead list, one public property page. Do not create test data in production.
 7. Watch Firestore usage and server errors closely for the first day.
 
@@ -146,15 +149,17 @@ Postgres stays untouched and running for at least 30 days after cutover.
 
 ## 11. Rollback runbook
 
-Not implemented yet (deferred in Stage 10): the reverse copy below must be built and tested before any production migration.
+Implemented and tested on the emulators in Stage 13A (`--direction=to-postgres`); must be rehearsed on staging before production.
 
 Triggers: data errors, repeated quota exhaustion, missing indexes that cannot be fixed quickly, or any security concern.
 
-1. Set `DATA_BACKEND=postgres` (and `FILE_STORAGE_BACKEND` to its previous value if it was changed), then redeploy, or promote the previous Vercel deployment.
-2. Note the rollback time `T2`. Run `npm run migrate:firestore -- --direction=to-postgres --since=T1 --apply` to copy records created or changed in Firestore after cutover back to Postgres (conflicts reported, not overwritten).
-3. If private files were uploaded to a different storage backend after cutover, copy them back with the file step before switching storage.
-4. Verify counts for the `T1` to `T2` window, sign in as staff and open a recent lead.
+1. Set `DATA_BACKEND=postgres` and redeploy (or roll back to the previous release). **Keep `FILE_STORAGE_BACKEND=firebase`:** private documents stay in Firebase Storage, which works with either data backend; never return KYC uploads to the public legacy storage.
+2. Note the rollback time `T2`. Dry run, then apply: `npm run migrate:firestore -- --direction=to-postgres --since=T1 [--confirm-project=<id> --confirm-source=<host>]`, then again with `--apply --update-older` once the reported conflicts are understood (records edited on both sides are never overwritten silently).
+3. `npm run migrate:verify -- --direction=to-postgres --sample=<n> --compare-ids`: counts, content, references and an active admin in Postgres, plus Postgres rows deleted in Firestore after `T1` (listed under `review`). It also reports rows still holding legacy public file URLs; **after the legacy originals have been retired these links no longer work**, so then run the copy without `--since` for the 19 document collections (`--collections=...`) to bring the `pf:` references back as well (the reads are limited by `--max-reads`; continue with `--resume`).
+4. Sign in as staff, open a recent lead and one migrated document.
 5. Keep the Firestore data unchanged until the cause is understood.
+
+Limitations: deletions made in Firestore after `T1` are not copied back (deleted records stay in Postgres; `--compare-ids` lists them); a full copy back reads every document (`--max-reads` keeps it within the daily quota).
 
 ## 12. Risks
 

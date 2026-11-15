@@ -438,3 +438,16 @@ exports.changePassword = async (req, res) => {
   await me.save();
   res.json({ message: 'Password updated.' });
 };
+
+// The forwarded chain as received and the address the rate limits use; the admin's own request only.
+exports.clientIp = (req, res) => {
+  const { clientIp } = require('../leads/intake');
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    data: {
+      forwardedFor: String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean),
+      trustProxyHops: process.env.TRUST_PROXY_HOPS || null,
+      resolved: clientIp(req),
+    },
+  });
+};

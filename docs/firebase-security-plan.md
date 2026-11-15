@@ -150,15 +150,16 @@ Status (Stage 10): lead and listing deletion remove the files created by the act
 
 | Variable | Where | Notes |
 |---|---|---|
-| `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET` | Server | Not secret, but kept server-side |
-| `FIREBASE_CLIENT_EMAIL` | Server | Service-account identity |
-| `FIREBASE_PRIVATE_KEY` | Server, secret | Vercel stores `\n` as literal characters; the Admin initialiser converts them |
+| `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET` | Server | Not secret, but kept server-side. The bucket must be set explicitly for a real project |
+| `FIREBASE_CONFIRM_PROJECT` | Server | Stage 13A gate: without emulators, a real project is used only when this repeats `FIREBASE_PROJECT_ID` exactly |
+| `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | Server, secret | Last-resort fallback only. Preferred: Application Default Credentials (the host's managed service identity; `gcloud auth application-default login` for an operator) |
 | `JWT_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, WhatsApp token | Server, secret | Existing |
 | `FIRESTORE_EMULATOR_HOST`, `FIREBASE_STORAGE_EMULATOR_HOST`, `GCLOUD_PROJECT` | Local only | Emulator; project must start with `demo-` |
+| `TRUST_PROXY_HOPS` | Server | Stage 13B: number of trusted proxies in front of the app. The client IP for rate limits is the n-th `X-Forwarded-For` entry from the right, so caller-supplied entries are ignored. Overrides `VERCEL` and `TRUST_PROXY=1` (first entry, local tests only; spoofable behind a proxy). Staging starts with `1` and is confirmed with `scripts/check-proxy.mjs` against `GET /api/admin/client-ip` (admin only, no-store) |
 
 - No variable gets the `NEXT_PUBLIC_` prefix. Next.js inlines only `NEXT_PUBLIC_` variables into browser bundles; others stay in the Node.js environment (verified in `node_modules/next/dist/docs/01-app/02-guides/environment-variables.md`).
 - `.env.example` gets placeholders only, with no values.
-- The Admin initialiser refuses a `demo-` project outside emulator mode, refuses emulator mode in production unless explicitly allowed, and never logs credential values.
+- The Admin initialiser (`firebaseTarget()` in `server/firebase/admin.js`, Stage 13A) accepts only two targets: the emulators with a `demo-` project, or a real project confirmed by `FIREBASE_CONFIRM_PROJECT`. It refuses emulator mode in production unless explicitly allowed and never logs credential values. The data and storage backends and the migration CLI (`--confirm-project`, `--confirm-source`, `--confirm-legacy-host`) use the same rule, so a real system is never reached by accident.
 
 ### 8.2 Repository protection (Stage 6 `.gitignore` additions)
 
@@ -185,11 +186,20 @@ The scan looks for these patterns and reports only file and line, never the matc
 
 ### 8.4 IAM for production (cloud setup, later prompt)
 
-- Use a dedicated service account for the app with `roles/datastore.user`, described as "read/write access to data … intended for application developers and service accounts" (verified).
+- Prefer Application Default Credentials: the hosting runtime's managed service identity (for example the Firebase App Hosting backend service account) and, for operators, `gcloud auth application-default login` with the Probiz Finance Google account. Create no service-account keys unless a host cannot use managed identities (approved preference, Stage 13).
+- Use a dedicated runtime identity with `roles/datastore.user`, described as "read/write access to data … intended for application developers and service accounts" (verified).
 - Grant object read/write on the app bucket only, not project-wide storage roles.
 - Do not run the app with Owner or Editor credentials.
-- Rotate the key on a schedule and immediately if exposed. Disable old keys.
+- If a key is ever unavoidable: store it only in the host's secret settings, rotate it on a schedule and immediately if exposed, and disable old keys.
 - Keep projects separate: `demo-probiz-finance` (emulator only, needs no credentials), production, and optionally staging.
+
+### 8.5 Staging deployment (Stage 13B preparation; deployment needs approval)
+
+- **Source deploy contents:** `firebase deploy --only apphosting` uploads the repository folder minus the `apphosting.ignore` list in `firebase.json` and the `.gitignore` entries. The list excludes `.env`, `.env.*`, `.data`, `public/uploads`, `.next`, `node_modules`, `.git`, `.firebase`, `.vscode`, `docs`, `scripts`, `setup.md` (public demo passwords), `apphosting.local.yaml`, keys, certificates and service-account JSON patterns. `.env.example` is still uploaded (re-included by `.gitignore`); it must keep placeholders only. Simulated upload list (Stage 13B): 366 files, no credentials, local databases or uploads.
+- **Secrets:** `JWT_SECRET` only through Cloud Secret Manager (`apphosting.yaml` secret `jwt-secret`, set with `apphosting:secrets:set --data-file`, never on the command line). No service-account key; the backend's managed identity uses ADC.
+- **Fail-closed configuration:** the real project ID, its confirmation and the bucket are only in `apphosting.staging.yaml`; a backend without the `staging` environment has no confirmed project and the data and storage backends refuse to start.
+- **Data:** synthetic records only on staging; never real customer or KYC records, or copies of them.
+- **Region:** Firestore and Storage in `asia-south1`; App Hosting in a supported region (planned `asia-southeast1`, to be confirmed). Documents are stored in India; requests are processed in the App Hosting region.
 
 ## 9. Existing defects addressed by the migration stages
 
@@ -258,6 +268,6 @@ Production must not launch until each item is resolved and approved:
 
 1. **Legacy public KYC files:** every original listed in the migration retirement report must be secured or deleted individually, after verified migration and separate approval. Do not make the whole legacy bucket private (it also serves property images).
 2. **Default storage mode is insecure:** `FILE_STORAGE_BACKEND` defaults to `legacy`, which stores new KYC uploads at public URLs (Supabase public bucket or `public/uploads`). Production must run with the private provider (`FILE_STORAGE_BACKEND=firebase`, enabled for a real project only after approval); a deployment without it must be treated as a blocker.
-3. **Firebase Storage needs the Blaze plan** (billing account) for a real bucket. The final architecture (Firestore + Firebase Storage) therefore needs an approved billing decision; the free-first strategy (F2) is otherwise in conflict.
-4. **Rollback and cutover:** the reverse migration and `--since` catch-up are not built; a tested rollback and cutover plan is mandatory before production migration.
-5. **Real-project checks:** rules deployment, composite indexes, IAM, region and quotas are verified on emulators only.
+3. **Firebase Storage needs the Blaze plan** (billing account) for a real bucket. Stage 13: affordable billing approved in principle; activation, budget alerts and the `asia-south1` cost check still need separate approval.
+4. **Rollback and cutover:** built and verified on the emulators in Stage 13A (reverse copy, `--since` catch-up, rollback verify); still to be rehearsed on staging before production.
+5. **Real-project checks:** rules deployment, composite indexes, IAM, region and quotas are verified on emulators only. Stage 13A added the explicit real-project gate; nothing has been run against a real project yet.

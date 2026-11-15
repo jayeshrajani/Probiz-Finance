@@ -1,0 +1,30 @@
+# Firebase App Hosting settings shared by every environment (Stage 13B).
+# Project-specific values are in apphosting.<environment>.yaml; the backend's environment name selects that file.
+# Without it the app refuses to start against Firebase (no FIREBASE_PROJECT_ID / FIREBASE_CONFIRM_PROJECT).
+runConfig:
+  minInstances: 0 # no always-on cost; first request after idle is slower
+  maxInstances: 2 # cost cap; raise only with approval
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 1024
+
+env:
+  - variable: DATA_BACKEND
+    value: firestore
+    availability:
+      - RUNTIME
+  - variable: FILE_STORAGE_BACKEND
+    value: firebase
+    availability:
+      - RUNTIME
+  # Client IP for rate limits: the n-th X-Forwarded-For entry from the right. Confirm on each backend with
+  # scripts/check-proxy.mjs before relying on the limits.
+  - variable: TRUST_PROXY_HOPS
+    value: "1"
+    availability:
+      - RUNTIME
+  # Secret Manager secret, created with `firebase apphosting:secrets:set jwt-secret` (value never committed).
+  - variable: JWT_SECRET
+    secret: jwt-secret
+    availability:
+      - RUNTIME

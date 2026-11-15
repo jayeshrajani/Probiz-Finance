@@ -104,10 +104,19 @@ async function targetDuplicates(db, meter, Model) {
   return out;
 }
 
-async function runVerify(ctx, { sample = 50 } = {}) {
+// Full ID comparison (reads every target ID). Extra target records are usually deletions the catch-up cannot copy;
+// they are listed for a person to review and never removed by the tool.
+function idDiff(sourceIds, targetIds) {
+  const missing = [...sourceIds].filter((id) => !targetIds.has(id)).sort();
+  const extra = [...targetIds].filter((id) => !sourceIds.has(id)).sort();
+  return { missingInTarget: missing.length, extraInTarget: extra.length, missingIds: missing.slice(0, LIST_LIMIT), extraIds: extra.slice(0, LIST_LIMIT) };
+}
+
+async function runVerify(ctx, { sample = 50, compareIds = false } = {}) {
   const { selected, notes } = await planCollections(ctx.models, ctx.collections);
   const collections = {};
   const failures = [];
+  const review = [];
   for (const table of selected) {
     const Model = ctx.models.get(table);
     const coll = ctx.db.collection(table);
@@ -134,6 +143,11 @@ async function runVerify(ctx, { sample = 50 } = {}) {
       sampled: items.length, sampleMissing: missing.slice(0, LIST_LIMIT), sampleDifferent: different.slice(0, LIST_LIMIT), duplicates,
     };
     collections[table] = result;
+    if (compareIds) {
+      result.ids = idDiff(await source.allIds(table), await targetReader(ctx.db, ctx.meter).ids(table));
+      if (result.ids.missingInTarget) failures.push(`${table}: ${result.ids.missingInTarget} source record(s) missing in the target`);
+      if (result.ids.extraInTarget) review.push(`${table}: ${result.ids.extraInTarget} target record(s) not in the source (deleted at the source?)`);
+    }
     if (targetCount < sourceCount) failures.push(`${table}: target has fewer documents than the source`);
     if (missing.length || different.length) failures.push(`${table}: ${missing.length} sampled document(s) missing, ${different.length} different`);
     if (duplicates.length) failures.push(`${table}: duplicate unique values in the target`);
@@ -161,9 +175,10 @@ async function runVerify(ctx, { sample = 50 } = {}) {
       applicationsWithoutLead: after.applicationsWithoutLead,
     },
     activeAdmins,
+    review,
     failures,
     ok: failures.length === 0,
   };
 }
 
-module.exports = { runVerify, referenceIssues, sourceReader };
+module.exports = { runVerify, referenceIssues, sourceReader, targetReader, idDiff };

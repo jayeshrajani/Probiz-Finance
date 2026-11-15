@@ -5,12 +5,27 @@ const { sha256 } = require('./transform');
 
 const stamp = () => new Date().toISOString().replace(/[:.]/g, '-');
 
+const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
 function writeJson(file, data) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.tmp`;
   fs.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
-  fs.renameSync(tmp, file);
-  return file;
+  // Windows can briefly lock the target (antivirus, indexer): retry the atomic rename, then fall back to a copy.
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      fs.renameSync(tmp, file);
+      return file;
+    } catch (err) {
+      if (!['EPERM', 'EACCES', 'EBUSY'].includes(err.code)) throw err;
+      if (attempt >= 5) {
+        fs.copyFileSync(tmp, file);
+        fs.rmSync(tmp, { force: true });
+        return file;
+      }
+      pause(50 * attempt);
+    }
+  }
 }
 
 const writeReport = (dir, name, data) => writeJson(path.join(dir, `${stamp()}-${name}.json`), data);
@@ -18,7 +33,7 @@ const writeReport = (dir, name, data) => writeJson(path.join(dir, `${stamp()}-${
 // Per-collection progress of `data --apply`, tied to one source folder and one target project.
 class Checkpoint {
   constructor(dir, source, project) {
-    this.fingerprint = sha256(`${path.resolve(source).toLowerCase()}\n${project}`).slice(0, 16);
+    this.fingerprint = sha256(`${String(source).toLowerCase()}\n${project}`).slice(0, 16);
     this.file = path.join(dir, `checkpoint-${this.fingerprint}.json`);
     this.collections = {};
   }
