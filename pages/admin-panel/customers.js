@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react";
 import AdminShell from "@/components/admin/AdminShell";
-import { AdminOnly, Empty, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
+import { AdminOnly, Empty, ErrorNote, LoadingRows, PageHeader, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { downloadCsv, formatDateTime, timeAgo, useAdminData } from "@/lib/admin-api";
 
 function Customers() {
@@ -19,11 +20,7 @@ function Customers() {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">Customers</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{all.length} website accounts.</p>
-        </div>
+      <PageHeader title="Customers" description={`${all.length} website accounts.`}>
         <div className="flex w-full gap-2 sm:w-auto">
           <label className="relative flex-1 sm:w-64">
             <span className="sr-only">Search customers</span>
@@ -50,7 +47,7 @@ function Customers() {
             <DownloadSimple /> Export
           </Button>
         </div>
-      </div>
+      </PageHeader>
       <ErrorNote error={error} onRetry={reload} />
       <Panel bodyClassName="p-0">
         {loading && !data ? (
@@ -58,23 +55,36 @@ function Customers() {
         ) : rows.length === 0 ? (
           <Empty title={q ? "No customers match" : "No customers yet"} body="People who sign up on the website appear here." />
         ) : (
-          <ul className="divide-y divide-border">
-            {rows.map((u) => (
-              <li key={u._id} className="flex items-center gap-4 px-5 py-3.5">
-                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">{(u.user_Name || "?").slice(0, 1).toUpperCase()}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{u.user_Name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{u.user_Email}</span>
-                </span>
-                <a href={`tel:${u.country_code || ""}${u.mobile_no}`} className="hidden text-sm tabular-nums hover:text-brand-ink sm:block">
-                  {u.country_code} {u.mobile_no}
-                </a>
-                <span className="w-24 text-right text-xs text-muted-foreground" title={formatDateTime(u.createdAt)}>
-                  {timeAgo(u.createdAt)}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="hidden sm:table-cell">Mobile</TableHead>
+                <TableHead className="text-right">Joined</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((u) => (
+                <TableRow key={u._id}>
+                  <TableCell className="font-medium">{u.user_Name}</TableCell>
+                  <TableCell className="max-w-[16rem] truncate text-muted-foreground">
+                    <a href={`mailto:${u.user_Email}`} className="hover:text-foreground hover:underline">
+                      {u.user_Email}
+                    </a>
+                  </TableCell>
+                  <TableCell className="hidden tabular-nums sm:table-cell">
+                    <a href={`tel:${u.country_code || ""}${u.mobile_no}`} className="hover:underline">
+                      {[u.country_code, u.mobile_no].filter(Boolean).join(" ")}
+                    </a>
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground" title={formatDateTime(u.createdAt)}>
+                    {timeAgo(u.createdAt)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </Panel>
     </>

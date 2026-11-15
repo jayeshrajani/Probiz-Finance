@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowSquareOut, Buildings, MagnifyingGlass, Trash } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
-import { ConfirmDialog, Empty, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
+import { ConfirmDialog, Empty, ErrorNote, LoadingRows, PageHeader, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { adminFetch, timeAgo, useAdminData } from "@/lib/admin-api";
 import { formatINRShort } from "@/lib/format";
@@ -39,17 +39,13 @@ function Properties() {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">Property listings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Listed by customers through the website. Remove anything that shouldn't be public.</p>
-        </div>
+      <PageHeader title="Property listings" description="Listed by customers through the website. Remove anything that shouldn't be public.">
         <label className="relative w-full sm:w-72">
           <span className="sr-only">Search listings</span>
           <MagnifyingGlass className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, owner, city" className="h-9 w-full rounded-lg border border-border bg-background pl-9 text-sm outline-none focus:border-brand" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, owner, city" className="h-9 w-full rounded-lg border border-border bg-background pl-9 text-sm outline-none focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/20" />
         </label>
-      </div>
+      </PageHeader>
       <ErrorNote error={error} onRetry={reload} />
       {loading && !data ? (
         <Panel bodyClassName="p-0">
@@ -71,17 +67,16 @@ function Properties() {
                   ) : (
                     <Buildings weight="duotone" className="absolute inset-0 m-auto size-10 text-muted-foreground" />
                   )}
-                  {p.propertyType && <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-xs font-medium">{typeLabel(p.propertyType)}</span>}
                 </div>
                 <div className="p-4">
                   <p className="truncate font-semibold">{p.propertyName || "Untitled listing"}</p>
-                  <p className="mt-0.5 truncate text-sm text-muted-foreground">{[p.area, p.city].filter(Boolean).join(", ") || "Location not given"}</p>
+                  <p className="mt-0.5 truncate text-sm text-muted-foreground">{[typeLabel(p.propertyType), p.area, p.city].filter(Boolean).join(", ") || "Location not given"}</p>
                   <div className="mt-3 flex items-center justify-between text-sm">
                     <span className="font-semibold tabular-nums">{Number(p.price) ? formatINRShort(Number(p.price)) : "Price on request"}</span>
                     <span className="text-xs text-muted-foreground">{timeAgo(p.createdAt)}</span>
                   </div>
                   <p className="mt-3 truncate border-t border-border pt-3 text-xs text-muted-foreground">
-                    {p.ownerName || "Owner"} {p.contactNo ? `· ${p.contactNo}` : ""}
+                    {[p.ownerName || "Owner", p.contactNo].filter(Boolean).join(", ")}
                   </p>
                   <div className="mt-3 flex gap-2">
                     <Button asChild size="sm" variant="outline" className="flex-1">

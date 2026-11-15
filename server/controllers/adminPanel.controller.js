@@ -8,6 +8,7 @@ const Property = require('../models/property.model');
 const Newsletter = require('../models/newslatter.model');
 const { signStaffToken } = require('../middlewares/staffAuth');
 const { LEAD_TYPES, GROUPS, byType } = require('../admin/leads');
+const { analytics, dayKey, resolveRange, parseDayRange } = require('../admin/analytics');
 const { ensureBackfilled } = require('../leads/backfill');
 const { emit } = require('../leads/events');
 
@@ -135,18 +136,25 @@ exports.config = async (req, res) => {
 };
 
 exports.overview = async (req, res) => {
-  const all = await loadLeads();
+  await ensureBackfilled();
+  const raw = await Lead.find({}).lean();
+  const all = raw.map(row);
   const mine = isAdmin(req) ? all : all.filter((l) => l.assignedTo === req.staff.id);
-  const unassigned = all.filter((l) => !l.assignedTo);
+  // Only open leads are waiting to be picked up; closed ones can stay unassigned.
+  const unassigned = all.filter((l) => !l.assignedTo && OPEN.has(l.status));
+  const visible = isAdmin(req) ? all : all.filter((l) => !l.assignedTo || l.assignedTo === req.staff.id);
   const now = Date.now();
   const age = (row) => now - new Date(row.createdAt).getTime();
 
-  const days = Array.from({ length: 30 }, (_, i) => ({ date: new Date(now - (29 - i) * DAY).toISOString().slice(0, 10), count: 0 }));
+  const days = Array.from({ length: 30 }, (_, i) => ({ date: dayKey(now - (29 - i) * DAY), count: 0 }));
   const dayIndex = new Map(days.map((d, i) => [d.date, i]));
   const perType = new Map();
   for (const row of mine) {
-    const key = new Date(row.createdAt).toISOString().slice(0, 10);
+    const key = dayKey(new Date(row.createdAt).getTime());
     if (dayIndex.has(key)) days[dayIndex.get(key)].count += 1;
+  }
+  // Sidebar badges: new leads per product among the ones this person can open.
+  for (const row of visible) {
     const entry = perType.get(row.type) || { type: row.type, label: row.typeLabel, total: 0, open: 0 };
     entry.total += 1;
     if (row.status === 'new') entry.open += 1;
@@ -180,10 +188,12 @@ exports.overview = async (req, res) => {
       Employee.find({ deleteFlag: false }).lean(),
     ]);
     Object.assign(data.totals, { users, properties, subscribers });
-    data.team = employees.map((e) => {
-      const theirs = all.filter((l) => l.assignedTo === String(e._id));
-      return { id: String(e._id), name: e.name, active: theirs.filter((l) => OPEN.has(l.status)).length, won: theirs.filter((l) => l.status === 'won').length };
-    });
+    // The panel shell also calls this endpoint for badge counts, so the heavier numbers are opt-in.
+    if (req.query.analytics === '1') {
+      const { start } = resolveRange(req.query);
+      const events = await LeadEvent.find({ type: { $in: ['lead.status_changed', 'lead.note_added'] }, at: { $gte: new Date(start) } }).lean();
+      data.analytics = analytics({ leads: raw, events, employees, query: req.query });
+    }
   }
   res.json({ data });
 };
@@ -201,6 +211,9 @@ exports.list = async (req, res) => {
 
   const channel = String(req.query.channel || '');
   if (CHANNELS.includes(channel)) leads = leads.filter((l) => l.channel === channel);
+
+  const range = parseDayRange(req.query.from, req.query.to);
+  if (range) leads = leads.filter((l) => new Date(l.createdAt) >= range.start && new Date(l.createdAt) < range.end);
 
   const q = String(req.query.q || '').trim().toLowerCase();
   if (q) leads = leads.filter((l) => [l.name, l.phone, l.email, l.detail].some((v) => v && String(v).toLowerCase().includes(q)));
@@ -260,7 +273,7 @@ exports.get = async (req, res) => {
       lead: { ...row(lead), page: def.page || null, source: lead.source || null, consent: lead.consent || null },
       fields: docs[0] ? clean(docs[0]) : {},
       submissions: docs.map((d) => ({ id: String(d._id), createdAt: d.createdAt, fields: clean(d) })),
-      customer: customer ? { id: String(customer._id), name: customer.fullName || customer.name || null, email: customer.email || null } : null,
+      customer: customer ? { id: String(customer._id), name: customer.user_Name || null, email: customer.user_Email || null } : null,
       ...(await view(lead)),
     },
   });

@@ -4,8 +4,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Key, SpinnerGap, Trash, UserPlus } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
-import { ConfirmDialog, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
+import { ConfirmDialog, ErrorNote, LoadingRows, PageHeader, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fieldBase } from "@/components/ui/input";
 import { adminFetch, timeAgo, useAdminData } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,7 @@ function AddEmployee({ onAdded }) {
   const [busy, run] = useSubmit();
   const set = (k) => (e) => setV({ ...v, [k]: e.target.value });
   return (
-    <Panel title="Add an employee" description="Employees sign in from the website's sign-in page, under Employee.">
+    <Panel title="Add an employee" description="They sign in at /sign-in under Probiz staff.">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -89,17 +90,14 @@ function Employees() {
           <ul className="divide-y divide-border">
             {list.map((e) => (
               <li key={e._id} className="flex flex-wrap items-center gap-4 px-5 py-3.5">
-                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand-ink">{e.name.slice(0, 1).toUpperCase()}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">
-                    {e.name} <span className="font-normal text-muted-foreground">· {e.roll}</span>
+                    {e.name} <span className="font-normal text-muted-foreground">{e.roll}</span>
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {e.employeeId} · {e.email} · {e.mobile}
-                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">{[e.employeeId, e.email, e.mobile].filter(Boolean).join(", ")}</span>
                 </span>
                 <span className="text-xs tabular-nums text-muted-foreground">
-                  {e.active} active · {e.won} won
+                  {e.active} active, {e.won} won
                 </span>
                 <div className="flex gap-1">
                   <Button size="icon-sm" variant="ghost" aria-label={`Reset ${e.name}'s password`} onClick={() => setResetting(e)}>
@@ -134,13 +132,18 @@ function Employees() {
         onClose={() => setRemoving(null)}
       />
 
-      {resetting && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/25 px-4 backdrop-blur-[2px]" onClick={() => setResetting(null)}>
+      <Dialog
+        open={Boolean(resetting)}
+        onOpenChange={(next) => {
+          if (!next) {
+            setResetting(null);
+            setPassword("");
+          }
+        }}
+      >
+        <DialogContent>
           <form
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Reset ${resetting.name}'s password`}
-            onClick={(e) => e.stopPropagation()}
+            className="grid gap-4"
             onSubmit={(e) => {
               e.preventDefault();
               run(async () => {
@@ -150,21 +153,23 @@ function Employees() {
                 setPassword("");
               });
             }}
-            className="w-full max-w-sm rounded-2xl border border-border bg-background p-6 shadow-[0_40px_100px_-30px_oklch(0.21_0.006_286/0.5)]"
           >
-            <h2 className="text-lg font-semibold tracking-[-0.015em]">Reset {resetting.name}'s password</h2>
-            <Field label="New password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="mt-4" autoFocus />
-            <div className="mt-6 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setResetting(null)}>
+            <DialogHeader>
+              <DialogTitle>Reset {resetting?.name}'s password</DialogTitle>
+              <DialogDescription>They'll use the new password next time they sign in.</DialogDescription>
+            </DialogHeader>
+            <Field label="New password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" autoFocus />
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => setResetting(null)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={busy}>
-                {busy && <SpinnerGap className="animate-spin" />} Reset
+              <Button type="submit" size="sm" disabled={busy}>
+                {busy && <SpinnerGap className="animate-spin" />} Reset password
               </Button>
-            </div>
+            </DialogFooter>
           </form>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -187,10 +192,9 @@ function Admins() {
             const me = String(a._id) === staff.id;
             return (
               <li key={a._id} className="flex items-center gap-4 px-5 py-3.5">
-                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-sm font-semibold text-background">{(a.admin_Name || "?").slice(0, 1).toUpperCase()}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">
-                    {a.admin_Name} {me && <span className="ml-1 rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand-ink">You</span>}
+                    {a.admin_Name} {me && <span className="font-normal text-muted-foreground">(you)</span>}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">{a.admin_Email}</span>
                 </span>
@@ -262,7 +266,7 @@ function MyAccount() {
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-muted-foreground">Role</dt>
-          <dd className="font-medium">{isAdmin ? "Admin" : [staff.title, staff.employeeId].filter(Boolean).join(" · ")}</dd>
+          <dd className="font-medium">{isAdmin ? "Admin" : [staff.title, staff.employeeId].filter(Boolean).join(", ")}</dd>
         </div>
       </dl>
       <form
@@ -292,12 +296,10 @@ function Team() {
   const { isAdmin } = useAdmin();
   return (
     <>
-      <div className="mb-6">
-        <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">{isAdmin ? "Team and account" : "My account"}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isAdmin ? "Admins manage everything. Employees work the leads you share with them." : "Your details and password."}
-        </p>
-      </div>
+      <PageHeader
+        title={isAdmin ? "Team and account" : "My account"}
+        description={isAdmin ? "Admins manage everything. Employees work the leads you share with them." : "Your details and password."}
+      />
       {isAdmin ? (
         <div className="grid items-start gap-6 xl:grid-cols-3">
           <div className="grid gap-6 xl:col-span-2">

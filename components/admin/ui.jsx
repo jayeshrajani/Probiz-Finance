@@ -1,35 +1,55 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { CaretLeft, CaretRight, SpinnerGap } from "@phosphor-icons/react";
 import { useAdmin } from "@/components/admin/AdminShell";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { STATUS_META } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 
 export function Panel({ title, description, actions, className, bodyClassName, children }) {
   return (
-    <section className={cn("rounded-2xl border border-border bg-background", className)}>
+    <Card className={className}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-          <div>
-            {title && <h2 className="text-[0.9375rem] font-semibold tracking-[-0.01em]">{title}</h2>}
-            {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
-          </div>
-          {actions}
-        </div>
+        <CardHeader>
+          {title && <CardTitle>{title}</CardTitle>}
+          {description && <CardDescription>{description}</CardDescription>}
+          {actions && <CardAction>{actions}</CardAction>}
+        </CardHeader>
       )}
-      <div className={cn("p-5", bodyClassName)}>{children}</div>
-    </section>
+      <CardContent className={bodyClassName}>{children}</CardContent>
+    </Card>
+  );
+}
+
+export function PageHeader({ title, description, children }) {
+  return (
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className="min-w-0">
+        <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">{title}</h1>
+        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+      </div>
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
+    </div>
   );
 }
 
 export function StatusBadge({ status, className }) {
   const meta = STATUS_META[status] || STATUS_META.new;
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset", meta.tone, className)}>
-      <span className="size-1.5 rounded-full bg-current opacity-70" />
+    <span className={cn("inline-flex items-center gap-1.5 text-sm whitespace-nowrap", className)}>
+      <span aria-hidden className={cn("size-2 shrink-0 rounded-full", meta.dot)} />
       {meta.label}
     </span>
   );
@@ -39,19 +59,16 @@ export function AdminOnly({ children }) {
   const { isAdmin } = useAdmin();
   if (isAdmin) return children;
   return (
-    <section className="rounded-2xl border border-border bg-background">
+    <Card>
       <Empty title="Admins only" body="Customer and subscriber lists are limited to admins. Ask an admin if you need something from here." />
-    </section>
+    </Card>
   );
 }
 
 export function Empty({ title, body, action }) {
   return (
-    <div className="grid place-items-center px-6 py-16 text-center">
-      <div className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-secondary">
-        <span className="size-3 rounded-full bg-brand" />
-      </div>
-      <p className="font-semibold">{title}</p>
+    <div className="grid place-items-center px-6 py-14 text-center">
+      <p className="font-medium">{title}</p>
       {body && <p className="mt-1 max-w-sm text-sm text-muted-foreground">{body}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -63,9 +80,9 @@ export function LoadingRows({ rows = 6 }) {
     <div className="divide-y divide-border">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex items-center gap-4 px-5 py-4">
-          <div className="h-3 w-40 animate-pulse rounded bg-secondary" />
-          <div className="h-3 w-28 animate-pulse rounded bg-secondary" />
-          <div className="ml-auto h-3 w-16 animate-pulse rounded bg-secondary" />
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="ml-auto h-3 w-16" />
         </div>
       ))}
     </div>
@@ -112,49 +129,29 @@ export function Pager({ page, limit, total, onPage }) {
 }
 
 export function ConfirmDialog({ open, title, body, confirmLabel = "Delete", busy, onConfirm, onClose }) {
-  const cancelRef = useRef(null);
-  useEffect(() => {
-    if (!open) return;
-    const t = setTimeout(() => cancelRef.current?.focus(), 30);
-    const onKey = (e) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
-
   return (
-    <AnimatePresence>
-      {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center px-4">
-          <motion.div className="absolute inset-0 bg-foreground/25 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <motion.div
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="confirm-title"
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-sm rounded-2xl border border-border bg-background p-6 shadow-[0_40px_100px_-30px_oklch(0.21_0.006_286/0.5)]"
+    <AlertDialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          {body && <AlertDialogDescription>{body}</AlertDialogDescription>}
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={busy}
+            onClick={(e) => {
+              // Keep the dialog open until the request finishes; the caller closes it.
+              e.preventDefault();
+              onConfirm();
+            }}
           >
-            <h2 id="confirm-title" className="text-lg font-semibold tracking-[-0.015em]">
-              {title}
-            </h2>
-            {body && <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>}
-            <div className="mt-6 flex justify-end gap-2">
-              <Button ref={cancelRef} variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button className="bg-destructive text-white hover:bg-destructive/90" disabled={busy} onClick={onConfirm}>
-                {busy && <SpinnerGap className="animate-spin" />}
-                {confirmLabel}
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+            {busy && <SpinnerGap className="animate-spin" />}
+            {confirmLabel}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

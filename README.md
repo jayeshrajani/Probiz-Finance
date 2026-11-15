@@ -79,6 +79,7 @@ flowchart LR
   - A signed-in customer's token links the lead to their account. Uploads are capped at 5 MB per file; wrong types and oversized files are rejected with a message instead of silently dropped.
   - Leads from before this pipeline (and their old `LeadMeta` status, owner and notes) are imported automatically on the first staff-panel request after a server start; `npm run backfill:leads` does the same by hand.
 - **Staff panel**: `/api/admin/*` (`server/controllers/adminPanel.controller.js`) lists, filters (status, advisor, product, source) and updates leads. Status, assignment and notes are written as events. Removing an employee returns their open leads to the pool.
+- **Dashboards**: employees get "My day" (their leads and the pick-up pool). Admins get an overview with a date range (7/30/90 days or custom, up to a year; India time) via `GET /api/admin/overview?analytics=1&days=30` or `&from=YYYY-MM-DD&to=YYYY-MM-DD`, computed in `server/admin/analytics.js`: leads vs the previous period, conversion, median first response (lead arriving to the first staff status change or note), lead sources (UTM source/medium, external referrer, channel, campaign, landing page) and per-advisor performance (assigned, won, conversion, first response, active, stale = open with no activity for 3+ days).
 - **Access control**: `server/middlewares/staffAuth.js` checks Bearer tokens signed with `role: admin` or `role: employee`. `server/routes/index.js` puts every read of customer data, every update and delete, and the admin-only create endpoints behind `requireAdmin`; employees get 403 there. Public reads (property listings, areas, health) and form submissions stay open. `POST /api/createAdmin` works without a token only while no admin exists.
 - **Customer account**: `/account` uses `GET`/`PATCH /api/account` and `PUT /api/account/password` behind `server/middlewares/customerAuth.js` (customer token only; staff tokens are rejected). It lists only leads sent while signed in (`Lead.userId`), never leads matched by phone number.
 - **Local dev without setup**: if `DATABASE_URL` is empty the app uses PGlite (Postgres compiled to WebAssembly) stored in `.data/pglite`, and uploads go to `public/uploads/`.
@@ -103,6 +104,8 @@ End-to-end lead intake check (every form, validation, consent, honeypot, rate li
 ```bash
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=... CUSTOMER_EMAIL=... CUSTOMER_PASSWORD=... npm run check:intake
 ```
+
+Staff panel business rules (pick-up, ownership, reassignment, closed leads leaving the pool, date filters, admin-only data, removing an employee), using the demo accounts from `setup.md` against the same server: `npm run check:staff`. It creates and deletes its own test leads.
 
 Create the first admin account (only works while there are no admins; later admins are added from Team in the panel):
 

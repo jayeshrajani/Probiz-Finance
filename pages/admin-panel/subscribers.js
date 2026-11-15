@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Copy, DownloadSimple, Trash } from "@phosphor-icons/react";
 import AdminShell from "@/components/admin/AdminShell";
-import { AdminOnly, ConfirmDialog, Empty, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
+import { AdminOnly, ConfirmDialog, Empty, ErrorNote, LoadingRows, PageHeader, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { adminFetch, downloadCsv, formatDateTime, timeAgo, useAdminData } from "@/lib/admin-api";
 
@@ -30,12 +30,7 @@ function Subscribers() {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">Subscribers</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{rows.length} people signed up for rates and tips from the website footer.</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader title="Subscribers" description={`${rows.length} people signed up for rates and tips from the website footer.`}>
           <Button
             variant="outline"
             size="sm"
@@ -60,8 +55,7 @@ function Subscribers() {
           >
             <DownloadSimple /> Export
           </Button>
-        </div>
-      </div>
+      </PageHeader>
       <ErrorNote error={error} onRetry={reload} />
       <Panel bodyClassName="p-0">
         {loading && !data ? (

@@ -5,10 +5,14 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowSquareOut, EnvelopeSimple, FileText, HandGrabbing, Phone, SpinnerGap, Trash, UserCircle, WhatsappLogo } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowSquareOut, EnvelopeSimple, FileText, HandGrabbing, Phone, SpinnerGap, Trash, WhatsappLogo } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
-import { ConfirmDialog, ErrorNote, LoadingRows, Panel, StatusBadge } from "@/components/admin/ui";
+import { ConfirmDialog, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { adminFetch, formatDateTime, STATUS_META, timeAgo, useAdminData } from "@/lib/admin-api";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -80,13 +84,13 @@ function Notes({ type, id, notes, onChange }) {
         <label htmlFor="note" className="sr-only">
           Add a note
         </label>
-        <textarea
+        <Textarea
           id="note"
           rows={3}
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Called, asked for bank statements..."
-          className="w-full resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-brand focus:ring-[3px] focus:ring-brand/20"
+          className="min-h-20 resize-none text-sm"
         />
         <Button type="submit" size="sm" className="justify-self-end" disabled={busy || !text.trim()}>
           {busy && <SpinnerGap className="animate-spin" />} Add note
@@ -104,7 +108,7 @@ function Notes({ type, id, notes, onChange }) {
               <span className={cn("absolute top-1 -left-[5px] size-2.5 rounded-full ring-4 ring-background", n.kind === "system" ? "bg-muted-foreground/50" : "bg-brand")} />
               <p className={cn("text-sm leading-relaxed", n.kind === "system" && "text-muted-foreground")}>{n.text}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {n.by} · {timeAgo(n.at)}
+                {n.by}, {timeAgo(n.at)}
               </p>
             </motion.li>
           ))}
@@ -132,7 +136,7 @@ function Origin({ lead, customer }) {
     ["Submitted on", src.page],
     ["First page", src.landingPage],
     ["Referrer", src.referrer],
-    ["Campaign", utm.join(" · ") || null],
+    ["Campaign", utm.join(", ") || null],
     ["Device", src.device],
     ["Consent", lead.consent?.accepted ? `Given ${formatDateTime(lead.consent.at)}` : "Not recorded"],
     ["Account", customer ? `${customer.name || "Signed-in customer"}${customer.email ? ` (${customer.email})` : ""}` : "Not signed in"],
@@ -210,15 +214,12 @@ function LeadDetail() {
       </Link>
 
       <div className="mb-8 flex flex-wrap items-start justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <span className="inline-flex size-14 items-center justify-center rounded-2xl bg-brand-soft font-display text-xl font-semibold text-brand-ink">{lead.name.slice(0, 1).toUpperCase()}</span>
-          <div>
-            <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">{lead.name}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {lead.typeLabel} · received {formatDateTime(lead.createdAt)}
-              {lead.repeatCount > 0 && ` · sent ${lead.repeatCount + 1} times, last ${timeAgo(lead.lastActivityAt)}`}
-            </p>
-          </div>
+        <div>
+          <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">{lead.name}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {lead.typeLabel}, received {formatDateTime(lead.createdAt)}
+            {lead.repeatCount > 0 && `. Sent ${lead.repeatCount + 1} times, last ${timeAgo(lead.lastActivityAt)}`}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {phone && (
@@ -250,37 +251,45 @@ function LeadDetail() {
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-3">
-        <p className="flex items-center gap-2.5 text-sm">
-          <UserCircle weight="duotone" className="size-5 text-muted-foreground" />
+      <Card className="mb-4 flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <p className="text-sm">
           {assignedName ? (
-            <span>
-              Advisor: <span className="font-medium">{assignedTo === staff.id ? "You" : assignedName}</span>
-            </span>
+            <>
+              <span className="text-muted-foreground">Advisor: </span>
+              <span className="font-medium">{assignedTo === staff.id ? `${assignedName} (you)` : assignedName}</span>
+            </>
           ) : (
-            <span className="text-muted-foreground">Nobody owns this lead yet.</span>
+            <span className="text-muted-foreground">No advisor yet.</span>
           )}
         </p>
         {isAdmin ? (
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Assign to</span>
-            <select
-              value={assignedTo || ""}
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground" id="assign-label">
+              Assign to
+            </span>
+            <Select
+              value={assignedTo || "none"}
               disabled={saving}
-              onChange={(e) => {
-                const who = config.employees.find((x) => x.id === e.target.value);
-                patch({ assignTo: e.target.value || null }, who ? `Assigned to ${who.name}` : "Moved to unassigned");
+              onValueChange={(v) => {
+                const who = config.employees.find((x) => x.id === v);
+                patch({ assignTo: who ? who.id : null }, who ? `Assigned to ${who.name}` : "Moved to unassigned");
               }}
-              className="h-9 rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus:border-brand"
             >
-              <option value="">Unassigned</option>
-              {config.employees.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              <SelectTrigger aria-labelledby="assign-label" className="min-w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="none">Unassigned</SelectItem>
+                {config.employees.length > 0 && <SelectSeparator />}
+                {config.employees.map((x) => (
+                  <SelectItem key={x.id} value={x.id}>
+                    {x.name}
+                  </SelectItem>
+                ))}
+                {assignedTo && !config.employees.some((x) => x.id === assignedTo) && <SelectItem value={assignedTo}>{assignedName} (removed)</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
         ) : (
           !assignedTo && (
             <Button size="sm" disabled={saving} onClick={() => patch({ claim: true }, "This lead is yours now")}>
@@ -288,51 +297,40 @@ function LeadDetail() {
             </Button>
           )
         )}
-      </div>
+      </Card>
 
-      <div className="mb-6 rounded-2xl border border-border bg-background p-2">
-        <div role="radiogroup" aria-label="Lead status" className="grid grid-cols-2 gap-1 sm:grid-cols-5">
-          {config.statuses.map((s) => (
-            <button
-              key={s}
-              type="button"
-              role="radio"
-              aria-checked={status === s}
-              disabled={saving || !canEdit}
-              onClick={() => setStatus(s)}
-              className={cn(
-                "relative h-10 rounded-xl text-sm font-medium transition-colors disabled:cursor-wait",
-                status === s ? "text-background" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              )}
-            >
-              {status === s && <motion.span layoutId="status-pill" className="absolute inset-0 rounded-xl bg-foreground" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
-              <span className="relative">{STATUS_META[s].label}</span>
-            </button>
-          ))}
-        </div>
+      <div role="radiogroup" aria-label="Lead status" className="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 sm:grid-cols-5">
+        {config.statuses.map((s) => (
+          <button
+            key={s}
+            type="button"
+            role="radio"
+            aria-checked={status === s}
+            disabled={saving || !canEdit}
+            onClick={() => setStatus(s)}
+            className={cn(
+              "h-9 rounded-lg text-sm font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-brand/25 focus-visible:outline-none disabled:cursor-not-allowed",
+              status === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {STATUS_META[s].label}
+          </button>
+        ))}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="grid content-start gap-6 xl:col-span-2">
-          <Panel title="Application details" actions={<StatusBadge status={status} />}>
+          <Panel title="Application details">
             {submissions.length > 1 && (
-              <div role="tablist" aria-label="Submissions" className="mb-6 flex flex-wrap gap-1.5">
-                {submissions.map((s, i) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={shown === i}
-                    onClick={() => setShown(i)}
-                    className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                      shown === i ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {i === 0 ? "Latest" : `Earlier ${i}`} · {formatDateTime(s.createdAt)}
-                  </button>
-                ))}
-              </div>
+              <Tabs value={String(shown)} onValueChange={(v) => setShown(Number(v))} className="mb-6">
+                <TabsList aria-label="Submissions" className="h-auto flex-wrap">
+                  {submissions.map((s, i) => (
+                    <TabsTrigger key={s.id} value={String(i)} className="px-3">
+                      {i === 0 ? "Latest" : `Earlier ${i}`}, {formatDateTime(s.createdAt)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
             )}
             <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
               {details.map((d) => (

@@ -1,95 +1,137 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Buildings, ChartLineUp, Lightning, Newspaper, Tray, Trophy, UserCirclePlus, Users } from "@phosphor-icons/react";
+import { ArrowRight, Info } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { Empty, ErrorNote, LoadingRows, Panel, StatusBadge } from "@/components/admin/ui";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { STATUS_META, timeAgo, useAdminData } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 
-const STATUS_BAR = { new: "bg-brand", contacted: "bg-sky-400", in_progress: "bg-amber-400", won: "bg-emerald-500", lost: "bg-muted-foreground/40" };
+const PRESETS = [7, 30, 90];
+const SOURCE_TABS = [
+  { id: "sources", label: "Sources", empty: "No source data yet." },
+  { id: "channels", label: "Channels", empty: "No leads in this period." },
+  { id: "campaigns", label: "Campaigns", empty: "No UTM-tagged leads in this period. Tag ad links with utm_campaign to see them here." },
+  { id: "pages", label: "Pages", empty: "No landing page data yet." },
+];
+const EASE = [0.16, 1, 0.3, 1];
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+const pct = (v) => (v === null || v === undefined ? "–" : `${Math.round(v * 100)}%`);
+const fmtDay = (iso, withYear) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", ...(withYear ? { year: "numeric" } : {}) });
+
+function formatDuration(ms) {
+  if (ms === null || ms === undefined) return "–";
+  const min = ms / 60000;
+  if (min < 60) return `${Math.max(1, Math.round(min))} min`;
+  const h = min / 60;
+  if (h < 48) return `${h < 10 ? h.toFixed(1).replace(/\.0$/, "") : Math.round(h)} h`;
+  return `${Math.round(h / 24)} days`;
 }
 
-function Kpi({ icon: Icon, label, value, hint, href, accent }) {
+function delta(current, previous) {
+  if (!previous) return current ? "None in the period before" : "Same as the period before";
+  const change = Math.round(((current - previous) / previous) * 100);
+  return change === 0 ? "Same as the period before" : `${change > 0 ? "+" : ""}${change}% vs the period before`;
+}
+
+function leadsHref(params = {}) {
+  const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v));
+  const s = q.toString();
+  return `/admin-panel/leads${s ? `?${s}` : ""}`;
+}
+
+function Header({ title, summary, children }) {
+  const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+  return (
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p className="text-sm text-muted-foreground">{today}</p>
+        <h1 className="mt-1 font-display text-[2rem] leading-tight font-semibold tracking-[-0.03em]">{title}</h1>
+        {summary && <p className="mt-1 text-muted-foreground">{summary}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Kpi({ label, value, hint, href }) {
   const body = (
     <>
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <span className={cn("inline-flex size-8 items-center justify-center rounded-lg", accent ? "bg-brand-soft text-brand-ink" : "bg-secondary text-muted-foreground")}>
-          <Icon weight="duotone" className="size-4" />
-        </span>
-      </div>
-      <p className="mt-3 font-display text-3xl font-semibold tracking-[-0.03em] tabular-nums">{value}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-2 font-display text-3xl font-semibold tracking-[-0.03em] tabular-nums">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </>
   );
-  const cls = "block rounded-2xl border border-border bg-background p-5 transition-[border-color,box-shadow] duration-200";
-  return href ? (
-    <Link href={href} className={cn(cls, "hover:border-foreground/15 hover:shadow-[0_12px_30px_-24px_oklch(0.21_0.006_286/0.4)]")}>
-      {body}
-    </Link>
-  ) : (
-    <div className={cls}>{body}</div>
+  return (
+    <Card className={cn("p-5", href && "transition-colors hover:border-foreground/20")}>
+      {href ? (
+        <Link href={href} className="block outline-none focus-visible:ring-[3px] focus-visible:ring-brand/25">
+          {body}
+        </Link>
+      ) : (
+        body
+      )}
+    </Card>
   );
 }
 
-function DailyChart({ days }) {
+function DailyChart({ days, bucketDays = 1, endLabel = "Today" }) {
   const [hover, setHover] = useState(null);
   const max = Math.max(1, ...days.map((d) => d.count));
   const total = days.reduce((n, d) => n + d.count, 0);
   const shown = hover ?? days.length - 1;
-  const fmt = (iso) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   return (
     <div>
       <div className="flex items-baseline justify-between">
         <p className="font-display text-3xl font-semibold tracking-[-0.03em] tabular-nums">{total}</p>
         <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground tabular-nums">{days[shown].count}</span> on {fmt(days[shown].date)}
+          <span className="font-medium text-foreground tabular-nums">{days[shown].count}</span> {bucketDays > 1 ? "in the week of" : "on"} {fmtDay(days[shown].date)}
         </p>
       </div>
-      <div className="mt-6 flex h-40 items-end gap-[3px]" onMouseLeave={() => setHover(null)} role="img" aria-label={`${total} leads in the last 30 days`}>
+      <div className={cn("mt-6 flex h-40 items-end", days.length > 60 ? "gap-px" : "gap-[3px]")} onMouseLeave={() => setHover(null)} role="img" aria-label={`${total} leads from ${fmtDay(days[0].date)} to ${endLabel}`}>
         {days.map((d, i) => (
           <div key={d.date} className="flex h-full flex-1 items-end" onMouseEnter={() => setHover(i)}>
             <motion.div
               initial={{ height: 0 }}
               animate={{ height: `${Math.max((d.count / max) * 100, d.count ? 6 : 2)}%` }}
-              transition={{ duration: 0.6, delay: i * 0.012, ease: [0.16, 1, 0.3, 1] }}
-              className={cn("w-full rounded-t-[4px] transition-colors", i === shown ? "bg-brand" : d.count ? "bg-foreground/80" : "bg-border")}
+              transition={{ duration: 0.5, ease: EASE }}
+              className={cn("w-full rounded-t-[3px] transition-colors", i === shown ? "bg-brand" : d.count ? "bg-foreground/75" : "bg-border")}
             />
           </div>
         ))}
       </div>
       <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-        <span>{fmt(days[0].date)}</span>
-        <span>Today</span>
+        <span>{fmtDay(days[0].date)}</span>
+        <span>{endLabel}</span>
       </div>
     </div>
   );
 }
 
-function Pipeline({ counts }) {
+function Pipeline({ counts, query }) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   return (
     <div>
-      <div className="flex h-3 overflow-hidden rounded-full bg-secondary">
+      <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
         {total > 0 &&
           Object.entries(counts).map(([s, n]) =>
-            n ? <motion.span key={s} className={STATUS_BAR[s]} initial={{ width: 0 }} animate={{ width: `${(n / total) * 100}%` }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} /> : null
+            n ? <motion.span key={s} className={STATUS_META[s].dot} initial={{ width: 0 }} animate={{ width: `${(n / total) * 100}%` }} transition={{ duration: 0.6, ease: EASE }} /> : null
           )}
       </div>
-      <ul className="mt-5 grid gap-3">
+      <ul className="mt-5 grid gap-1">
         {Object.entries(counts).map(([s, n]) => (
           <li key={s}>
-            <Link href={`/admin-panel/leads?status=${s}`} className="flex items-center gap-3 rounded-lg text-sm hover:text-brand-ink">
-              <span className={cn("size-2.5 rounded-full", STATUS_BAR[s])} />
-              <span className="flex-1">{STATUS_META[s].label}</span>
-              <span className="font-medium tabular-nums">{n}</span>
+            <Link href={leadsHref({ ...query, status: s })} className="-mx-2 flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+              <StatusBadge status={s} />
+              <span className="tabular-nums">{n}</span>
             </Link>
           </li>
         ))}
@@ -104,18 +146,13 @@ function LeadRows({ leads, empty }) {
     <ul className="divide-y divide-border">
       {leads.map((l) => (
         <li key={`${l.type}-${l.id}`}>
-          <Link href={`/admin-panel/leads/${l.type}/${l.id}`} className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-secondary/60">
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">{l.name.slice(0, 1).toUpperCase()}</span>
+          <Link href={`/admin-panel/leads/${l.type}/${l.id}`} className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/50">
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{l.name}</span>
-              <span className="block truncate text-xs text-muted-foreground">
-                {l.typeLabel}
-                {l.phone ? ` · ${l.phone}` : ""}
-                {l.assignedName ? ` · ${l.assignedName}` : ""}
-              </span>
+              <span className="block truncate text-xs text-muted-foreground">{[l.typeLabel, l.phone, l.assignedName].filter(Boolean).join(", ")}</span>
             </span>
             <span className="hidden text-xs text-muted-foreground sm:block">{timeAgo(l.createdAt)}</span>
-            <StatusBadge status={l.status} />
+            <StatusBadge status={l.status} className="w-28 justify-end" />
           </Link>
         </li>
       ))}
@@ -124,164 +161,305 @@ function LeadRows({ leads, empty }) {
 }
 
 const viewAll = (href, label = "View all") => (
-  <Link href={href} className="inline-flex items-center gap-1 text-sm font-medium text-brand-ink hover:underline">
-    {label} <ArrowRight weight="bold" className="size-3.5" />
-  </Link>
+  <Button asChild variant="ghost" size="sm" className="-my-1 h-8 px-3">
+    <Link href={href}>
+      {label} <ArrowRight weight="bold" />
+    </Link>
+  </Button>
 );
 
-function ByProduct({ items }) {
-  if (items.length === 0) return <p className="text-sm text-muted-foreground">Nothing yet.</p>;
+function Bars({ items, hrefFor, empty = "Nothing yet." }) {
+  if (items.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
+  const max = Math.max(1, ...items.map((i) => i.total));
   return (
-    <ul className="grid gap-4">
-      {items.slice(0, 8).map((t) => (
-        <li key={t.type}>
-          <Link href={`/admin-panel/leads?type=${t.type}`} className="group block">
-            <div className="flex items-center justify-between text-sm">
-              <span className="truncate group-hover:text-brand-ink">{t.label}</span>
-              <span className="tabular-nums text-muted-foreground">
-                {t.open > 0 && <span className="mr-2 font-medium text-brand-ink">{t.open} new</span>}
-                {t.total}
+    <ul className="grid gap-3.5">
+      {items.map((t) => {
+        const row = (
+          <>
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <span className="truncate">{t.label}</span>
+              <span className="shrink-0 tabular-nums text-muted-foreground">
+                {t.won > 0 && <span className="mr-2">{t.won} won</span>}
+                <span className="text-foreground">{t.total}</span>
               </span>
             </div>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-              <motion.div
-                className="h-full rounded-full bg-foreground/80"
-                initial={{ width: 0 }}
-                animate={{ width: `${(t.total / items[0].total) * 100}%` }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              />
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+              <motion.div className="h-full rounded-full bg-foreground/70" initial={{ width: 0 }} animate={{ width: `${(t.total / max) * 100}%` }} transition={{ duration: 0.6, ease: EASE }} />
             </div>
-          </Link>
-        </li>
-      ))}
+          </>
+        );
+        const href = hrefFor?.(t);
+        return (
+          <li key={t.type || t.label}>
+            {href ? (
+              <Link href={href} className="block hover:[&_span.truncate]:underline">
+                {row}
+              </Link>
+            ) : (
+              row
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
-function Team({ team }) {
+function HeadTip({ children, tip, className }) {
+  return (
+    <TableHead className={cn("text-right", className)}>
+      <Tooltip>
+        <TooltipTrigger className="inline-flex items-center gap-1 underline decoration-dotted underline-offset-4">{children}</TooltipTrigger>
+        <TooltipContent>{tip}</TooltipContent>
+      </Tooltip>
+    </TableHead>
+  );
+}
+
+function TeamTable({ team, query }) {
   if (!team?.length)
     return (
-      <p className="text-sm text-muted-foreground">
-        No employees yet. <Link href="/admin-panel/team" className="font-medium text-brand-ink hover:underline">Add your advisors</Link> so leads can be shared out.
+      <p className="p-5 text-sm text-muted-foreground">
+        No employees yet.{" "}
+        <Link href="/admin-panel/team" className="font-medium text-foreground underline underline-offset-4">
+          Add your advisors
+        </Link>{" "}
+        so leads can be shared out.
       </p>
     );
-  const max = Math.max(1, ...team.map((m) => m.active));
   return (
-    <ul className="grid gap-4">
-      {team.map((m) => (
-        <li key={m.id}>
-          <Link href={`/admin-panel/leads?scope=${m.id}`} className="group block">
-            <div className="flex items-center justify-between text-sm">
-              <span className="truncate group-hover:text-brand-ink">{m.name}</span>
-              <span className="tabular-nums text-muted-foreground">
-                {m.active} active · <span className="text-emerald-700">{m.won} won</span>
-              </span>
-            </div>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-              <motion.div className="h-full rounded-full bg-brand" initial={{ width: 0 }} animate={{ width: `${(m.active / max) * 100}%` }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} />
-            </div>
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <Table className="min-w-[640px]">
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead>Advisor</TableHead>
+          <HeadTip tip="Leads from this period that are assigned to them now.">Assigned</HeadTip>
+          <TableHead className="text-right">Won</TableHead>
+          <HeadTip tip="Won as a share of assigned.">Conversion</HeadTip>
+          <HeadTip tip="Median time from a lead arriving to their first status change or note.">First response</HeadTip>
+          <HeadTip tip="Open leads they own right now.">Active</HeadTip>
+          <HeadTip tip="Open leads with no activity for 3 or more days.">Stale</HeadTip>
+        </TableRow>
+      </TableHeader>
+      <TableBody className="tabular-nums">
+        {team.map((m) => (
+          <TableRow key={m.id}>
+            <TableCell className="font-medium">
+              <Link href={leadsHref({ scope: m.id, ...query })} className="hover:underline">
+                {m.name}
+              </Link>
+            </TableCell>
+            <TableCell className="text-right">{m.assigned}</TableCell>
+            <TableCell className="text-right">{m.won}</TableCell>
+            <TableCell className="text-right">{pct(m.conversion)}</TableCell>
+            <TableCell className="text-right">{formatDuration(m.medianResponseMs)}</TableCell>
+            <TableCell className="text-right">{m.active}</TableCell>
+            <TableCell className={cn("text-right", m.stale ? "font-medium text-amber-700" : "text-muted-foreground")}>{m.stale}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
-function Dashboard() {
-  const { staff, isAdmin } = useAdmin();
-  const { data, error, loading, reload } = useAdminData("admin/overview");
-  const o = data?.data;
-  const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
-  const first = (staff.name || "there").split(" ")[0];
+function Sources({ sources }) {
+  return (
+    <Tabs defaultValue="sources">
+      <TabsList className="w-full">
+        {SOURCE_TABS.map((t) => (
+          <TabsTrigger key={t.id} value={t.id}>
+            {t.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {SOURCE_TABS.map((t) => (
+        <TabsContent key={t.id} value={t.id} className="pt-3">
+          <Bars items={sources[t.id] || []} empty={t.empty} />
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
 
-  let summary = null;
-  if (o && isAdmin) {
-    summary = o.totals.unassigned ? (
-      <>
-        <span className="font-medium text-foreground">{o.totals.unassigned} {o.totals.unassigned === 1 ? "lead is" : "leads are"} unassigned</span>. Share them out or pick them up.
-      </>
-    ) : (
-      "Every lead has an owner. Nice."
-    );
-  } else if (o) {
-    summary = (
-      <>
-        You have <span className="font-medium text-foreground">{o.totals.active} active {o.totals.active === 1 ? "lead" : "leads"}</span>
-        {o.totals.unassigned ? `, and ${o.totals.unassigned} new ${o.totals.unassigned === 1 ? "one" : "ones"} waiting to be picked up` : ""}.
-      </>
-    );
-  }
+function RangePicker({ range, onChange }) {
+  const [custom, setCustom] = useState(range.preset === null);
+  const [from, setFrom] = useState(range.from);
+  const [to, setTo] = useState(range.to);
+  const today = new Date().toLocaleDateString("en-CA");
+  const dateField = "h-9 rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/20";
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <Tabs
+        value={custom ? "custom" : String(range.preset)}
+        onValueChange={(v) => {
+          if (v === "custom") return setCustom(true);
+          setCustom(false);
+          onChange({ days: v });
+        }}
+      >
+        <TabsList aria-label="Date range">
+          {PRESETS.map((d) => (
+            <TabsTrigger key={d} value={String(d)} className="px-3">
+              {d} days
+            </TabsTrigger>
+          ))}
+          <TabsTrigger value="custom" className="px-3">
+            Custom
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {custom && (
+        <form
+          className="flex flex-wrap items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (from && to && from <= to) onChange({ from, to });
+          }}
+        >
+          <label className="sr-only" htmlFor="range-from">
+            From
+          </label>
+          <input id="range-from" type="date" value={from} max={to || today} onChange={(e) => setFrom(e.target.value)} className={dateField} />
+          <span className="text-sm text-muted-foreground">to</span>
+          <label className="sr-only" htmlFor="range-to">
+            To
+          </label>
+          <input id="range-to" type="date" value={to} min={from} max={today} onChange={(e) => setTo(e.target.value)} className={dateField} />
+          <Button type="submit" size="sm" disabled={!from || !to || from > to}>
+            Apply
+          </Button>
+        </form>
+      )}
+    </div>
+  );
+}
 
+function Loading({ error, reload, loading }) {
   return (
     <>
-      <div className="mb-8">
-        <p className="text-sm text-muted-foreground">{today}</p>
-        <h1 className="mt-1 font-display text-[2rem] leading-tight font-semibold tracking-[-0.03em]">
-          {greeting()}, {first}.
-        </h1>
-        {summary && <p className="mt-1 text-muted-foreground">{summary}</p>}
-      </div>
-
       <ErrorNote error={error} onRetry={reload} />
-
-      {loading && !o && (
+      {loading && (
         <Panel bodyClassName="p-0">
           <LoadingRows />
         </Panel>
       )}
+    </>
+  );
+}
 
-      {o && isAdmin && (
-        <div className="grid gap-6">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-            <Kpi icon={Lightning} label="New leads" value={o.totals.open} hint="Waiting for a first call" href="/admin-panel/leads?status=new" accent />
-            <Kpi icon={UserCirclePlus} label="Unassigned" value={o.totals.unassigned} hint="No advisor yet" href="/admin-panel/leads?scope=unassigned" />
-            <Kpi icon={Tray} label="Last 7 days" value={o.totals.last7} hint={`${o.totals.leads} in total`} href="/admin-panel/leads" />
-            <Kpi icon={Users} label="Customers" value={o.totals.users} hint="Website accounts" href="/admin-panel/customers" />
-            <Kpi icon={Buildings} label="Listings" value={o.totals.properties} hint="Property for sale" href="/admin-panel/properties" />
-            <Kpi icon={Newspaper} label="Subscribers" value={o.totals.subscribers} hint="Newsletter" href="/admin-panel/subscribers" />
+function AdminOverview() {
+  const router = useRouter();
+  const { days, from, to } = router.query;
+  const params = new URLSearchParams({ analytics: "1" });
+  if (from && to) {
+    params.set("from", from);
+    params.set("to", to);
+  } else if (days) params.set("days", days);
+  const { data, error, loading, reload } = useAdminData(router.isReady ? `admin/overview?${params}` : null);
+  const o = data?.data;
+  const a = o?.analytics;
+
+  const setRange = (query) => router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+  const rangeLabel = a ? (a.range.preset ? `last ${a.range.preset} days` : `${fmtDay(a.range.from)} to ${fmtDay(a.range.to, true)}`) : "";
+  const inRange = a ? { from: a.range.from, to: a.range.to } : {};
+
+  const summary = o
+    ? o.totals.unassigned
+      ? `${o.totals.unassigned} open ${o.totals.unassigned === 1 ? "lead has" : "leads have"} no advisor yet.`
+      : "Every open lead has an advisor."
+    : null;
+
+  return (
+    <>
+      <Header title="Overview" summary={summary}>
+        {a && <RangePicker key={`${a.range.preset}-${a.range.from}-${a.range.to}`} range={a.range} onChange={setRange} />}
+      </Header>
+      <Loading error={error} reload={reload} loading={loading && !o} />
+
+      {o && a && (
+        <div className={cn("grid gap-6 transition-opacity", loading && "opacity-60")} aria-busy={loading || undefined}>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Kpi label="New leads" value={o.totals.open} hint="Waiting for a first call" href={leadsHref({ status: "new" })} />
+            <Kpi label="Unassigned" value={o.totals.unassigned} hint="Open leads with no advisor" href={leadsHref({ scope: "unassigned" })} />
+            <Kpi label="Leads in period" value={a.totals.leads} hint={delta(a.totals.leads, a.totals.previous)} href={leadsHref(inRange)} />
+            <Kpi label="Converted" value={a.totals.won} hint={`${pct(a.totals.conversion)} of leads in period`} href={leadsHref({ ...inRange, status: "won" })} />
+            <Kpi label="First response" value={formatDuration(a.totals.medianResponseMs)} hint={a.totals.uncontacted ? `Median; ${a.totals.uncontacted} in period not contacted yet` : "Median time to first contact"} />
+            <Kpi label="Customers" value={o.totals.users} hint="Website accounts" href="/admin-panel/customers" />
+            <Kpi label="Listings" value={o.totals.properties} hint="Property for sale" href="/admin-panel/properties" />
+            <Kpi label="Subscribers" value={o.totals.subscribers} hint="Newsletter" href="/admin-panel/subscribers" />
           </div>
           <div className="grid gap-6 xl:grid-cols-3">
-            <Panel title="Leads, last 30 days" description="Every form submission from the website" className="xl:col-span-2">
-              <DailyChart days={o.daily} />
+            <Panel title={`Leads, ${rangeLabel}`} description={a.range.bucketDays > 1 ? "Form submissions, grouped by week" : "Form submissions per day"} className="xl:col-span-2">
+              <DailyChart days={a.series} bucketDays={a.range.bucketDays} endLabel={a.range.preset ? "Today" : fmtDay(a.range.to)} />
             </Panel>
-            <Panel title="Pipeline" description="Where every lead stands">
-              <Pipeline counts={o.statusCounts} />
+            <Panel title="Pipeline" description="Leads from this period, by current status">
+              <Pipeline counts={a.statusCounts} query={inRange} />
             </Panel>
           </div>
+          <Panel
+            title="Team performance"
+            description={`Assigned, won, conversion and first response cover the ${rangeLabel}. Active and stale are as of now.`}
+            bodyClassName="p-0"
+            actions={
+              <Tooltip>
+                <TooltipTrigger className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted" aria-label="How these are counted">
+                  <Info className="size-4" />
+                </TooltipTrigger>
+                <TooltipContent side="left">First response counts the first status change or note by a staff member. Admin actions count in the overall figure, not against an advisor.</TooltipContent>
+              </Tooltip>
+            }
+          >
+            <TeamTable team={a.team} query={inRange} />
+          </Panel>
           <div className="grid gap-6 xl:grid-cols-3">
-            <Panel title="Latest leads" className="xl:col-span-2" bodyClassName="p-0" actions={viewAll("/admin-panel/leads")}>
+            <Panel title="Latest leads" className="xl:col-span-2" bodyClassName="p-0" actions={viewAll(leadsHref())}>
               <LeadRows leads={o.recent} empty={{ title: "No leads yet", body: "Applications and enquiries from the website will appear here." }} />
             </Panel>
-            <div className="grid content-start gap-6">
-              <Panel title="Team workload" description="Open leads per advisor">
-                <Team team={o.team} />
+            <div className="grid min-w-0 grid-cols-1 content-start gap-6">
+              <Panel title="Lead sources" description="Where this period's leads came from">
+                <Sources sources={a.sources} />
               </Panel>
               <Panel title="By product">
-                <ByProduct items={o.byType} />
+                <Bars items={a.byType.slice(0, 8)} hrefFor={(t) => leadsHref({ type: t.type, ...inRange })} />
               </Panel>
             </div>
           </div>
         </div>
       )}
+    </>
+  );
+}
 
-      {o && !isAdmin && (
+function EmployeeDay() {
+  const { data, error, loading, reload } = useAdminData("admin/overview");
+  const o = data?.data;
+
+  const summary = o
+    ? `${o.totals.active} active ${o.totals.active === 1 ? "lead" : "leads"}${o.totals.unassigned ? `, ${o.totals.unassigned} waiting to be picked up` : ""}.`
+    : null;
+
+  return (
+    <>
+      <Header title="My day" summary={summary} />
+      <Loading error={error} reload={reload} loading={loading && !o} />
+
+      {o && (
         <div className="grid gap-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Kpi icon={Tray} label="My active leads" value={o.totals.active} hint="New, contacted or in progress" href="/admin-panel/leads?scope=mine" accent />
-            <Kpi icon={UserCirclePlus} label="Ready to pick up" value={o.totals.unassigned} hint="Unassigned leads" href="/admin-panel/leads?scope=unassigned" />
-            <Kpi icon={Trophy} label="Converted" value={o.totals.won} hint="Leads you closed as won" href="/admin-panel/leads?scope=mine&status=won" />
-            <Kpi icon={ChartLineUp} label="Last 7 days" value={o.totals.last7} hint={`${o.totals.leads} assigned to you in total`} href="/admin-panel/leads?scope=mine" />
+            <Kpi label="My active leads" value={o.totals.active} hint="New, contacted or in progress" href={leadsHref({ scope: "mine" })} />
+            <Kpi label="Ready to pick up" value={o.totals.unassigned} hint="Open leads with no advisor" href={leadsHref({ scope: "unassigned" })} />
+            <Kpi label="Converted" value={o.totals.won} hint="Leads you closed as won" href={leadsHref({ scope: "mine", status: "won" })} />
+            <Kpi label="Last 7 days" value={o.totals.last7} hint={`${o.totals.leads} assigned to you in total`} href={leadsHref({ scope: "mine" })} />
           </div>
           <div className="grid gap-6 xl:grid-cols-3">
-            <Panel title="Pick up next" description="Newest unassigned leads. Opening one and acting on it makes it yours." className="xl:col-span-2" bodyClassName="p-0" actions={viewAll("/admin-panel/leads?scope=unassigned", "See all")}>
-              <LeadRows leads={o.pool} empty={{ title: "Nothing waiting", body: "Every lead has an owner. New ones will show up here." }} />
+            <Panel title="Pick up next" description="Newest open leads with no advisor. Acting on one makes it yours." className="xl:col-span-2" bodyClassName="p-0" actions={viewAll(leadsHref({ scope: "unassigned" }), "See all")}>
+              <LeadRows leads={o.pool} empty={{ title: "Nothing waiting", body: "Every open lead has an advisor. New ones will show up here." }} />
             </Panel>
             <Panel title="My pipeline">
-              <Pipeline counts={o.statusCounts} />
+              <Pipeline counts={o.statusCounts} query={{ scope: "mine" }} />
             </Panel>
           </div>
           <div className="grid gap-6 xl:grid-cols-3">
-            <Panel title="My latest leads" className="xl:col-span-2" bodyClassName="p-0" actions={viewAll("/admin-panel/leads?scope=mine")}>
+            <Panel title="My latest leads" className="xl:col-span-2" bodyClassName="p-0" actions={viewAll(leadsHref({ scope: "mine" }))}>
               <LeadRows leads={o.recent} empty={{ title: "No leads yet", body: "Pick one up from the list above to get started." }} />
             </Panel>
             <Panel title="My leads, last 30 days">
@@ -294,9 +472,14 @@ function Dashboard() {
   );
 }
 
+function Dashboard() {
+  const { isAdmin } = useAdmin();
+  return isAdmin ? <AdminOverview /> : <EmployeeDay />;
+}
+
 export default function DashboardPage() {
   return (
-    <AdminShell>
+    <AdminShell title="Dashboard">
       <Dashboard />
     </AdminShell>
   );

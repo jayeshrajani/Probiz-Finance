@@ -26,6 +26,7 @@ import {
 } from "@phosphor-icons/react";
 import CommandPalette from "@/components/admin/CommandPalette";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { adminFetch, clearToken, getToken } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,7 @@ function NavLink({ href, icon: Icon, label, active, count, onNavigate }) {
     >
       {Icon && <Icon weight={active ? "fill" : "regular"} className={cn("size-4 shrink-0", active ? "text-brand-ink" : "text-muted-foreground")} />}
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      {count > 0 && <span className="rounded-full bg-brand-soft px-1.5 text-[0.6875rem] font-semibold tabular-nums text-brand-ink">{count}</span>}
+      {count > 0 && <span className={cn("text-xs tabular-nums", active ? "text-foreground" : "text-muted-foreground")}>{count}</span>}
     </Link>
   );
 }
@@ -75,11 +76,8 @@ function Sidebar({ onNavigate }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center gap-2 px-5">
+      <div className="flex h-16 items-center px-5">
         <img src="/brand/probiz-logo.png" alt="Probiz" width={110} height={36} className="h-7 w-auto" />
-        <span className={cn("rounded-md px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wider uppercase", isAdmin ? "bg-foreground text-background" : "bg-brand-soft text-brand-ink")}>
-          {isAdmin ? "Admin" : "Staff"}
-        </span>
       </div>
 
       <nav aria-label="Staff" className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
@@ -99,7 +97,7 @@ function Sidebar({ onNavigate }) {
         </div>
 
         <div>
-          <p className="px-2.5 pb-2 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">Leads by product</p>
+          <p className="px-2.5 pb-1.5 text-xs font-medium text-muted-foreground">Leads by product</p>
           <div className="space-y-0.5">
             {config.groups.map((g) => {
               const Icon = GROUP_ICONS[g.id] || Tray;
@@ -116,7 +114,7 @@ function Sidebar({ onNavigate }) {
                   >
                     <Icon className="size-4 shrink-0 text-muted-foreground" />
                     <span className="flex-1 text-left">{g.label}</span>
-                    {groupOpen > 0 && !expanded && <span className="size-1.5 rounded-full bg-brand" />}
+                    {groupOpen > 0 && !expanded && <span className="text-xs tabular-nums text-muted-foreground">{groupOpen}</span>}
                     <CaretDown weight="bold" className={cn("size-3 text-muted-foreground transition-transform duration-200", expanded && "rotate-180")} />
                   </button>
                   <AnimatePresence initial={false}>
@@ -150,7 +148,7 @@ function Sidebar({ onNavigate }) {
         </div>
 
         <div>
-          <p className="px-2.5 pb-2 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">Manage</p>
+          <p className="px-2.5 pb-1.5 text-xs font-medium text-muted-foreground">Manage</p>
           <div className="space-y-0.5">
             <NavLink href="/admin-panel/properties" icon={Buildings} label="Property listings" active={is("/admin-panel/properties")} onNavigate={onNavigate} />
             {isAdmin && (
@@ -171,7 +169,7 @@ function Sidebar({ onNavigate }) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium">{staff.name}</span>
-            <span className="block truncate text-xs text-muted-foreground">{isAdmin ? staff.email : [staff.title, staff.employeeId].filter(Boolean).join(" · ")}</span>
+            <span className="block truncate text-xs text-muted-foreground">{isAdmin ? "Admin" : [staff.title || "Employee", staff.employeeId].filter(Boolean).join(", ")}</span>
           </span>
           <button type="button" onClick={signOut} aria-label="Sign out" className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-background hover:text-foreground">
             <SignOut className="size-4" />
@@ -251,6 +249,7 @@ export default function AdminShell({ title, children }) {
         </div>
       ) : (
         <AdminContext.Provider value={value}>
+          <TooltipProvider>
           <div className="min-h-dvh bg-secondary/50 lg:grid lg:grid-cols-[16.5rem_1fr]">
             <aside className="sticky top-0 hidden h-dvh border-r border-border bg-secondary/80 lg:block">
               <Sidebar />
@@ -286,6 +285,7 @@ export default function AdminShell({ title, children }) {
             </div>
           </div>
           <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+          </TooltipProvider>
         </AdminContext.Provider>
       )}
     </>

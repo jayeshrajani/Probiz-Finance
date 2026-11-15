@@ -8,14 +8,14 @@ import { useAdmin } from "@/components/admin/AdminShell";
 import { cn } from "@/lib/utils";
 
 const PAGES = [
-  { label: "Overview", href: "/admin-panel/dashboard", hint: "Page" },
-  { label: "All leads", href: "/admin-panel/leads", hint: "Page" },
-  { label: "Unassigned leads", href: "/admin-panel/leads?scope=unassigned", hint: "Page" },
+  { label: "Overview", staffLabel: "My day", href: "/admin-panel/dashboard", hint: "Page" },
+  { label: "All leads", href: "/admin-panel/leads", hint: "Page", adminOnly: true },
+  { label: "Unassigned leads", staffLabel: "Pick up new leads", href: "/admin-panel/leads?scope=unassigned", hint: "Page" },
   { label: "My leads", href: "/admin-panel/leads?scope=mine", hint: "Page", staffOnly: true },
   { label: "Property listings", href: "/admin-panel/properties", hint: "Page" },
   { label: "Customers", href: "/admin-panel/customers", hint: "Page", adminOnly: true },
   { label: "Subscribers", href: "/admin-panel/subscribers", hint: "Page", adminOnly: true },
-  { label: "Team and account", href: "/admin-panel/team", hint: "Page" },
+  { label: "Team and account", staffLabel: "My account", href: "/admin-panel/team", hint: "Page" },
 ];
 
 export default function CommandPalette({ open, onClose }) {
@@ -26,7 +26,7 @@ export default function CommandPalette({ open, onClose }) {
   const inputRef = useRef(null);
 
   const items = useMemo(() => {
-    const pages = PAGES.filter((p) => (isAdmin ? !p.staffOnly : !p.adminOnly));
+    const pages = PAGES.filter((p) => (isAdmin ? !p.staffOnly : !p.adminOnly)).map((p) => (!isAdmin && p.staffLabel ? { ...p, label: p.staffLabel } : p));
     const all = [...pages, ...config.types.map((t) => ({ label: t.label, href: `/admin-panel/leads?type=${t.type}`, hint: "Leads" }))];
     const term = q.trim().toLowerCase();
     const matches = term ? all.filter((i) => i.label.toLowerCase().includes(term)) : all;
