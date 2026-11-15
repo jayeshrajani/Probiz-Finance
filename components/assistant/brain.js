@@ -2,6 +2,7 @@
 import { products, services } from "@/lib/catalog";
 import { emi, formatINR, formatINRShort } from "@/lib/format";
 import { site } from "@/lib/site";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const STARTERS = ["Find a loan", "Work out an EMI", "Documents needed", "Insurance quote", "Talk to a person"];
 
@@ -158,8 +159,10 @@ export function reply(input) {
   }
 
   if (has(text, ["address", "office", "where are", "location", "visit", "phone", "number", "email", "contact"])) {
+    const { primary, secondary, contactEmail } = getSiteSettings();
+    const call = secondary && secondary.number !== primary.number ? `${primary.display} or ${secondary.display}` : primary.display;
     return {
-      text: `We're at ${site.address}. Call ${site.phoneDisplay} or email ${site.email}.`,
+      text: `We're at ${site.address}. Call ${call} or email ${contactEmail}.`,
       links: [{ label: "Directions and contact form", href: "/contact" }],
     };
   }

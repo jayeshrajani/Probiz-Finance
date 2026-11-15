@@ -13,6 +13,7 @@ import {
   CaretDown,
   CurrencyInr,
   EnvelopeSimple,
+  Globe,
   List,
   MagnifyingGlass,
   Newspaper,
@@ -157,6 +158,7 @@ function Sidebar({ onNavigate }) {
               <>
                 <NavLink href="/admin-panel/customers" icon={Users} label="Customers" active={is("/admin-panel/customers")} onNavigate={onNavigate} />
                 <NavLink href="/admin-panel/subscribers" icon={Newspaper} label="Subscribers" active={is("/admin-panel/subscribers")} onNavigate={onNavigate} />
+                <NavLink href="/admin-panel/settings" icon={Globe} label="Website settings" active={is("/admin-panel/settings")} onNavigate={onNavigate} />
               </>
             )}
             <NavLink href="/admin-panel/team" icon={UserGear} label={isAdmin ? "Team and account" : "My account"} active={is("/admin-panel/team")} onNavigate={onNavigate} />

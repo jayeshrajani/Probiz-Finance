@@ -15,6 +15,7 @@ const PAGES = [
   { label: "Property listings", href: "/admin-panel/properties", hint: "Page" },
   { label: "Customers", href: "/admin-panel/customers", hint: "Page", adminOnly: true },
   { label: "Subscribers", href: "/admin-panel/subscribers", hint: "Page", adminOnly: true },
+  { label: "Website settings", href: "/admin-panel/settings", hint: "Page", adminOnly: true },
   { label: "Team and account", href: "/admin-panel/team", hint: "Page" },
 ];
 

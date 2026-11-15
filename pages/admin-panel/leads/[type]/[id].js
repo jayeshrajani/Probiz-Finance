@@ -13,7 +13,7 @@ import { adminFetch, formatDateTime, STATUS_META, timeAgo, useAdminData } from "
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const isFile = (v) => typeof v === "string" && (/^https?:\/\//i.test(v) || v.startsWith("/uploads/"));
+const isFile = (v) => typeof v === "string" && (/^https?:\/\//i.test(v) || v.startsWith("/uploads/") || v.startsWith("/api/files/"));
 const isImage = (v) => /\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(v);
 const MONEY = /amount|income|salary|value|budget|price|emi/i;
 const DATE = /date|At$/;

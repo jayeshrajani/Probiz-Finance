@@ -4,6 +4,7 @@ import { openAssistant } from "@/components/assistant/events";
 import NewsletterForm from "@/components/site/NewsletterForm";
 import { Button } from "@/components/ui/button";
 import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 
 // One flat list: the header already carries the full product catalogue.
 const links = [
@@ -18,14 +19,17 @@ const links = [
   { name: "Contact", href: "/contact" },
 ];
 
-const socials = [
-  { label: "Facebook", href: site.socials.facebook, Icon: FacebookLogo },
-  { label: "Instagram", href: site.socials.instagram, Icon: InstagramLogo },
-  { label: "LinkedIn", href: site.socials.linkedin, Icon: LinkedinLogo },
-  { label: "YouTube", href: site.socials.youtube, Icon: YoutubeLogo },
+const SOCIALS = [
+  { key: "facebook", label: "Facebook", Icon: FacebookLogo },
+  { key: "instagram", label: "Instagram", Icon: InstagramLogo },
+  { key: "linkedin", label: "LinkedIn", Icon: LinkedinLogo },
+  { key: "youtube", label: "YouTube", Icon: YoutubeLogo },
 ];
 
 export default function SiteFooter() {
+  const { primary, secondary, contactEmail, emailHref, social } = useSiteSettings();
+  const phones = [primary, secondary].filter((p, i, all) => p && all.findIndex((q) => q?.number === p.number) === i);
+  const socials = SOCIALS.filter(({ key }) => social[key]);
   return (
     <footer className="relative overflow-hidden bg-foreground text-background">
       <div className="container-page grid gap-12 pt-20 pb-14 lg:grid-cols-12 lg:items-end">
@@ -33,8 +37,8 @@ export default function SiteFooter() {
           <h2 className="display-2 max-w-[16ch] text-balance">Questions about money? Ask a person.</h2>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" variant="brand">
-              <a href={site.phoneHref}>
-                <Phone weight="bold" /> {site.phoneDisplay}
+              <a href={primary.href}>
+                <Phone weight="bold" /> {primary.display}
               </a>
             </Button>
             <Button size="lg" variant="ghost" className="text-background hover:bg-background/10 hover:text-background" onClick={openAssistant}>
@@ -55,9 +59,16 @@ export default function SiteFooter() {
             </Link>
             <address className="mt-6 grid gap-1.5 text-sm not-italic leading-relaxed text-background/65">
               <span>{site.address}</span>
-              <a href={`mailto:${site.email}`} className="w-fit hover:text-background">
-                {site.email}
-              </a>
+              {phones.map((p) => (
+                <a key={p.number} href={p.href} className="w-fit tabular-nums hover:text-background">
+                  {p.display}
+                </a>
+              ))}
+              {emailHref && (
+                <a href={emailHref} className="w-fit hover:text-background">
+                  {contactEmail}
+                </a>
+              )}
             </address>
           </div>
           <nav aria-label="Footer" className="md:col-span-7">
@@ -88,20 +99,23 @@ export default function SiteFooter() {
             <Link href="/sign-in?as=staff" className="hover:text-background">
               Staff sign-in
             </Link>
-            <div className="flex items-center gap-1">
-              {socials.map(({ label, href, Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="inline-flex size-9 items-center justify-center rounded-full transition-colors hover:bg-background/10 hover:text-background"
-                >
-                  <Icon weight="fill" className="size-4" />
-                </a>
-              ))}
-            </div>
+            {socials.length > 0 && (
+              <div className="flex items-center gap-1">
+                {socials.map(({ key, label, Icon }) => (
+                  <a
+                    key={key}
+                    href={social[key]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Visit Probiz Finance on ${label}`}
+                    title={label}
+                    className="inline-flex size-9 items-center justify-center rounded-full transition-colors hover:bg-background/10 hover:text-background focus-visible:bg-background/10 focus-visible:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background/40"
+                  >
+                    <Icon weight="fill" className="size-4" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

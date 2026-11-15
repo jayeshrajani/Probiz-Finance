@@ -8,7 +8,19 @@
     "start": "next start",
     "seed:areas": "node scripts/seed-areas.js",
     "backfill:leads": "node scripts/backfill-leads.js",
-    "check:intake": "node scripts/check-intake.mjs"
+    "seed:site-settings": "node scripts/seed-site-settings.js",
+    "check:intake": "node scripts/check-intake.mjs",
+    "emulators": "npx --yes firebase-tools@15.36.0 emulators:start --only firestore,storage --project demo-probiz-finance",
+    "check:firebase": "npx --yes firebase-tools@15.36.0 emulators:exec --only firestore,storage --project demo-probiz-finance \"node scripts/check-firebase-emulator.js\"",
+    "check:firestore-adapter": "npx --yes firebase-tools@15.36.0 emulators:exec --only firestore --project demo-probiz-finance \"node scripts/check-firestore-adapter.js\"",
+    "check:transactions": "npx --yes firebase-tools@15.36.0 emulators:exec --only firestore --project demo-probiz-finance \"node scripts/check-transactions.js\"",
+    "check:storage": "node scripts/check-storage.mjs",
+    "check:site-settings": "npx --yes firebase-tools@15.36.0 emulators:exec --only firestore --project demo-probiz-finance \"node scripts/check-site-settings.js\"",
+    "migrate:firestore": "node scripts/migrate-firestore.js data",
+    "migrate:files": "node scripts/migrate-firestore.js files",
+    "migrate:verify": "node scripts/migrate-firestore.js verify",
+    "check:migration": "node scripts/check-migration.js",
+    "check:e2e": "node scripts/check-e2e.mjs"
   },
   "engines": {
     "node": ">=20.9"
@@ -21,6 +33,7 @@
     "busboy": "^1.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "firebase-admin": "^13.10.0",
     "jsonwebtoken": "^9.0.3",
     "motion": "^14.13.0",
     "next": "^16.4.6",

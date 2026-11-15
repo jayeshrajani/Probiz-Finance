@@ -1,10 +1,11 @@
 import { EnvelopeSimple, Phone } from "@phosphor-icons/react";
 import AuthLayout, { AuthLink } from "@/components/templates/AuthLayout";
 import { Button } from "@/components/ui/button";
-import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 
 // There is no self-service reset endpoint yet, so resets go through the team.
 export default function ForgotPasswordPage() {
+  const { primary, contactEmail, emailHref } = useSiteSettings();
   return (
     <AuthLayout
       title="Reset Password"
@@ -19,13 +20,13 @@ export default function ForgotPasswordPage() {
     >
       <div className="grid gap-3">
         <Button asChild size="lg" className="w-full">
-          <a href={`mailto:${site.email}?subject=Password reset`}>
-            <EnvelopeSimple weight="bold" /> Email {site.email}
+          <a href={`${emailHref}?subject=Password reset`}>
+            <EnvelopeSimple weight="bold" /> Email {contactEmail}
           </a>
         </Button>
         <Button asChild size="lg" variant="outline" className="w-full">
-          <a href={site.phoneHref}>
-            <Phone weight="bold" /> Call {site.phoneDisplay}
+          <a href={primary.href}>
+            <Phone weight="bold" /> Call {primary.display}
           </a>
         </Button>
       </div>

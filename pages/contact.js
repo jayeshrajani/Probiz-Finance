@@ -1,4 +1,4 @@
-import { ChatCircleDots, EnvelopeSimple, MapPin, Phone } from "@phosphor-icons/react";
+import { ChatCircleDots, EnvelopeSimple, MapPin, Phone, WhatsappLogo } from "@phosphor-icons/react";
 import Scene from "@/components/art/Scene";
 import { openAssistant } from "@/components/assistant/events";
 import Breadcrumbs from "@/components/blocks/Breadcrumbs";
@@ -6,17 +6,21 @@ import DotField from "@/components/kokonutui/dot-field";
 import ApplicationForm from "@/components/forms/ApplicationForm";
 import SiteLayout from "@/components/site/SiteLayout";
 import { site } from "@/lib/site";
-
-const channels = [
-  { Icon: Phone, label: "Call", value: site.phoneDisplay, href: site.phoneHref },
-  { Icon: ChatCircleDots, label: "Chat", value: "Ask the Probiz assistant", onClick: () => openAssistant() },
-  { Icon: EnvelopeSimple, label: "Email", value: site.email, href: `mailto:${site.email}` },
-  { Icon: MapPin, label: "Visit", value: site.address },
-];
+import { useSiteSettings } from "@/lib/site-settings";
 
 export default function ContactPage() {
+  const { primary, secondary, whatsappHref, contactEmail, emailHref } = useSiteSettings();
+  const channels = [
+    { Icon: Phone, label: "Call", value: primary.display, href: primary.href },
+    secondary && secondary.number !== primary.number && { Icon: Phone, label: "Or call", value: secondary.display, href: secondary.href },
+    whatsappHref && { Icon: WhatsappLogo, label: "WhatsApp", value: "Message us on WhatsApp", href: whatsappHref, external: true },
+    { Icon: ChatCircleDots, label: "Chat", value: "Ask the Probiz assistant", onClick: () => openAssistant() },
+    emailHref && { Icon: EnvelopeSimple, label: "Email", value: contactEmail, href: emailHref },
+    { Icon: MapPin, label: "Visit", value: site.address },
+  ].filter(Boolean);
+
   return (
-    <SiteLayout title="Contact Us" description={`Call ${site.phoneDisplay}, email ${site.email} or visit us at ${site.address}.`} path="/contact">
+    <SiteLayout title="Contact Us" description={`Call ${primary.display}, email ${contactEmail} or visit us at ${site.address}.`} path="/contact">
       <DotField spacing={18} className="block min-h-0 bg-transparent text-brand/35">
       <section className="container-page relative pt-10 pb-20 text-foreground md:pt-14">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
@@ -25,7 +29,7 @@ export default function ContactPage() {
             <h1 className="display-1 max-w-[12ch] text-balance">We're a call away.</h1>
             <p className="lede mt-6 max-w-md">Questions about a loan, a policy or a document? Write to us and an advisor will get back to you.</p>
             <ul className="mt-10 grid gap-3">
-              {channels.map(({ Icon, label, value, href, onClick }) => {
+              {channels.map(({ Icon, label, value, href, onClick, external }) => {
                 const inner = (
                   <>
                     <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand-ink">
@@ -40,7 +44,11 @@ export default function ContactPage() {
                 return (
                   <li key={label}>
                     {href ? (
-                      <a href={href} className="flex items-center gap-4 rounded-2xl p-2 -m-2 transition-colors hover:bg-secondary">
+                      <a
+                        href={href}
+                        {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                        className="flex items-center gap-4 rounded-2xl p-2 -m-2 transition-colors hover:bg-secondary"
+                      >
                         {inner}
                       </a>
                     ) : onClick ? (

@@ -1,6 +1,7 @@
 // Express-style router for Next.js API routes, so the existing route files and controllers run unchanged.
 const Busboy = require('busboy');
-const { uploadFile } = require('./storage');
+const { storeFile } = require('./storage');
+const { detectFileType } = require('./storage/sniff');
 
 const routes = [];
 
@@ -77,8 +78,9 @@ function raw() {
   return handler;
 }
 
-// Replacement for multer().fields(): parses multipart forms and uploads accepted files.
-function multipart(allowedTypes) {
+// Replacement for multer().fields(): parses multipart forms and stores accepted files.
+// visibility: 'private' for customer documents (default), 'public' for property listing media.
+function multipart(allowedTypes, { visibility = 'private' } = {}) {
   return {
     fields(spec = []) {
       const limits = Object.fromEntries(spec.map((f) => [f.name, f.maxCount || Infinity]));
@@ -94,8 +96,10 @@ function multipart(allowedTypes) {
         req.files = {};
         req.rejectedFiles = rejected;
         if (req.leadGate && !(await req.leadGate(req, res, files))) return;
+        req.storedFiles = [];
         await Promise.all(files.map(async (file) => {
-          file.location = await uploadFile(file.buffer, { originalName: file.originalname, mimetype: file.mimetype });
+          file.location = await storeFile(file.buffer, { visibility, mime: file.mimetype, ext: file.ext, originalName: file.originalname });
+          req.storedFiles.push(file.location);
           delete file.buffer;
         }));
         for (const file of files) (req.files[file.fieldname] ||= []).push(file);
@@ -133,7 +137,13 @@ function parseMultipart(req, limits, allowedTypes) {
           return;
         }
         const buffer = Buffer.concat(chunks);
-        files.push({ fieldname: name, originalname: info.filename, mimetype: info.mimeType, size: buffer.length, buffer });
+        // The content must be an allowed type and match the declared one (a renamed .exe is not a PDF).
+        const detected = detectFileType(buffer, info.mimeType, allowedTypes);
+        if (!detected) {
+          rejected.push({ field: name, filename: info.filename, reason: 'type' });
+          return;
+        }
+        files.push({ fieldname: name, originalname: info.filename, mimetype: detected.mime, ext: detected.ext, size: buffer.length, buffer });
       });
     });
     bb.on('close', () => resolve({ body, files, rejected }));

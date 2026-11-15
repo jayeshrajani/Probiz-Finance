@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const config = require("../config/auth.config");
+const { transaction } = require('../odm');
 const user = require('../models/user.model');
 const LoanOffer = require('../models/homeloan.model');
 const CreditCard = require('../models/creditcard.model');
@@ -125,7 +126,8 @@ exports.cashfreeWebhook = async (req, res) => {
     if (Buffer.isBuffer(req.body)) {
       const raw = req.body.toString('utf8');
       if (raw) {
-        console.log('Cashfree webhook received:', raw.slice(0, 500));
+        // The payload holds customer contact and payment details; log only its size.
+        console.log(`Cashfree webhook received (${raw.length} bytes)`);
       }
     }
     return res.status(200).send('OK');
@@ -243,29 +245,34 @@ exports.userSignUp = async (req, res) => {
     }
 
 
-    let checkEmail = await user.find({ user_Email: user_Email }).lean();
-    if (checkEmail.length > 0) {
-      return res
-        .status(409)
-        .send({ message: "Email already exists", status: 409 });
-    }
+    // Checked and created in one transaction locked on both values, so two signups cannot both succeed.
+    const hash = bcrypt.hashSync(password, 8);
+    const result = await transaction(async (tx) => {
+      await tx.lock(`unique:user:user_Email:${user_Email}`, `unique:user:mobile_no:${mobile_no}`);
+      let checkEmail = await user.find({ user_Email: user_Email }).lean();
+      if (checkEmail.length > 0) return { conflict: "Email already exists" };
 
-    let checkMobileNo = await user.find({ mobile_no: mobile_no }).lean();
-    if (checkMobileNo.length > 0) {
-      return res
-        .status(409)
-        .send({ message: "Mobile number already exists", status: 409 });
-    }
+      let checkMobileNo = await user.find({ mobile_no: mobile_no }).lean();
+      if (checkMobileNo.length > 0) return { conflict: "Mobile number already exists" };
 
-    let data = await user.create({
-      user_Email: user_Email,
-      user_Name: user_Name,
+      return {
+        data: await user.create({
+          user_Email: user_Email,
+          user_Name: user_Name,
 
-      country_code: country_code,
-      mobile_no: mobile_no,
-      password: bcrypt.hashSync(password, 8),
-      confirmPassword: confirmPassword,
+          country_code: country_code,
+          mobile_no: mobile_no,
+          password: hash,
+          confirmPassword: confirmPassword,
+        }),
+      };
     });
+    if (result.conflict) {
+      return res
+        .status(409)
+        .send({ message: result.conflict, status: 409 });
+    }
+    const data = result.data;
 
     return res
       .status(200)
@@ -345,7 +352,6 @@ exports.changeUserPassword = async (req, res) => {
 // POST API to handle home loan details
 exports.homeLoanDetail = async (req, res) => {
   try {
-    console.log("Request files:", req.files); // Debugging log
 
     // Validate required fields
     const requiredFields = [
@@ -414,7 +420,6 @@ exports.homeLoanDetail = async (req, res) => {
       }
     });
 
-    console.log("Loan Data:", loanData); // Debugging log before saving
     const savedLoanData = await loanData.save();
     res.status(201).json({ message: "Loan details submitted successfully", data: savedLoanData });
 
@@ -565,7 +570,6 @@ exports.creditCardDetail = async (req, res) => {
       }
     });
 
-    console.log("Loan Data:", CardData); // Debugging log before saving
     const savedData = await CardData.save();
     res.status(201).json({ message: "Credit Card Detail submitted successfully", data: savedData });
 
@@ -690,7 +694,6 @@ exports.carLoanDetail = async (req, res) => {
       }
     });
 
-    console.log("Car Loan Data:", newApplication); // Debugging log before saving
     const savedApplication = await newApplication.save();
     res.status(201).json({ message: "Car Loan Application submitted successfully", data: savedApplication });
 
@@ -1053,7 +1056,6 @@ exports.getProjectfundiingLoanById = async (req, res) => {
 // POST API to handle construction Loan details
 exports.constructionLoanDetail = async (req, res) => {
   try {
-    console.log("Request files:", req.files); // Debugging log
 
     // Validate required fields
     const requiredFields = [
@@ -1104,7 +1106,6 @@ exports.constructionLoanDetail = async (req, res) => {
       }
     });
 
-    console.log("Loan Data:", loanData); // Debugging log before saving
     const savedLoanData = await loanData.save();
     res.status(201).json({ message: "Loan details submitted successfully", data: savedLoanData });
 
@@ -1666,7 +1667,6 @@ exports.getKisanCreditLoanById = async (req, res) => {
 // Add Plot Purchase Loans
 exports.PlotPurchaseLoanDetail = async (req, res) => {
   try {
-    console.log("Request files:", req.files); // Debugging log
 
     // Validate required fields
     const requiredFields = [
@@ -1718,7 +1718,6 @@ exports.PlotPurchaseLoanDetail = async (req, res) => {
       }
     });
 
-    console.log("Loan Data:", loanData); // Debugging log before saving
     const savedLoanData = await loanData.save();
     res.status(201).json({ message: "Loan details submitted successfully", data: savedLoanData });
 
@@ -1824,7 +1823,6 @@ exports.getPlotPurchaseLoanDetailById = async (req, res) => {
 // Add Plot Purchase Construction Loans
 exports.PlotPurchaseConstructionLoanDetail = async (req, res) => {
   try {
-    console.log("Request files:", req.files); // Debugging log
 
     // Validate required fields
     const requiredFields = [
@@ -1873,7 +1871,6 @@ exports.PlotPurchaseConstructionLoanDetail = async (req, res) => {
       }
     });
 
-    console.log("Loan Data:", loanData); // Debugging log before saving
     const savedLoanData = await loanData.save();
     res.status(201).json({ message: "Loan details submitted successfully", data: savedLoanData });
 
@@ -1981,7 +1978,6 @@ exports.getPlotPurchaseConstructionLoanDetailById = async (req, res) => {
 // Add Flate Purchase Loans
 exports.FlatePurchaseLoanDetail = async (req, res) => {
   try {
-    console.log("Request files:", req.files); // Debugging log
 
     // Validate required fields
     const requiredFields = [
@@ -2033,7 +2029,6 @@ exports.FlatePurchaseLoanDetail = async (req, res) => {
       }
     });
 
-    console.log("Loan Data:", loanData); // Debugging log before saving
     const savedLoanData = await loanData.save();
     res.status(201).json({ message: "Loan details submitted successfully", data: savedLoanData });
 
@@ -2136,7 +2131,6 @@ exports.getFlatePurchaseLoanDetailById = async (req, res) => {
 // Add Loan against Property Loans
 exports.LoanagainstPropertyDetail = async (req, res) => {
   try {
-    console.log("Request files:", req.files); // Debugging log
 
     // Validate required fields
     const requiredFields = [
@@ -2188,7 +2182,6 @@ exports.LoanagainstPropertyDetail = async (req, res) => {
       }
     });
 
-    console.log("Loan Data:", loanData); // Debugging log before saving
     const savedLoanData = await loanData.save();
     res.status(201).json({ message: "Loan details submitted successfully", data: savedLoanData });
 
@@ -2289,7 +2282,6 @@ exports.getLoanagainstPropertyDetailById = async (req, res) => {
 // Add Commercial Property Purchase Loans
 exports.CommercialPropertyPurchaseDetail = async (req, res) => {
   try {
-    console.log("Request files:", req.files); // Debugging log
 
     // Validate required fields
     const requiredFields = [
@@ -2341,7 +2333,6 @@ exports.CommercialPropertyPurchaseDetail = async (req, res) => {
       }
     });
 
-    console.log("Loan Data:", loanData); // Debugging log before saving
     const savedLoanData = await loanData.save();
     res.status(201).json({ message: "Loan details submitted successfully", data: savedLoanData });
 
@@ -2443,7 +2434,6 @@ exports.getCommercialPropertyPurchaseDetailById = async (req, res) => {
 // Add Commercial Property Mortgage Loans
 exports.CommercialPropertyMortgageDetail = async (req, res) => {
   try {
-    console.log("Request files:", req.files); // Debugging log
 
     // Validate required fields
     const requiredFields = [
@@ -2495,7 +2485,6 @@ exports.CommercialPropertyMortgageDetail = async (req, res) => {
       }
     });
 
-    console.log("Loan Data:", loanData); // Debugging log before saving
     const savedLoanData = await loanData.save();
     res.status(201).json({ message: "Loan details submitted successfully", data: savedLoanData });
 
@@ -3701,7 +3690,6 @@ exports.getGoldLoanApplicationById = async (req, res) => {
 // POST API to handle home renovation loan details
 exports.homeRenovationLoanDetail = async (req, res) => {
   try {
-    console.log("Request files:", req.files); // Debugging log
 
     // Validate required fields
     const requiredFields = [

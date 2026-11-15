@@ -9,7 +9,7 @@ import { reply, STARTERS } from "@/components/assistant/brain";
 import { errorMessage, postJSON } from "@/lib/api";
 import { leadMeta } from "@/lib/attribution";
 import { formatINR } from "@/lib/format";
-import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 
 const STORE = "probiz:chat";
@@ -178,6 +178,7 @@ function Message({ m, onChip, topic, last }) {
 }
 
 export default function Assistant() {
+  const { primary } = useSiteSettings();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [typing, setTyping] = useState(false);
@@ -331,8 +332,8 @@ export default function Assistant() {
               </div>
               <p className="mt-2 px-2 text-center text-[0.6875rem] text-muted-foreground">
                 Automated replies, not financial advice. Urgent? Call{" "}
-                <a href={site.phoneHref} className="underline">
-                  {site.phoneDisplay}
+                <a href={primary.href} className="underline">
+                  {primary.display}
                 </a>
               </p>
             </form>

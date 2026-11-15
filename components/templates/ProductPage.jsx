@@ -14,6 +14,7 @@ import { productBySlug, products, relatedTo } from "@/lib/catalog";
 import { faqsFor } from "@/lib/faqs";
 import { forms } from "@/lib/forms";
 import { site } from "@/lib/site";
+import { useSiteSettings } from "@/lib/site-settings";
 
 const GROUPS = {
   property: { label: "Home and property loans", href: "/securedloans" },
@@ -112,6 +113,7 @@ function Documents({ files }) {
 
 export default function ProductPage({ slug }) {
   const product = productBySlug[slug];
+  const { primary } = useSiteSettings();
   const group = GROUPS[product.group];
   const children = product.hub ? products.filter((p) => p.group === product.group && !p.hub && !p.hidden) : [];
   const related = product.hub ? [] : relatedTo(product);
@@ -141,7 +143,7 @@ export default function ProductPage({ slug }) {
                 </Button>
               ) : (
                 <Button asChild size="lg" variant="outline">
-                  <a href={site.phoneHref}>
+                  <a href={primary.href}>
                     <Phone weight="bold" /> Call us
                   </a>
                 </Button>
