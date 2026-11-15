@@ -22,7 +22,7 @@ export default function Breadcrumbs({ items }) {
           <li key={item.label} className="flex items-center gap-1">
             {i > 0 && <CaretRight weight="bold" aria-hidden className="size-3 opacity-60" />}
             {item.href ? (
-              <Link href={item.href} className="hover:text-foreground">
+              <Link href={item.href} className="-my-2.5 inline-block py-2.5 hover:text-foreground">
                 {item.label}
               </Link>
             ) : (

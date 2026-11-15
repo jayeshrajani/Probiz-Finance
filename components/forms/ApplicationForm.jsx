@@ -156,7 +156,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
           <p className="mt-3 max-w-md leading-relaxed text-muted-foreground">
             {repeat
               ? "You sent us a similar request recently, so your advisor will see both together instead of calling twice."
-              : `A Probiz advisor will call you${phone ? ` on ${phone}` : ""} to take your ${productName ? productName.toLowerCase() : "request"} forward.`}{" "}
+              : `A Probiz advisor will call you${phone ? ` on ${phone}` : ""} to take your ${productName ? productName.split(" ").map((w) => (w === w.toUpperCase() ? w : w.toLowerCase())).join(" ") : "request"} forward.`}{" "}
             If it's urgent, call us on <a href={primary.href} className="font-medium text-foreground underline-offset-4 hover:underline">{primary.display}</a>.
           </p>
           <div className="mt-8 flex flex-wrap gap-2">
@@ -175,7 +175,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   return (
     <form ref={topRef} noValidate onSubmit={onSubmit} className={cn("scroll-mt-24 rounded-2xl border border-border bg-background p-6 sm:p-8", className)}>
       {steps.length > 1 && (
-        <ol className="mb-8 flex gap-1.5" aria-label="Application progress">
+        <ol className="mb-6 flex gap-1.5" aria-label="Application progress">
           {steps.map((s, i) => (
             <li key={s.id} className="min-w-0 flex-1">
               <button
@@ -183,7 +183,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
                 disabled={i > step}
                 onClick={() => i < step && go(i)}
                 aria-current={i === step ? "step" : undefined}
-                className="group block w-full text-left disabled:cursor-default"
+                className="group block w-full py-2 text-left disabled:cursor-default"
               >
                 <span className="block h-1 overflow-hidden rounded-full bg-muted">
                   <motion.span
@@ -193,7 +193,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
                     transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   />
                 </span>
-                <span className={cn("mt-2 block truncate text-xs", i === step ? "font-medium text-foreground" : "text-muted-foreground", i < step && "group-hover:text-foreground")}>
+                <span className={cn("mt-2 block text-xs leading-snug sm:truncate", i === step ? "font-medium text-foreground" : "text-muted-foreground", i < step && "group-hover:text-foreground")}>
                   {s.title}
                 </span>
               </button>
@@ -292,7 +292,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
           </Button>
         ) : (
           <p className="text-xs text-muted-foreground">
-            We only use your details to work on this request. <Link href="/privacy-policy" className="underline underline-offset-2">Privacy policy</Link>
+            We only use your details to work on this request. <Link href="/privacy-policy" className="-my-2 inline-block py-2 underline underline-offset-2">Privacy policy</Link>
           </p>
         )}
         <Button type="submit" size="lg" disabled={status === "submitting" || (isLast && tooLarge)}>

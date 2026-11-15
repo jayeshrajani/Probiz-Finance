@@ -376,7 +376,7 @@ function AdminOverview() {
       <Loading error={error} reload={reload} loading={loading && !o} />
 
       {o && a && (
-        <div className={cn("grid gap-6 transition-opacity", loading && "opacity-60")} aria-busy={loading || undefined}>
+        <div className={cn("grid grid-cols-1 gap-6 transition-opacity", loading && "opacity-60")} aria-busy={loading || undefined}>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi label="New leads" value={o.totals.open} hint="Waiting for a first call" href={leadsHref({ status: "new" })} />
             <Kpi label="Unassigned" value={o.totals.unassigned} hint="Open leads with no advisor" href={leadsHref({ scope: "unassigned" })} />
@@ -387,7 +387,7 @@ function AdminOverview() {
             <Kpi label="Listings" value={o.totals.properties} hint="Property for sale" href="/admin-panel/properties" />
             <Kpi label="Subscribers" value={o.totals.subscribers} hint="Newsletter" href="/admin-panel/subscribers" />
           </div>
-          <div className="grid gap-6 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <Panel title={`Leads, ${rangeLabel}`} description={a.range.bucketDays > 1 ? "Form submissions, grouped by week" : "Form submissions per day"} className="xl:col-span-2">
               <DailyChart days={a.series} bucketDays={a.range.bucketDays} endLabel={a.range.preset ? "Today" : fmtDay(a.range.to)} />
             </Panel>
@@ -410,7 +410,7 @@ function AdminOverview() {
           >
             <TeamTable team={a.team} query={inRange} />
           </Panel>
-          <div className="grid gap-6 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <Panel title="Latest leads" className="xl:col-span-2" bodyClassName="p-0" actions={viewAll(leadsHref())}>
               <LeadRows leads={o.recent} empty={{ title: "No leads yet", body: "Applications and enquiries from the website will appear here." }} />
             </Panel>

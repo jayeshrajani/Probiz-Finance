@@ -207,6 +207,21 @@
   .range:focus-visible::-moz-range-thumb {
     box-shadow: 0 0 0 5px color-mix(in oklch, var(--brand) 30%, transparent);
   }
+  /* Touch screens: a taller hit area and a bigger thumb. */
+  @media (pointer: coarse) {
+    .range {
+      height: 2.75rem;
+    }
+    .range::-webkit-slider-thumb {
+      width: 28px;
+      height: 28px;
+      margin-top: -11px;
+    }
+    .range::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+    }
+  }
 
   /* Scroll reveal with no JavaScript; browsers without scroll timelines show content as-is. */
   @supports (animation-timeline: view()) {
@@ -218,7 +233,7 @@
   }
 
   .glass-bar {
-    background: color-mix(in oklch, var(--background) 78%, transparent);
+    background: color-mix(in oklch, var(--background) 90%, transparent);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
   }

@@ -25,17 +25,18 @@ export default function MobileNav({ user }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open menu">
+        <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
           <List weight="bold" className="size-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-md">
+      {/* The list scrolls inside the panel so the close button stays pinned at the top. */}
+      <SheetContent side="right" className="w-full gap-0 sm:max-w-md">
         <SheetTitle className="sr-only">Menu</SheetTitle>
         <SheetDescription className="sr-only">Browse loans, insurance, investments and services</SheetDescription>
-        <div className="px-6 pt-16 pb-8">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-16 pb-8">
           <Accordion type="single" collapsible>
             {nav.map((item) => (
-              <AccordionItem key={item.label} value={item.label} className="border-border">
+              <AccordionItem key={item.label} value={item.label} className="border-border last:border-b">
                 <AccordionTrigger className="py-4 text-xl font-semibold tracking-[-0.02em]">{item.label}</AccordionTrigger>
                 <AccordionContent className="pr-0">
                   <div className="grid gap-6 pt-1">

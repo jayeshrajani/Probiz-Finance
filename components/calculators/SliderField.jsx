@@ -27,6 +27,7 @@ export default function SliderField({ label, value, onChange, min, max, step = 1
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        aria-valuetext={`${format ? format(value) : value}${suffix || ""}`}
         className="range"
         style={{ "--fill": fill }}
       />

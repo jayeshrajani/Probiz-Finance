@@ -18,7 +18,7 @@ import { useSiteSettings } from "@/lib/site-settings";
 
 const GROUPS = {
   property: { label: "Home and property loans", href: "/securedloans" },
-  personal: { label: "Personal loans", href: "/securedloans" },
+  personal: { label: "Personal finance", href: "/securedloans" },
   business: { label: "Business and farm loans", href: "/securedloans" },
   health: { label: "Health and property insurance", href: "/healthInsurance" },
   motor: { label: "Motor insurance", href: "/automobile-insurance" },

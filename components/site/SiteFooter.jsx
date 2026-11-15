@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowUpRight, ChatCircleDots, FacebookLogo, InstagramLogo, LinkedinLogo, Phone, YoutubeLogo } from "@phosphor-icons/react";
+import { ArrowUpRight, ChatCircleDots, Phone } from "@phosphor-icons/react";
 import { openAssistant } from "@/components/assistant/events";
 import NewsletterForm from "@/components/site/NewsletterForm";
+import SocialLinks from "@/components/site/SocialLinks";
 import { Button } from "@/components/ui/button";
 import { site } from "@/lib/site";
 import { useSiteSettings } from "@/lib/site-settings";
@@ -19,17 +20,9 @@ const links = [
   { name: "Contact", href: "/contact" },
 ];
 
-const SOCIALS = [
-  { key: "facebook", label: "Facebook", Icon: FacebookLogo },
-  { key: "instagram", label: "Instagram", Icon: InstagramLogo },
-  { key: "linkedin", label: "LinkedIn", Icon: LinkedinLogo },
-  { key: "youtube", label: "YouTube", Icon: YoutubeLogo },
-];
-
 export default function SiteFooter() {
-  const { primary, secondary, contactEmail, emailHref, social } = useSiteSettings();
+  const { primary, secondary, contactEmail, emailHref } = useSiteSettings();
   const phones = [primary, secondary].filter((p, i, all) => p && all.findIndex((q) => q?.number === p.number) === i);
-  const socials = SOCIALS.filter(({ key }) => social[key]);
   return (
     <footer className="relative overflow-hidden bg-foreground text-background">
       <div className="container-page grid gap-12 pt-20 pb-14 lg:grid-cols-12 lg:items-end">
@@ -45,6 +38,7 @@ export default function SiteFooter() {
               <ChatCircleDots weight="bold" /> Chat with us
             </Button>
           </div>
+          <SocialLinks dark className="mt-6" />
         </div>
         <div className="lg:col-span-5 lg:justify-self-end">
           <NewsletterForm />
@@ -57,25 +51,25 @@ export default function SiteFooter() {
             <Link href="/" aria-label="Probiz Finance home" className="inline-flex rounded-xl bg-background px-3 py-2">
               <img src="/brand/probiz-logo.png" alt="" width={130} height={42} className="h-7 w-auto" />
             </Link>
-            <address className="mt-6 grid gap-1.5 text-sm not-italic leading-relaxed text-background/65">
-              <span>{site.address}</span>
+            <address className="mt-6 grid gap-0.5 text-sm not-italic leading-relaxed text-background/65">
+              <span className="pb-1">{site.address}</span>
               {phones.map((p) => (
-                <a key={p.number} href={p.href} className="w-fit tabular-nums hover:text-background">
+                <a key={p.number} href={p.href} className="w-fit py-1.5 tabular-nums hover:text-background">
                   {p.display}
                 </a>
               ))}
               {emailHref && (
-                <a href={emailHref} className="w-fit hover:text-background">
+                <a href={emailHref} className="w-fit py-1.5 hover:text-background">
                   {contactEmail}
                 </a>
               )}
             </address>
           </div>
           <nav aria-label="Footer" className="md:col-span-7">
-            <ul className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
+            <ul className="grid grid-cols-2 gap-x-8 gap-y-1 sm:grid-cols-3">
               {links.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="group inline-flex items-center gap-1 text-[0.9375rem] text-background/75 transition-colors hover:text-background">
+                  <Link href={link.href} className="group inline-flex items-center gap-1 py-2 text-[0.9375rem] text-background/75 transition-colors hover:text-background">
                     {link.name}
                     <ArrowUpRight weight="bold" className="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
                   </Link>
@@ -89,33 +83,16 @@ export default function SiteFooter() {
           <p>
             © {new Date().getFullYear()} {site.legalName}
           </p>
-          <div className="flex items-center gap-5">
-            <Link href="/privacy-policy" className="hover:text-background">
+          <div className="flex flex-wrap items-center gap-x-5">
+            <Link href="/privacy-policy" className="py-3 hover:text-background">
               Privacy
             </Link>
-            <Link href="/terms-conditions" className="hover:text-background">
+            <Link href="/terms-conditions" className="py-3 hover:text-background">
               Terms
             </Link>
-            <Link href="/sign-in?as=staff" className="hover:text-background">
+            <Link href="/sign-in?as=staff" className="py-3 hover:text-background">
               Staff sign-in
             </Link>
-            {socials.length > 0 && (
-              <div className="flex items-center gap-1">
-                {socials.map(({ key, label, Icon }) => (
-                  <a
-                    key={key}
-                    href={social[key]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Visit Probiz Finance on ${label}`}
-                    title={label}
-                    className="inline-flex size-9 items-center justify-center rounded-full transition-colors hover:bg-background/10 hover:text-background focus-visible:bg-background/10 focus-visible:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background/40"
-                  >
-                    <Icon weight="fill" className="size-4" />
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>

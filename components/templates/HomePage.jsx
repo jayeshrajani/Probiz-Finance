@@ -11,6 +11,7 @@ import DotField from "@/components/kokonutui/dot-field";
 import { Compare, MeetProbiz, WhoWeHelp } from "@/components/sections/HomeStory";
 import SiteLayout from "@/components/site/SiteLayout";
 import { organizationJsonLd } from "@/components/site/Seo";
+import SocialLinks from "@/components/site/SocialLinks";
 import { Button } from "@/components/ui/button";
 import { hrefFor, productBySlug, products, services } from "@/lib/catalog";
 import { site } from "@/lib/site";
@@ -77,6 +78,7 @@ function Hero() {
               </li>
             ))}
           </ul>
+          <SocialLinks className="mt-8" />
         </div>
 
         <div className="animate-in fade-in slide-in-from-bottom-6 duration-1000 lg:col-span-6">
@@ -120,10 +122,10 @@ function Doors() {
                   </Link>
                 </h3>
                 <p className="mt-2 text-muted-foreground">{d.body}</p>
-                <ul className="relative z-10 mt-5 flex flex-wrap gap-1.5">
+                <ul className="relative z-10 mt-5 flex flex-wrap gap-2 sm:gap-1.5">
                   {d.quick.map((q) => (
                     <li key={q.slug}>
-                      <Link href={hrefFor(q)} className="inline-flex rounded-full bg-secondary px-3 py-1.5 text-[0.8125rem] font-medium transition-colors hover:bg-brand-soft hover:text-brand-ink">
+                      <Link href={hrefFor(q)} className="inline-flex rounded-full bg-secondary px-3.5 py-2.5 text-[0.8125rem] font-medium transition-colors hover:bg-brand-soft hover:text-brand-ink sm:px-3 sm:py-1.5">
                         {q.name}
                       </Link>
                     </li>
