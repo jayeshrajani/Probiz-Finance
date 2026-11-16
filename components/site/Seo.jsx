@@ -23,6 +23,7 @@ export const organizationJsonLd = {
     postalCode: "452010",
     addressCountry: "IN",
   },
+  hasMap: site.mapLink,
   sameAs: Object.values(contact.social).filter(Boolean),
 };
 

@@ -7,6 +7,7 @@ import { ArrowRight, ArrowUp, ArrowUpRight, Check, EnvelopeSimple, MapPin, Phone
 import { ASSISTANT_EVENT } from "@/components/assistant/events";
 import { CALLBACK, CONTACT, reply, STARTERS } from "@/components/assistant/brain";
 import { errorMessage } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { cleanMobile, recalledContact, rememberContact, sendCallback } from "@/lib/callback";
 import { formatINR, formatINRShort } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -397,6 +398,7 @@ export default function Assistant() {
   const show = useCallback(() => {
     dismissTeaser();
     setOpen(true);
+    track("chat_open");
     setMessages((m) => (m.length ? m : [withId(GREETING)]));
   }, [dismissTeaser]);
 

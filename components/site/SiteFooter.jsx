@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ArrowUpRight, ChatCircleDots, Phone } from "@phosphor-icons/react";
 import { openAssistant } from "@/components/assistant/events";
+import AddressLink from "@/components/site/AddressLink";
 import NewsletterForm from "@/components/site/NewsletterForm";
 import SocialLinks from "@/components/site/SocialLinks";
 import { Button } from "@/components/ui/button";
+import { gaConfigured, setConsent } from "@/lib/analytics";
 import { openCallback } from "@/lib/callback";
 import { useT } from "@/lib/i18n";
 import { site } from "@/lib/site";
@@ -58,9 +60,7 @@ export default function SiteFooter() {
               <img src="/brand/probiz-logo.png" alt="" width={130} height={42} className="h-7 w-auto" />
             </Link>
             <address className="mt-6 grid gap-0.5 text-sm not-italic leading-relaxed text-background/65">
-              <a href={site.mapLink} target="_blank" rel="noopener noreferrer" className="w-fit pb-1 hover:text-background">
-                {t(site.address)}
-              </a>
+              <AddressLink className="w-fit pb-1 hover:text-background" />
               {phones.map((p) => (
                 <a key={p.number} href={p.href} className="w-fit py-1.5 tabular-nums hover:text-background">
                   {p.display}
@@ -98,6 +98,11 @@ export default function SiteFooter() {
             <Link href="/terms-conditions" className="py-3 hover:text-background">
               {t("Terms")}
             </Link>
+            {gaConfigured && (
+              <button type="button" onClick={() => setConsent(null)} className="py-3 hover:text-background">
+                {t("Cookie preferences")}
+              </button>
+            )}
             <Link href="/sign-in?as=staff" className="py-3 hover:text-background">
               {t("Staff sign-in")}
             </Link>

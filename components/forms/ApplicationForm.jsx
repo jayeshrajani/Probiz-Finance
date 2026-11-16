@@ -9,6 +9,7 @@ import FormField from "@/components/forms/FormField";
 import Confetti from "@/components/fun/Confetti";
 import { Button } from "@/components/ui/button";
 import { errorMessage, postForm, postJSON } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { leadMeta } from "@/lib/attribution";
 import { recalledContact } from "@/lib/callback";
 import { forms } from "@/lib/forms";
@@ -144,6 +145,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
     if (res.ok) {
       setRepeat(Boolean(res.data?.repeat));
       setStatus("done");
+      track("generate_lead", { form: formKey, product: productName || formKey, repeat: Boolean(res.data?.repeat) });
     } else {
       setStatus("idle");
       if (res.data?.fields) setErrors(res.data.fields);

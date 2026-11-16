@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowRight, SpinnerGap } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { errorMessage, postJSON } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
 
 export default function NewsletterForm() {
@@ -22,6 +23,7 @@ export default function NewsletterForm() {
     setBusy(false);
     if (res.ok) {
       toast.success(t("You're subscribed. Expect the occasional useful email, nothing more."));
+      track("sign_up", { method: "newsletter" });
       setEmail("");
     } else {
       toast.error(t(errorMessage(res.data)));

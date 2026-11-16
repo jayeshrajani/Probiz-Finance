@@ -1,14 +1,21 @@
 import { WhatsappLogo } from "@phosphor-icons/react";
+import { useRouter } from "next/router";
+import { productBySlug, serviceBySlug } from "@/lib/catalog";
 import { useT } from "@/lib/i18n";
-import { useSiteSettings } from "@/lib/site-settings";
+import { useSiteSettings, WHATSAPP_GREETING, WHATSAPP_PRODUCT, whatsappUrl } from "@/lib/site-settings";
 import { useTyping } from "@/lib/use-typing";
 import { cn } from "@/lib/utils";
 
 // Bottom-left, opposite the assistant launcher; hidden when no WhatsApp number is configured.
+// On a product or service page the message names that product.
 export default function WhatsAppButton() {
   const t = useT();
-  const { whatsappHref } = useSiteSettings();
+  const { whatsappPhone } = useSiteSettings();
+  const { asPath } = useRouter();
   const typing = useTyping();
+  const slug = asPath.split(/[?#]/)[0].split("/")[1] || "";
+  const item = productBySlug[slug] || serviceBySlug[slug];
+  const whatsappHref = whatsappUrl(whatsappPhone, item ? t(WHATSAPP_PRODUCT, { name: t(item.name) }) : t(WHATSAPP_GREETING));
   if (!whatsappHref) return null;
   return (
     <a

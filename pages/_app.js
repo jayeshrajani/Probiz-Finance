@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { Inter, Noto_Sans_Devanagari } from "next/font/google";
 import { MotionConfig } from "motion/react";
 import { Toaster } from "@/components/ui/sonner";
+import Analytics from "@/components/site/Analytics";
 import WhatsAppButton from "@/components/site/WhatsAppButton";
 import { captureAttribution } from "@/lib/attribution";
 import { I18nProvider } from "@/lib/i18n";
@@ -59,6 +60,7 @@ export default function App({ Component, pageProps }) {
               <WhatsAppButton />
               <Assistant />
               <CallbackDialog />
+              <Analytics />
             </SiteSettingsProvider>
           </I18nProvider>
         )}

@@ -5,6 +5,7 @@ import HalftoneBackground from "@/components/kokonutui/halftone-background";
 import InkBackground from "@/components/kokonutui/ink-background";
 import TopoBackground from "@/components/kokonutui/topo-background";
 import SiteLayout from "@/components/site/SiteLayout";
+import AddressLink from "@/components/site/AddressLink";
 import { Button } from "@/components/ui/button";
 import company from "@/content/company.json";
 import { useT } from "@/lib/i18n";
@@ -100,7 +101,7 @@ export default function AboutPage() {
                 </Button>
               </div>
               <p className="mt-8 text-sm text-muted-foreground">
-                {t(site.address)}. {t("Hover the dots to look closer.")}
+                <AddressLink className="hover:text-foreground" />. {t("Hover the dots to look closer.")}
               </p>
             </div>
           </div>
