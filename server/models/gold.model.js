@@ -16,11 +16,11 @@ const goldLoanSchema = new Schema({
     },
     dateOfBirth: {
         type: String,
-        required: [true, "Please enter date of birth"],
+        required: false,
     },
     permanentAddress: {
         type: String,
-        required: [true, "Please enter permanent address"],
+        required: false,
     },
     contactNumber: {
         type: String,

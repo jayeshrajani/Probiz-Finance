@@ -16,11 +16,19 @@ const routes = readdirSync(join(root, "pages"), { withFileTypes: true })
   .map((name) => (name === "index" ? "/" : `/${name}`))
   .sort((a, b) => (a === "/" ? -1 : b === "/" ? 1 : a.localeCompare(b)));
 
+// Every page exists in English (no prefix) and Hindi (/hi); each URL lists both versions.
+const loc = (r, hi) => `${base}${hi ? "/hi" : ""}${r === "/" ? (hi ? "" : "/") : encodeURI(r)}`;
+const entry = (r, hi) =>
+  `  <url><loc>${loc(r, hi)}</loc>` +
+  `<xhtml:link rel="alternate" hreflang="en-IN" href="${loc(r, false)}"/>` +
+  `<xhtml:link rel="alternate" hreflang="hi-IN" href="${loc(r, true)}"/>` +
+  `<xhtml:link rel="alternate" hreflang="x-default" href="${loc(r, false)}"/></url>`;
+
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${routes.map((r) => `  <url><loc>${base}${r === "/" ? "/" : encodeURI(r)}</loc></url>`).join("\n")}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${routes.flatMap((r) => [entry(r, false), entry(r, true)]).join("\n")}
 </urlset>
 `;
 
 writeFileSync(join(root, "public", "sitemap.xml"), xml);
-console.log(`sitemap.xml: ${routes.length} URLs for ${base}`);
+console.log(`sitemap.xml: ${routes.length * 2} URLs (English and Hindi) for ${base}`);

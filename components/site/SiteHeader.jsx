@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, CaretDown, Plus, SignOut, UserCircle } from "@phosphor-icons/react";
+import { ArrowRight, CaretDown, Phone, Plus, SignOut, UserCircle } from "@phosphor-icons/react";
 import Logo from "@/components/site/Logo";
 import Scene from "@/components/art/Scene";
+import LanguageToggle from "@/components/site/LanguageToggle";
 import MobileNav from "@/components/site/MobileNav";
 import { Button } from "@/components/ui/button";
+import { openCallback } from "@/lib/callback";
 import { hrefFor, nav } from "@/lib/catalog";
+import { useT } from "@/lib/i18n";
 import { signOut, useStoredUser } from "@/lib/use-user";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +26,7 @@ const LINKS = [
 ];
 
 function MegaPanel({ item }) {
+  const t = useT();
   const units = item.columns.map((c) => (c.items.length > 8 ? 2 : 1));
   const total = units.reduce((a, b) => a + b, 0);
 
@@ -34,10 +38,10 @@ function MegaPanel({ item }) {
             <p className="mb-3 text-xs font-medium text-muted-foreground">
               {col.href ? (
                 <Link href={col.href} className="hover:text-foreground">
-                  {col.title}
+                  {t(col.title)}
                 </Link>
               ) : (
-                col.title
+                t(col.title)
               )}
             </p>
             <ul className={cn("grid gap-x-8", units[i] === 2 && "grid-cols-2")}>
@@ -47,7 +51,7 @@ function MegaPanel({ item }) {
                     href={hrefFor(link)}
                     className="block rounded-md py-1.5 text-[0.9375rem] font-medium tracking-[-0.01em] text-foreground/85 transition-colors hover:text-brand-ink"
                   >
-                    {link.name}
+                    {t(link.name)}
                   </Link>
                 </li>
               ))}
@@ -61,10 +65,10 @@ function MegaPanel({ item }) {
       >
         <Scene name={item.feature.scene} className="mx-auto -mb-2 h-32 w-auto" />
         <div className="p-6 pt-0">
-          <p className="headline text-lg">{item.feature.title}</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.feature.body}</p>
+          <p className="headline text-lg">{t(item.feature.title)}</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t(item.feature.body)}</p>
           <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-brand-ink">
-            Open
+            {t("Open")}
             <ArrowRight weight="bold" className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </span>
         </div>
@@ -74,6 +78,7 @@ function MegaPanel({ item }) {
 }
 
 function AccountMenu({ user }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -92,12 +97,12 @@ function AccountMenu({ user }) {
   if (!user) {
     return (
       <Link href="/sign-in" className="hidden h-9 items-center rounded-full px-3.5 text-sm font-medium text-foreground/80 hover:text-foreground md:inline-flex">
-        Sign in
+        {t("Sign in")}
       </Link>
     );
   }
 
-  const firstName = (user.user_Name || "Account").split(" ")[0];
+  const firstName = (user.user_Name || t("Account")).split(" ")[0];
   return (
     <div ref={ref} className="relative hidden md:block">
       <button
@@ -121,10 +126,10 @@ function AccountMenu({ user }) {
             className="absolute right-0 mt-2 w-52 origin-top-right rounded-2xl border border-border bg-popover p-1.5 shadow-[0_16px_40px_-16px_oklch(0.21_0.006_286/0.25)]"
           >
             <Link role="menuitem" href="/account" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm hover:bg-accent">
-              <UserCircle weight="bold" className="size-4" /> My account
+              <UserCircle weight="bold" className="size-4" /> {t("My account")}
             </Link>
             <Link role="menuitem" href="/add-product" className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm hover:bg-accent">
-              <Plus weight="bold" className="size-4" /> List a property
+              <Plus weight="bold" className="size-4" /> {t("List a property")}
             </Link>
             <button
               role="menuitem"
@@ -135,7 +140,7 @@ function AccountMenu({ user }) {
               }}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-accent"
             >
-              <SignOut weight="bold" className="size-4" /> Sign out
+              <SignOut weight="bold" className="size-4" /> {t("Sign out")}
             </button>
           </motion.div>
         )}
@@ -145,6 +150,7 @@ function AccountMenu({ user }) {
 }
 
 export default function SiteHeader() {
+  const t = useT();
   const [open, setOpen] = useState(null);
   const closeTimer = useRef();
   const router = useRouter();
@@ -177,7 +183,7 @@ export default function SiteHeader() {
       <div className={cn("glass-bar relative z-10 border-b border-border/70", active && "bg-background")}>
         <div className="container-page flex h-16 items-center gap-6 xl:gap-10">
           <Logo />
-          <nav aria-label="Main" className="hidden items-center lg:flex">
+          <nav aria-label={t("Main")} className="hidden items-center lg:flex">
             {nav.map((item, i) => (
               <button
                 key={item.label}
@@ -190,11 +196,11 @@ export default function SiteHeader() {
                 }}
                 onClick={() => setOpen(open === i ? null : i)}
                 className={cn(
-                  "inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium text-foreground/75 transition-colors hover:text-foreground xl:px-3.5",
+                  "inline-flex h-9 items-center gap-1 rounded-full px-2 text-sm font-medium text-foreground/75 transition-colors hover:text-foreground xl:px-3.5",
                   open === i && "bg-accent text-foreground"
                 )}
               >
-                {item.label}
+                {t(item.label)}
                 <CaretDown weight="bold" className={cn("size-3 transition-transform duration-200", open === i && "rotate-180")} />
               </button>
             ))}
@@ -206,17 +212,21 @@ export default function SiteHeader() {
                 aria-current={router.pathname === link.href ? "page" : undefined}
                 onMouseEnter={scheduleClose}
                 onFocus={() => setOpen(null)}
-                className="inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-foreground/75 transition-colors hover:text-foreground aria-[current=page]:text-foreground xl:px-3.5"
+                className="inline-flex h-9 items-center rounded-full px-2 text-sm font-medium text-foreground/75 transition-colors hover:text-foreground aria-[current=page]:text-foreground xl:px-3.5"
               >
-                {link.label}
+                {t(link.label)}
               </Link>
             ))}
           </nav>
 
           <div className="ml-auto flex items-center gap-1.5">
+            <LanguageToggle />
             <AccountMenu user={user} />
-            <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/eligibility">Check loan eligibility</Link>
+            <Button size="sm" className="hidden sm:inline-flex" onClick={() => openCallback()}>
+              <Phone weight="bold" /> <span className="lg:max-xl:sr-only">{t("Get a callback")}</span>
+            </Button>
+            <Button size="icon" variant="ghost" className="sm:hidden" aria-label={t("Get a callback")} onClick={() => openCallback()}>
+              <Phone weight="bold" className="size-5" />
             </Button>
             <MobileNav user={user} />
           </div>

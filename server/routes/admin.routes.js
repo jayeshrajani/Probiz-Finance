@@ -13,6 +13,8 @@ module.exports = (app)=>{
 
     app.post('/api/addContactUs',admin.addContactUs);  
 
+    app.post('/api/addCallbackRequest', admin.addCallbackRequest);
+
     app.get('/api/getContactUs',admin.getContactUs);   
 
     app.delete('/api/deleteContactUs/:id',admin.deleteContactUs);   

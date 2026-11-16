@@ -6,6 +6,10 @@ import AuthLayout, { AuthLink } from "@/components/templates/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage, postJSON } from "@/lib/api";
+import { useT } from "@/lib/i18n";
+import { localeProps } from "@/lib/i18n-static";
+
+export const getStaticProps = localeProps;
 
 const PASSWORD_RULE = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{8,}$/;
 
@@ -28,6 +32,7 @@ function validate(v) {
 }
 
 export default function SignUpPage() {
+  const t = useT();
   const router = useRouter();
   const [values, setValues] = useState({});
   const [errors, setErrors] = useState({});
@@ -47,7 +52,7 @@ export default function SignUpPage() {
     const res = await postJSON("userSignUp", { ...values, country_code: "+91" });
     setBusy(false);
     if (res.ok) {
-      toast.success("Account created. Sign in to continue.");
+      toast.success(t("Account created. Sign in to continue."));
       router.push("/sign-in");
     } else {
       setFormError(errorMessage(res.data, "We couldn't create your account. Please try again."));
@@ -62,7 +67,7 @@ export default function SignUpPage() {
       intro="It takes a minute."
       footer={
         <>
-          Already have an account? <AuthLink href="/sign-in">Sign in</AuthLink>
+          {t("Already have an account?")} <AuthLink href="/sign-in">{t("Sign in")}</AuthLink>
         </>
       }
     >
@@ -70,7 +75,7 @@ export default function SignUpPage() {
         {fields.map((f) => (
           <div key={f.name} className="grid gap-2">
             <label htmlFor={f.name} className="text-sm font-medium">
-              {f.label}
+              {t(f.label)}
             </label>
             <Input
               id={f.name}
@@ -88,12 +93,12 @@ export default function SignUpPage() {
             />
             {errors[f.name] ? (
               <p id={`${f.name}-error`} className="text-xs font-medium text-destructive">
-                {errors[f.name]}
+                {t(errors[f.name])}
               </p>
             ) : (
               f.help && (
                 <p id={`${f.name}-help`} className="text-xs text-muted-foreground">
-                  {f.help}
+                  {t(f.help)}
                 </p>
               )
             )}
@@ -101,11 +106,11 @@ export default function SignUpPage() {
         ))}
         {formError && (
           <p role="alert" className="text-sm font-medium text-destructive">
-            {formError}
+            {t(formError)}
           </p>
         )}
         <Button type="submit" size="lg" disabled={busy} className="mt-2 w-full">
-          {busy ? <SpinnerGap className="animate-spin" /> : null} Create account
+          {busy ? <SpinnerGap className="animate-spin" /> : null} {t("Create account")}
         </Button>
       </form>
     </AuthLayout>

@@ -3,10 +3,10 @@ const mongoose = require('../odm');
 const CarLoanApplicationSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true },
-    dateOfBirth: { type: String, required: true },
-    address: { type: String, required: true },
+    dateOfBirth: { type: String, required: false },
+    address: { type: String, required: false },
     contactNumber: { type: String, required: true },
-    alternateContactNumber: { type: String, required: true },
+    alternateContactNumber: { type: String, required: false },
 
     // Car Details
     carType:{type: String, required: false},

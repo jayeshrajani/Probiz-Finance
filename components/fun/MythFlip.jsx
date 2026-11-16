@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowsClockwise } from "@phosphor-icons/react";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const MYTHS = [
@@ -32,6 +33,7 @@ const MYTHS = [
 ];
 
 function Card({ item }) {
+  const t = useT();
   const [flipped, setFlipped] = useState(false);
   return (
     <li className="[perspective:1400px]">
@@ -43,17 +45,17 @@ function Card({ item }) {
         data-flipped={flipped}
       >
         <span aria-hidden={flipped} className="flip-face absolute inset-0 flex flex-col justify-between rounded-[1.75rem] border border-border bg-background p-7">
-          <span className="inline-flex w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Myth</span>
-          <span className="text-xl leading-snug font-semibold tracking-[-0.02em] text-balance">{item.myth}</span>
+          <span className="inline-flex w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("Myth")}</span>
+          <span className="text-xl leading-snug font-semibold tracking-[-0.02em] text-balance">{t(item.myth)}</span>
           <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-            <ArrowsClockwise weight="bold" className="size-3.5" /> Tap for the truth
+            <ArrowsClockwise weight="bold" className="size-3.5" /> {t("Tap for the truth")}
           </span>
         </span>
         <span aria-hidden={!flipped} className="flip-face flip-back absolute inset-0 flex flex-col justify-between rounded-[1.75rem] bg-foreground p-7 text-background">
-          <span className="inline-flex w-fit rounded-full bg-brand px-3 py-1 text-xs font-semibold tracking-wide text-brand-foreground uppercase">Fact</span>
-          <span className="text-[1.0625rem] leading-relaxed text-background/85">{item.fact}</span>
+          <span className="inline-flex w-fit rounded-full bg-brand px-3 py-1 text-xs font-semibold tracking-wide text-brand-foreground uppercase">{t("Fact")}</span>
+          <span className="text-[1.0625rem] leading-relaxed text-background/85">{t(item.fact)}</span>
           <span className="inline-flex items-center gap-1.5 text-sm text-background/50">
-            <ArrowsClockwise weight="bold" className="size-3.5" /> Flip back
+            <ArrowsClockwise weight="bold" className="size-3.5" /> {t("Flip back")}
           </span>
         </span>
       </button>

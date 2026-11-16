@@ -2,10 +2,10 @@ const mongoose = require('../odm');
 
 const CreditCardSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
-  dateOfBirth: { type: String, required: true },
-  address: { type: String, required: true },
+  dateOfBirth: { type: String, required: false },
+  address: { type: String, required: false },
   contactNumber: { type: String, required: true },
-  alternateContact: { type: String, required: true },
+  alternateContact: { type: String, required: false },
   profession: { type: String, required: false },
   incomeType: { type: String, required: false },
   monthlyIncome: { type: String, required: false },

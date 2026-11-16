@@ -4,32 +4,34 @@ import { useState } from "react";
 import { ArrowRight, SpinnerGap } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { errorMessage, postJSON } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 export default function NewsletterForm() {
+  const t = useT();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      toast.error("Enter a valid email address.");
+      toast.error(t("Enter a valid email address."));
       return;
     }
     setBusy(true);
     const res = await postJSON("addNewsLatters", { email });
     setBusy(false);
     if (res.ok) {
-      toast.success("You're subscribed. Expect the occasional useful email, nothing more.");
+      toast.success(t("You're subscribed. Expect the occasional useful email, nothing more."));
       setEmail("");
     } else {
-      toast.error(errorMessage(res.data));
+      toast.error(t(errorMessage(res.data)));
     }
   }
 
   return (
     <form onSubmit={onSubmit} className="w-full max-w-sm">
       <label htmlFor="newsletter-email" className="text-sm font-medium text-background">
-        Rates and tips by email
+        {t("Rates and tips by email")}
       </label>
       <div className="mt-3 flex h-12 items-center rounded-full border border-background/15 bg-background/5 pr-1 pl-4 transition-shadow focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/30">
         <input
@@ -45,7 +47,7 @@ export default function NewsletterForm() {
         <button
           type="submit"
           disabled={busy}
-          aria-label="Subscribe"
+          aria-label={t("Subscribe")}
           className="inline-flex size-10 items-center justify-center rounded-full bg-brand text-brand-foreground transition-transform active:scale-95 disabled:opacity-60"
         >
           {busy ? <SpinnerGap className="size-4 animate-spin" /> : <ArrowRight weight="bold" className="size-4" />}

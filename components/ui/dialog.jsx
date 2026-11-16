@@ -3,6 +3,7 @@
 import * as React from "react";
 import { X } from "@phosphor-icons/react";
 import { Dialog as DialogPrimitive } from "radix-ui";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 function Dialog(props) {
@@ -28,6 +29,7 @@ function DialogOverlay({ className, ...props }) {
 }
 
 function DialogContent({ className, children, showCloseButton = true, ...props }) {
+  const t = useT();
   return (
     <DialogPrimitive.Portal>
       <DialogOverlay />
@@ -43,7 +45,7 @@ function DialogContent({ className, children, showCloseButton = true, ...props }
         {showCloseButton && (
           <DialogPrimitive.Close className="absolute top-4 right-4 inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-hidden">
             <X weight="bold" className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("Close")}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>

@@ -7,7 +7,11 @@ import TopoBackground from "@/components/kokonutui/topo-background";
 import SiteLayout from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import company from "@/content/company.json";
+import { useT } from "@/lib/i18n";
+import { localePropsWith } from "@/lib/i18n-static";
 import { site } from "@/lib/site";
+
+export const getStaticProps = localePropsWith("company");
 
 const timeline = [
   { year: "2013", text: "ProBiz Finance is founded in Indore, focused on secured loans and financial consultation." },
@@ -23,6 +27,7 @@ const values = [
 ];
 
 export default function AboutPage() {
+  const t = useT();
   const paragraphs = company.about.paragraphs;
 
   return (
@@ -33,14 +38,14 @@ export default function AboutPage() {
 
       <InkBackground
         as="h1"
-        text="Trusted since 2013."
+        text={t("Trusted since {year}.", { year: site.since })}
         accent="oklch(0.733 0.186 52)"
         className="mt-2 min-h-[520px] bg-transparent text-foreground [--bg-ink:var(--foreground)] [--bg-paper:var(--background)] sm:min-h-[640px]"
       >
         <div className="max-w-2xl text-center">
-          <p className="text-xl font-semibold tracking-[-0.02em] text-balance sm:text-2xl">Financial advice for families and businesses across India.</p>
-          <p className="lede mt-4 text-pretty">{paragraphs[0]}</p>
-          <p className="mt-6 text-sm text-muted-foreground">Drag across the page to write with the ink.</p>
+          <p className="text-xl font-semibold tracking-[-0.02em] text-balance sm:text-2xl">{t("Financial advice for families and businesses across India.")}</p>
+          <p className="lede mt-4 text-pretty">{t(paragraphs[0])}</p>
+          <p className="mt-6 text-sm text-muted-foreground">{t("Drag across the page to write with the ink.")}</p>
         </div>
       </InkBackground>
 
@@ -49,14 +54,14 @@ export default function AboutPage() {
           <div className="section relative text-foreground">
             <div className="container-page grid gap-12 lg:grid-cols-12">
               <div className="lg:col-span-4">
-                <p className="text-sm font-medium text-brand-ink">Our journey</p>
-                <h2 className="display-2 mt-3">How we got here.</h2>
+                <p className="text-sm font-medium text-brand-ink">{t("Our journey")}</p>
+                <h2 className="display-2 mt-3">{t("How we got here.")}</h2>
               </div>
               <ol className="grid gap-3 lg:col-span-8">
-                {timeline.map((t) => (
-                  <li key={t.year} className="reveal grid gap-2 rounded-[1.5rem] border border-border/70 bg-background/85 p-6 backdrop-blur-sm sm:grid-cols-[7rem_1fr] sm:gap-8 sm:p-7">
-                    <span className="font-display text-2xl font-semibold tracking-[-0.03em] text-brand-ink">{t.year}</span>
-                    <p className="max-w-xl leading-relaxed text-foreground/75">{t.text}</p>
+                {timeline.map((item) => (
+                  <li key={item.year} className="reveal grid gap-2 rounded-[1.5rem] border border-border/70 bg-background/85 p-6 backdrop-blur-sm sm:grid-cols-[7rem_1fr] sm:gap-8 sm:p-7">
+                    <span className="font-display text-2xl font-semibold tracking-[-0.03em] text-brand-ink">{t(item.year)}</span>
+                    <p className="max-w-xl leading-relaxed text-foreground/75">{t(item.text)}</p>
                   </li>
                 ))}
               </ol>
@@ -69,8 +74,8 @@ export default function AboutPage() {
         <HalftoneBackground cell={10} className="min-h-[640px] bg-background text-foreground [--bg-ink:var(--brand)]">
           <div className="container-page relative py-20">
             <div className="max-w-xl">
-              <p className="text-sm font-medium text-brand-ink">What we stand for</p>
-              <h2 className="display-2 mt-3">Plain advice, done properly.</h2>
+              <p className="text-sm font-medium text-brand-ink">{t("What we stand for")}</p>
+              <h2 className="display-2 mt-3">{t("Plain advice, done properly.")}</h2>
               <ul className="mt-10 grid gap-6">
                 {values.map(({ Icon, title, body }) => (
                   <li key={title} className="flex gap-4 rounded-2xl bg-background/80 p-1 backdrop-blur-sm">
@@ -78,24 +83,24 @@ export default function AboutPage() {
                       <Icon weight="duotone" className="size-5" />
                     </span>
                     <span>
-                      <span className="block text-lg font-semibold tracking-[-0.015em]">{title}</span>
-                      <span className="mt-1 block leading-relaxed text-muted-foreground">{body}</span>
+                      <span className="block text-lg font-semibold tracking-[-0.015em]">{t(title)}</span>
+                      <span className="mt-1 block leading-relaxed text-muted-foreground">{t(body)}</span>
                     </span>
                   </li>
                 ))}
               </ul>
               <div className="mt-10 flex flex-wrap gap-3">
                 <Button asChild size="lg">
-                  <Link href="/contact">Talk to us</Link>
+                  <Link href="/contact">{t("Talk to us")}</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="bg-background">
                   <Link href="/Careers">
-                    Work with us <ArrowRight weight="bold" />
+                    {t("Work with us")} <ArrowRight weight="bold" />
                   </Link>
                 </Button>
               </div>
               <p className="mt-8 text-sm text-muted-foreground">
-                {site.address}. Hover the dots to look closer.
+                {t(site.address)}. {t("Hover the dots to look closer.")}
               </p>
             </div>
           </div>

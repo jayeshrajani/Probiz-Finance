@@ -10,6 +10,10 @@ import { setToken } from "@/lib/admin-api";
 import { errorMessage, postJSON } from "@/lib/api";
 import { signIn } from "@/lib/use-user";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
+import { localeProps } from "@/lib/i18n-static";
+
+export const getStaticProps = localeProps;
 
 const MODES = [
   { id: "customer", label: "Customer", intro: "Welcome back." },
@@ -17,6 +21,7 @@ const MODES = [
 ];
 
 export default function SignInPage() {
+  const t = useT();
   const router = useRouter();
   const [mode, setMode] = useState("customer");
   const [email, setEmail] = useState("");
@@ -54,7 +59,7 @@ export default function SignInPage() {
     setBusy(false);
     if (res.ok && res.data?.data) {
       signIn({ ...res.data.data, accessToken: res.data.accessToken });
-      toast.success("Signed in.");
+      toast.success(t("Signed in."));
       router.push(typeof router.query.next === "string" && router.query.next.startsWith("/") ? router.query.next : "/");
     } else {
       setError(errorMessage(res.data, "Sign-in failed. Check your details and try again."));
@@ -69,15 +74,15 @@ export default function SignInPage() {
       intro={MODES.find((m) => m.id === mode).intro}
       footer={
         isStaff ? (
-          <>Staff accounts are created by a Probiz admin. Forgotten your password? Ask an admin to reset it.</>
+          <>{t("Staff accounts are created by a Probiz admin. Forgotten your password? Ask an admin to reset it.")}</>
         ) : (
           <>
-            New to Probiz? <AuthLink href="/sign-up">Create an account</AuthLink>
+            {t("New to Probiz?")} <AuthLink href="/sign-up">{t("Create an account")}</AuthLink>
           </>
         )
       }
     >
-      <div role="tablist" aria-label="Account type" className="mb-6 grid grid-cols-2 gap-1 rounded-full bg-secondary p-1">
+      <div role="tablist" aria-label={t("Account type")} className="mb-6 grid grid-cols-2 gap-1 rounded-full bg-secondary p-1">
         {MODES.map((m) => (
           <button
             key={m.id}
@@ -93,25 +98,25 @@ export default function SignInPage() {
             {mode === m.id && (
               <motion.span layoutId="signin-mode" className="absolute inset-0 rounded-full bg-background shadow-[0_1px_2px_oklch(0.21_0.006_286/0.12)]" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
             )}
-            <span className="relative">{m.label}</span>
+            <span className="relative">{t(m.label)}</span>
           </button>
         ))}
       </div>
       <form onSubmit={onSubmit} noValidate className="grid gap-5">
         <div className="grid gap-2">
           <label htmlFor="email" className="text-sm font-medium">
-            Email
+            {t("Email")}
           </label>
           <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className="grid gap-2">
           <div className="flex items-baseline justify-between">
             <label htmlFor="password" className="text-sm font-medium">
-              Password
+              {t("Password")}
             </label>
             {!isStaff && (
               <AuthLink href="/forgot-password">
-                <span className="text-xs">Forgot password?</span>
+                <span className="text-xs">{t("Forgot password?")}</span>
               </AuthLink>
             )}
           </div>
@@ -120,7 +125,7 @@ export default function SignInPage() {
             <button
               type="button"
               onClick={() => setShow((v) => !v)}
-              aria-label={show ? "Hide password" : "Show password"}
+              aria-label={show ? t("Hide password") : t("Show password")}
               className="absolute top-1/2 right-2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
             >
               {show ? <EyeSlash className="size-4" /> : <Eye className="size-4" />}
@@ -129,11 +134,11 @@ export default function SignInPage() {
         </div>
         {error && (
           <p role="alert" className="text-sm font-medium text-destructive">
-            {error}
+            {t(error)}
           </p>
         )}
         <Button type="submit" size="lg" disabled={busy} className="mt-2 w-full">
-          {busy ? <SpinnerGap className="animate-spin" /> : null} Sign in
+          {busy ? <SpinnerGap className="animate-spin" /> : null} {t("Sign in")}
         </Button>
       </form>
     </AuthLayout>

@@ -1,4 +1,5 @@
 import Head from "next/head";
+import { useLocale, useT } from "@/lib/i18n";
 import { site } from "@/lib/site";
 import contact from "@/content/site-settings.json";
 
@@ -16,9 +17,10 @@ export const organizationJsonLd = {
   areaServed: "IN",
   address: {
     "@type": "PostalAddress",
-    streetAddress: "709, Clifton Corporate",
+    streetAddress: "1003 Skye Corporate Park, AB Rd, Sector C, Slice 5, Part 2, Scheme 78, Vijay Nagar",
     addressLocality: "Indore",
     addressRegion: "Madhya Pradesh",
+    postalCode: "452010",
     addressCountry: "IN",
   },
   sameAs: Object.values(contact.social).filter(Boolean),
@@ -30,9 +32,12 @@ export function JsonLd({ data }) {
 }
 
 export default function Seo({ title, description, path = "", noindex = false, jsonLd }) {
-  const fullTitle = title ? `${title} | ${site.name}` : `${site.name} | Loans, Insurance and Investments Across India`;
-  const desc = description || site.description;
-  const url = `${site.url}${path}`;
+  const t = useT();
+  const locale = useLocale();
+  const fullTitle = title ? `${t(title)} | ${site.name}` : `${site.name} | ${t("Loans, Insurance and Investments Across India")}`;
+  const desc = t(description || site.description);
+  const at = (l) => `${site.url}${l === "hi" ? "/hi" : ""}${path}`;
+  const url = at(locale);
 
   return (
     <Head>
@@ -44,9 +49,12 @@ export default function Seo({ title, description, path = "", noindex = false, js
       <meta property="og:type" content="website" />
       <meta property="og:url" content={url} />
       <meta property="og:site_name" content={site.name} />
-      <meta property="og:locale" content="en_IN" />
+      <meta property="og:locale" content={locale === "hi" ? "hi_IN" : "en_IN"} />
       <meta name="twitter:card" content="summary" />
       {!noindex && <link rel="canonical" href={url} />}
+      {!noindex && <link rel="alternate" hrefLang="en-IN" href={at("en")} />}
+      {!noindex && <link rel="alternate" hrefLang="hi-IN" href={at("hi")} />}
+      {!noindex && <link rel="alternate" hrefLang="x-default" href={at("en")} />}
       {jsonLd && <JsonLd data={jsonLd} />}
     </Head>
   );

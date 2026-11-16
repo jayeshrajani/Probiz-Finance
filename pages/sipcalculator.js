@@ -1,5 +1,8 @@
 import SipCalculator from "@/components/calculators/SipCalculator";
 import CalculatorPage from "@/components/templates/CalculatorPage";
+import { localeProps } from "@/lib/i18n-static";
+
+export const getStaticProps = localeProps;
 
 export default function SipCalculatorPage() {
   return (

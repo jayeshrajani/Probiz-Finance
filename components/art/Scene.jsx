@@ -1,6 +1,8 @@
 // Authored flat illustrations, one per product family. Everything shares one palette and a 480x360 stage.
 // Animated groups carry no transform attribute: CSS transforms would replace it.
 
+import { useT } from "@/lib/i18n";
+
 const C = {
   o: "#EE7F1A",
   o2: "#F7A85A",
@@ -91,6 +93,15 @@ function Bank({ x, body, roof }) {
       ))}
       <rect x={x - 72} y="272" width="144" height="16" rx="4" fill={roof} />
     </g>
+  );
+}
+
+function OpenSign() {
+  const t = useT();
+  return (
+    <text x="240" y="119" textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="700" letterSpacing="2" fill={C.w} fontFamily="system-ui, sans-serif">
+      {t("OPEN")}
+    </text>
   );
 }
 
@@ -213,9 +224,7 @@ const scenes = {
       <rect x="218" y="244" width="14" height="26" rx="3" fill={C.o2} />
       <rect x="258" y="212" width="40" height="90" rx="4" fill={C.ink} />
       <rect x="186" y="104" width="108" height="28" rx="9" fill={C.ink} />
-      <text x="240" y="119" textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="700" letterSpacing="2" fill={C.w} fontFamily="system-ui, sans-serif">
-        OPEN
-      </text>
+      <OpenSign />
       <g className="art-float">
         <rect x="332" y="56" width="104" height="80" rx="14" fill={C.w} />
         <rect x="348" y="108" width="12" height="16" rx="3" fill={C.o3} />
@@ -610,7 +619,8 @@ export function sceneFor(item) {
 
 // `bare` drops the white halo and ground shadow, for use on dark or busy surfaces.
 export default function Scene({ name, title, className, bare = false }) {
-  const label = title ? { role: "img", "aria-label": title } : { "aria-hidden": true };
+  const t = useT();
+  const label = title ? { role: "img", "aria-label": t(title) } : { "aria-hidden": true };
   return (
     <svg viewBox="0 0 480 360" className={bare ? `[&_.art-bg]:hidden ${className || ""}` : className} {...label}>
       {scenes[name] || scenes.docs}

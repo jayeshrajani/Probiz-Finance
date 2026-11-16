@@ -11,15 +11,18 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { getJSON } from "@/lib/api";
 import { formatINRShort } from "@/lib/format";
+import { useLocale, useT } from "@/lib/i18n";
 import { firstImage, PROPERTY_TYPES, typeLabel } from "@/lib/property";
 
 function PropertyCard({ p }) {
+  const t = useT();
+  const locale = useLocale();
   const img = firstImage(p);
   return (
     <Link href={`/property-detail?id=${p._id}`} className="group block">
       <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-secondary">
         {img ? (
-          <img src={img} alt={p.propertyName || "Property"} loading="lazy" className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]" />
+          <img src={img} alt={p.propertyName || t("Property")} loading="lazy" className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]" />
         ) : (
           <div className="flex size-full items-center justify-center">
             <Buildings weight="duotone" className="size-12 text-muted-foreground/50" />
@@ -28,15 +31,15 @@ function PropertyCard({ p }) {
       </div>
       <div className="mt-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="truncate font-semibold tracking-[-0.015em]">{p.propertyName || typeLabel(p.propertyType) || "Property"}</p>
+          <p className="truncate font-semibold tracking-[-0.015em]">{p.propertyName || t(typeLabel(p.propertyType)) || t("Property")}</p>
           <p className="mt-1 flex items-center gap-1 truncate text-sm text-muted-foreground">
             <MapPin weight="duotone" className="size-3.5 shrink-0" />
-            {[p.area, p.city].filter(Boolean).join(", ") || "Location on request"}
+            {[p.area, p.city].filter(Boolean).join(", ") || t("Location on request")}
           </p>
         </div>
-        {Number(p.price) > 0 && <p className="shrink-0 font-semibold tabular-nums">{formatINRShort(p.price)}</p>}
+        {Number(p.price) > 0 && <p className="shrink-0 font-semibold tabular-nums">{formatINRShort(p.price, locale)}</p>}
       </div>
-      <p className="mt-1 text-sm text-muted-foreground">{[typeLabel(p.propertyType), p.bhk_of_house].filter(Boolean).join(", ")}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{[t(typeLabel(p.propertyType)), p.bhk_of_house].filter(Boolean).join(", ")}</p>
     </Link>
   );
 }
@@ -52,6 +55,7 @@ function Skeleton() {
 }
 
 export default function PropertyListing({ title = "Property Listings", path = "/property", headline, intro, presetType = "" }) {
+  const t = useT();
   const [filters, setFilters] = useState({ city: "", area: "", type: presetType, minPrice: "", maxPrice: "" });
   const [state, setState] = useState({ status: "loading", items: [] });
 
@@ -83,12 +87,12 @@ export default function PropertyListing({ title = "Property Listings", path = "/
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Property" }]} />
         <div className="mt-6 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <h1 className="display-1 max-w-[14ch] text-balance">{headline || "Find your next property."}</h1>
-            <p className="lede mt-5 max-w-xl">{intro || "Plots, flats, shops and farmland, with loans and legal checks from the same team."}</p>
+            <h1 className="display-1 max-w-[14ch] text-balance">{t(headline || "Find your next property.")}</h1>
+            <p className="lede mt-5 max-w-xl">{t(intro || "Plots, flats, shops and farmland, with loans and legal checks from the same team.")}</p>
           </div>
           <Button asChild variant="outline">
             <Link href="/add-product">
-              <Plus weight="bold" /> List your property
+              <Plus weight="bold" /> {t("List your property")}
             </Link>
           </Button>
         </div>
@@ -100,20 +104,20 @@ export default function PropertyListing({ title = "Property Listings", path = "/
           }}
           className="mt-10 grid gap-3 rounded-2xl bg-secondary p-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_auto]"
         >
-          <Input aria-label="City" placeholder="City" value={filters.city} onChange={set("city")} className="bg-background" />
-          <Input aria-label="Area" placeholder="Area or locality" value={filters.area} onChange={set("area")} className="bg-background" />
-          <NativeSelect aria-label="Property type" value={filters.type} onChange={set("type")} className="bg-background">
-            <option value="">Any type</option>
-            {PROPERTY_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {typeLabel(t)}
+          <Input aria-label={t("City")} placeholder={t("City")} value={filters.city} onChange={set("city")} className="bg-background" />
+          <Input aria-label={t("Area")} placeholder={t("Area or locality")} value={filters.area} onChange={set("area")} className="bg-background" />
+          <NativeSelect aria-label={t("Property type")} value={filters.type} onChange={set("type")} className="bg-background">
+            <option value="">{t("Any type")}</option>
+            {PROPERTY_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {t(typeLabel(type))}
               </option>
             ))}
           </NativeSelect>
-          <Input aria-label="Minimum price" placeholder="Min ₹" inputMode="numeric" value={filters.minPrice} onChange={set("minPrice")} className="bg-background" />
-          <Input aria-label="Maximum price" placeholder="Max ₹" inputMode="numeric" value={filters.maxPrice} onChange={set("maxPrice")} className="bg-background" />
+          <Input aria-label={t("Minimum price")} placeholder={t("Min ₹")} inputMode="numeric" value={filters.minPrice} onChange={set("minPrice")} className="bg-background" />
+          <Input aria-label={t("Maximum price")} placeholder={t("Max ₹")} inputMode="numeric" value={filters.maxPrice} onChange={set("maxPrice")} className="bg-background" />
           <Button type="submit" size="lg" className="h-12">
-            <FunnelSimple weight="bold" /> Apply
+            <FunnelSimple weight="bold" /> {t("Apply filters")}
           </Button>
         </form>
       </section>
@@ -130,23 +134,23 @@ export default function PropertyListing({ title = "Property Listings", path = "/
         {state.status === "error" && (
           <div className="flex flex-col items-center rounded-2xl border border-border py-20 text-center">
             <WarningCircle weight="duotone" className="size-10 text-muted-foreground" />
-            <p className="mt-4 font-semibold">We couldn't load listings.</p>
+            <p className="mt-4 font-semibold">{t("We couldn't load listings.")}</p>
             <Button variant="outline" className="mt-6" onClick={() => load(filters)}>
-              Try again
+              {t("Try again")}
             </Button>
           </div>
         )}
         {state.status === "ready" && state.items.length === 0 && (
           <div className="flex flex-col items-center rounded-2xl border border-dashed border-border py-20 text-center">
             <Buildings weight="duotone" className="size-10 text-muted-foreground" />
-            <p className="mt-4 font-semibold">No properties match these filters.</p>
-            <p className="mt-1 text-sm text-muted-foreground">Widen the price range or clear a filter.</p>
+            <p className="mt-4 font-semibold">{t("No properties match these filters.")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("Widen the price range or clear a filter.")}</p>
           </div>
         )}
         {state.status === "ready" && state.items.length > 0 && (
           <>
             <p className="mb-6 text-sm text-muted-foreground">
-              {state.items.length} {state.items.length === 1 ? "property" : "properties"}
+              {state.items.length === 1 ? t("{n} property", { n: state.items.length }) : t("{n} properties", { n: state.items.length })}
             </p>
             <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
               {state.items.map((p) => (

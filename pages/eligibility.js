@@ -1,5 +1,8 @@
 import EligibilityCalculator from "@/components/calculators/EligibilityCalculator";
 import CalculatorPage from "@/components/templates/CalculatorPage";
+import { localeProps } from "@/lib/i18n-static";
+
+export const getStaticProps = localeProps;
 
 export default function EligibilityPage() {
   return (

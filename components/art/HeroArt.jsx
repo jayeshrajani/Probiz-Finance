@@ -1,5 +1,6 @@
 import { CheckCircle } from "@phosphor-icons/react";
 import Scene from "@/components/art/Scene";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const CHIP_SPOTS = [
@@ -10,6 +11,7 @@ const CHIP_SPOTS = [
 
 // Hero illustration on a warm panel, with up to three real facts floating over it.
 export default function HeroArt({ scene, title, chips = [], className }) {
+  const t = useT();
   return (
     <div className={cn("relative", className)}>
       <div className="relative aspect-[6/5] overflow-hidden rounded-[2rem] bg-[linear-gradient(160deg,var(--brand-soft),var(--cream)_55%,oklch(0.96_0.03_65))]">
@@ -31,7 +33,7 @@ export default function HeroArt({ scene, title, chips = [], className }) {
           ) : (
             <CheckCircle weight="fill" className="size-5 shrink-0 text-brand" />
           )}
-          <span className="text-sm leading-tight font-medium text-foreground/80">{chip.label}</span>
+          <span className="text-sm leading-tight font-medium text-foreground/80">{t(chip.label)}</span>
         </div>
       ))}
     </div>

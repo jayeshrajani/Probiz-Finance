@@ -3,21 +3,26 @@ import { useEffect } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { Inter } from "next/font/google";
+import { Inter, Noto_Sans_Devanagari } from "next/font/google";
 import { MotionConfig } from "motion/react";
 import { Toaster } from "@/components/ui/sonner";
 import WhatsAppButton from "@/components/site/WhatsAppButton";
 import { captureAttribution } from "@/lib/attribution";
+import { I18nProvider } from "@/lib/i18n";
 import { SiteSettingsProvider } from "@/lib/site-settings";
 
 const Assistant = dynamic(() => import("@/components/assistant/Assistant"), { ssr: false });
+const CallbackDialog = dynamic(() => import("@/components/site/CallbackDialog"), { ssr: false });
 
 // Apple devices render SF Pro through the system stack; Inter is the fallback elsewhere.
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
+// Hindi text: unicode-range keeps English pages from downloading it.
+const devanagari = Noto_Sans_Devanagari({ subsets: ["devanagari"], weight: ["400", "500", "600", "700"], display: "swap", preload: false, variable: "--font-deva" });
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const isAdmin = router.pathname.startsWith("/admin-panel");
+  const { messages, ...props } = pageProps;
 
   useEffect(() => {
     if (window.location.pathname.startsWith("/admin-panel")) return;
@@ -41,17 +46,21 @@ export default function App({ Component, pageProps }) {
       <style jsx global>{`
         :root {
           --font-inter: ${inter.style.fontFamily};
+          --font-deva: ${devanagari.style.fontFamily};
         }
       `}</style>
       <MotionConfig reducedMotion="user">
         {isAdmin ? (
-          <Component {...pageProps} />
+          <Component {...props} />
         ) : (
-          <SiteSettingsProvider>
-            <Component {...pageProps} />
-            <WhatsAppButton />
-            <Assistant />
-          </SiteSettingsProvider>
+          <I18nProvider locale={router.locale} messages={messages}>
+            <SiteSettingsProvider>
+              <Component {...props} />
+              <WhatsAppButton />
+              <Assistant />
+              <CallbackDialog />
+            </SiteSettingsProvider>
+          </I18nProvider>
         )}
       </MotionConfig>
       <Toaster />

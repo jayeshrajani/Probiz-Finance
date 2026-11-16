@@ -8,12 +8,14 @@ import Scene from "@/components/art/Scene";
 import AnimatedNumber from "@/components/fun/AnimatedNumber";
 import { Button } from "@/components/ui/button";
 import { products, services } from "@/lib/catalog";
+import { useT } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
 const productCount = products.filter((p) => !p.hidden && !p.hub).length;
 const plain = (v) => Math.round(v).toString();
 
 function Counter({ value, suffix = "", label }) {
+  const t = useT();
   const ref = useRef(null);
   const seen = useInView(ref, { once: true, margin: "-15% 0px" });
   return (
@@ -23,39 +25,41 @@ function Counter({ value, suffix = "", label }) {
         <span className="sr-only">{value}</span>
         {suffix && <span className="text-brand">{suffix}</span>}
       </p>
-      <p className="mt-2 text-sm text-muted-foreground">{label}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{t(label)}</p>
     </div>
   );
 }
 
 export function MeetProbiz() {
+  const t = useT();
   const years = new Date().getFullYear() - site.since;
   return (
     <section className="section border-t border-border">
       <div className="container-page grid gap-14 lg:grid-cols-12">
         <div className="lg:col-span-7">
-          <p className="text-sm font-medium text-brand-ink">Meet Probiz</p>
-          <h2 className="display-2 mt-3 max-w-[18ch] text-balance">One advisor with a bank's worth of options.</h2>
+          <p className="text-sm font-medium text-brand-ink">{t("Meet Probiz")}</p>
+          <h2 className="display-2 mt-3 max-w-[18ch] text-balance">{t("One advisor with a bank's worth of options.")}</h2>
           <div className="mt-8 grid max-w-2xl gap-5 text-lg leading-relaxed text-muted-foreground">
             <p>
-              ProBiz Management Services started in Indore in {site.since} with secured loans and financial consultation, and now works
-              with borrowers across India. We work as a DSA: we don't lend our own money, we match you with the bank or NBFC most likely
-              to approve you and handle the file until the money arrives.
+              {t(
+                "ProBiz Management Services started in Indore in {year} with secured loans and financial consultation, and now works with borrowers across India. We work as a DSA: we don't lend our own money, we match you with the bank or NBFC most likely to approve you and handle the file until the money arrives.",
+                { year: site.since }
+              )}
             </p>
             <p>
-              In 2021 Shubham Gehlot joined as Co-Founder and Director, bringing ten years across corporate sales, consulting, real
-              estate and finance. Since then we've added personal and car loans, credit cards, insurance, investments, and the
-              legal and CA work that usually sits around a loan.
+              {t(
+                "In 2021 Shubham Gehlot joined as Co-Founder and Director, bringing ten years across corporate sales, consulting, real estate and finance. Since then we've added personal and car loans, credit cards, insurance, investments, and the legal and CA work that usually sits around a loan."
+              )}
             </p>
           </div>
           <div className="mt-9 flex flex-wrap gap-3">
             <Button asChild variant="outline">
               <Link href="/about">
-                Our story <ArrowRight weight="bold" />
+                {t("Our story")} <ArrowRight weight="bold" />
               </Link>
             </Button>
             <Button asChild variant="ghost">
-              <Link href="/Careers">We're hiring</Link>
+              <Link href="/Careers">{t("We're hiring")}</Link>
             </Button>
           </div>
         </div>
@@ -83,15 +87,16 @@ const PEOPLE = [
 ];
 
 export function WhoWeHelp() {
+  const t = useT();
   return (
     <section className="section border-t border-border">
       <div className="container-page">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="text-sm font-medium text-brand-ink">Who we help</p>
-            <h2 className="display-2 mt-3 max-w-2xl text-balance">Built for the way India earns.</h2>
+            <p className="text-sm font-medium text-brand-ink">{t("Who we help")}</p>
+            <h2 className="display-2 mt-3 max-w-2xl text-balance">{t("Built for the way India earns.")}</h2>
           </div>
-          <p className="max-w-sm text-muted-foreground">Salary, cash, crops or a business: we know which lenders take which kind of income.</p>
+          <p className="max-w-sm text-muted-foreground">{t("Salary, cash, crops or a business: we know which lenders take which kind of income.")}</p>
         </div>
         <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PEOPLE.map((p, i) => (
@@ -104,8 +109,8 @@ export function WhoWeHelp() {
               >
                 <Scene name={p.scene} bare className="h-24 w-28 shrink-0 transition-transform duration-500 group-hover:scale-105" />
                 <span className="min-w-0">
-                  <span className="block text-lg font-semibold tracking-[-0.02em]">{p.title}</span>
-                  <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{p.body}</span>
+                  <span className="block text-lg font-semibold tracking-[-0.02em]">{t(p.title)}</span>
+                  <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{t(p.body)}</span>
                 </span>
               </Link>
             </li>
@@ -125,28 +130,29 @@ const ROWS = [
 ];
 
 export function Compare() {
+  const t = useT();
   return (
     <section className="section border-t border-border bg-secondary/50">
       <div className="container-page grid gap-12 lg:grid-cols-12">
         <div className="lg:col-span-4">
-          <p className="text-sm font-medium text-brand-ink">Why use an advisor</p>
-          <h2 className="display-2 mt-3 text-balance">On your own, or with Probiz.</h2>
-          <p className="lede mt-5">Same banks, same products. The difference is who does the legwork.</p>
+          <p className="text-sm font-medium text-brand-ink">{t("Why use an advisor")}</p>
+          <h2 className="display-2 mt-3 text-balance">{t("On your own, or with Probiz.")}</h2>
+          <p className="lede mt-5">{t("Same banks, same products. The difference is who does the legwork.")}</p>
         </div>
         <div className="overflow-hidden rounded-[2rem] border border-border bg-background lg:col-span-8">
           <div className="grid grid-cols-2 border-b border-border bg-secondary/60 text-sm font-medium sm:grid-cols-[1.1fr_1fr_1fr]">
             <span className="hidden p-4 sm:block sm:px-6" />
-            <span className="p-4 text-muted-foreground sm:px-6">On your own</span>
-            <span className="p-4 text-brand-ink sm:px-6">With Probiz</span>
+            <span className="p-4 text-muted-foreground sm:px-6">{t("On your own")}</span>
+            <span className="p-4 text-brand-ink sm:px-6">{t("With Probiz")}</span>
           </div>
           {ROWS.map(([topic, alone, us]) => (
             <div key={topic} className="grid grid-cols-2 border-b border-border text-sm last:border-0 sm:grid-cols-[1.1fr_1fr_1fr] sm:text-[0.9375rem]">
-              <span className="col-span-2 p-4 pb-0 font-medium sm:col-span-1 sm:px-6 sm:pb-4">{topic}</span>
+              <span className="col-span-2 p-4 pb-0 font-medium sm:col-span-1 sm:px-6 sm:pb-4">{t(topic)}</span>
               <span className="flex gap-2 p-4 text-muted-foreground sm:px-6">
-                <X weight="bold" className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/60" /> {alone}
+                <X weight="bold" className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/60" /> {t(alone)}
               </span>
               <span className="flex gap-2 p-4 sm:px-6">
-                <Check weight="bold" className="mt-0.5 size-3.5 shrink-0 text-brand-ink" /> {us}
+                <Check weight="bold" className="mt-0.5 size-3.5 shrink-0 text-brand-ink" /> {t(us)}
               </span>
             </div>
           ))}

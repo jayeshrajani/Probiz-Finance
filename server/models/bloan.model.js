@@ -3,8 +3,8 @@ const mongoose = require('../odm');
 const BusinessLoanApplicationSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true }, // Full Name (As per Aadhar)
-    dateOfBirth: { type: String, required: true }, // Date of Birth (As per Aadhar)
-    address: { type: String, required: true }, // Address (As per Aadhar)
+    dateOfBirth: { type: String, required: false }, // Date of Birth (As per Aadhar)
+    address: { type: String, required: false }, // Address (As per Aadhar)
     contactNumber: { type: String, required: true }, // Contact Number (Joint with Aadhar)
     alternateContactNumber: { type: String, required: false }, // Alternate Contact Number
     businessName: { type: String, required: false }, // Business Name

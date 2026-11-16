@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowRight } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n";
 
 const MIN = 300;
 const MAX = 900;
@@ -31,15 +32,22 @@ function arc(from, to) {
   return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${R} ${R} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
 }
 
-export default function ScoreMeter() {
+export default function ScoreMeter({ compact = false }) {
+  const t = useT();
   const [score, setScore] = useState(680);
   const id = useId();
   const band = BANDS.find((b) => score <= b.to);
   const angle = ((score - MIN) / (MAX - MIN)) * 180 - 90;
 
   return (
-    <div className="grid items-center gap-10 rounded-[2rem] border border-border bg-background p-6 sm:p-10 lg:grid-cols-2">
-      <div className="mx-auto w-full max-w-md">
+    <div
+      className={
+        compact
+          ? "grid gap-6 rounded-[2rem] border border-border bg-background p-6 shadow-[0_40px_100px_-56px_oklch(0.21_0.006_286/0.5)] sm:p-8"
+          : "grid items-center gap-10 rounded-[2rem] border border-border bg-background p-6 sm:p-10 lg:grid-cols-2"
+      }
+    >
+      <div className={`mx-auto w-full ${compact ? "max-w-xs" : "max-w-md"}`}>
         <svg viewBox="0 0 320 190" className="w-full" aria-hidden>
           {BANDS.map((b) => (
             <path key={b.label} d={arc(b.from + 3, b.to - 3)} fill="none" stroke={b.color} strokeWidth="26" opacity={b === band ? 1 : 0.45} style={{ transition: "opacity 300ms" }} />
@@ -58,7 +66,7 @@ export default function ScoreMeter() {
         </svg>
         <p className="-mt-2 text-center font-display text-5xl font-semibold tracking-[-0.04em] tabular-nums">{score}</p>
         <label htmlFor={id} className="sr-only">
-          Your credit score
+          {t("Your credit score")}
         </label>
         <input
           id={id}
@@ -71,22 +79,24 @@ export default function ScoreMeter() {
           className="range mt-6"
           style={{ "--fill": `${((score - MIN) / (MAX - MIN)) * 100}%` }}
         />
-        <p className="mt-2 text-center text-xs text-muted-foreground">Drag to your score, or a guess.</p>
+        <p className="mt-2 text-center text-xs text-muted-foreground">{t("Drag to your score, or a guess.")}</p>
       </div>
 
-      <div aria-live="polite">
-        <p className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-sm font-medium text-brand-ink">{band.label}</p>
-        <p className="mt-5 text-xl leading-relaxed font-medium tracking-[-0.015em] text-pretty">{band.tip}</p>
+      <div aria-live="polite" className={compact ? "border-t border-border pt-5" : undefined}>
+        <p className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-sm font-medium text-brand-ink">{t(band.label)}</p>
+        <p className={`leading-relaxed font-medium tracking-[-0.015em] text-pretty ${compact ? "mt-3 text-base" : "mt-5 text-xl"}`}>{t(band.tip)}</p>
+        {!compact && (
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild>
             <Link href="/credit-score-check-service">
-              Get your report checked <ArrowRight weight="bold" />
+              {t("Get your report checked")} <ArrowRight weight="bold" />
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/eligibility">Check loan eligibility</Link>
+            <Link href="/eligibility">{t("Check loan eligibility")}</Link>
           </Button>
         </div>
+        )}
       </div>
     </div>
   );

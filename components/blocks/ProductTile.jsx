@@ -2,10 +2,12 @@ import Link from "next/link";
 import { ArrowUpRight } from "@phosphor-icons/react";
 import Scene, { sceneFor } from "@/components/art/Scene";
 import { hrefFor } from "@/lib/catalog";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 // Compact link tile: icon, name and one line. Used for related products, hubs and services.
 export default function ProductTile({ item, blurb, className, art = false }) {
+  const t = useT();
   const Icon = item.icon;
   if (art) {
     return (
@@ -18,8 +20,8 @@ export default function ProductTile({ item, blurb, className, art = false }) {
         </div>
         <div className="flex flex-1 items-start justify-between gap-4 p-5">
           <div>
-            <p className="font-semibold tracking-[-0.015em]">{item.name}</p>
-            {(blurb ?? item.blurb) && <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{blurb ?? item.blurb}</p>}
+            <p className="font-semibold tracking-[-0.015em]">{t(item.name)}</p>
+            {(blurb ?? item.blurb) && <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{t(blurb ?? item.blurb)}</p>}
           </div>
           <ArrowUpRight weight="bold" className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
         </div>
@@ -43,9 +45,9 @@ export default function ProductTile({ item, blurb, className, art = false }) {
         <ArrowUpRight weight="bold" className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
       </div>
       <div>
-        <p className="font-semibold tracking-[-0.015em]">{item.name}</p>
+        <p className="font-semibold tracking-[-0.015em]">{t(item.name)}</p>
         {(blurb ?? item.blurb ?? item.summary) && (
-          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{blurb ?? item.blurb ?? item.summary}</p>
+          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{t(blurb ?? item.blurb ?? item.summary)}</p>
         )}
       </div>
     </Link>

@@ -1,4 +1,5 @@
 import { FacebookLogo, InstagramLogo, LinkedinLogo, YoutubeLogo } from "@phosphor-icons/react";
+import { useT } from "@/lib/i18n";
 import { useSiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ const SOCIALS = [
 
 // Links come from Website settings; platforms without a URL are skipped. `dark` is for dark backgrounds.
 export default function SocialLinks({ dark = false, className }) {
+  const t = useT();
   const { social } = useSiteSettings();
   const socials = SOCIALS.filter(({ key }) => social[key]);
   if (socials.length === 0) return null;
@@ -22,7 +24,7 @@ export default function SocialLinks({ dark = false, className }) {
             href={social[key]}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Visit Probiz Finance on ${label}`}
+            aria-label={t("Visit Probiz Finance on {platform}", { platform: label })}
             title={label}
             className={cn(
               "inline-flex size-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 sm:size-10",

@@ -2,8 +2,8 @@ const mongoose = require('../odm');
 
 const KisanCreditLoanApplicationSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
-  dateOfBirth: { type: String, required: true }, // Use String for easy formatting
-  address: { type: String, required: true },
+  dateOfBirth: { type: String, required: false }, // Use String for easy formatting
+  address: { type: String, required: false },
   contactNumber: { type: String, required: true },
   alternateContactNumber: { type: String, required: false },
   residenceType: { type: String, required: false }, // Owned / Rented

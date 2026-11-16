@@ -9,6 +9,7 @@ import EligibilityCalculator from "@/components/calculators/EligibilityCalculato
 import EmiCalculator from "@/components/calculators/EmiCalculator";
 import IdvCalculator from "@/components/calculators/IdvCalculator";
 import SipCalculator from "@/components/calculators/SipCalculator";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const TOOLS = [
@@ -19,37 +20,38 @@ const TOOLS = [
 ];
 
 export default function CalculatorPlayground() {
+  const t = useT();
   const [active, setActive] = useState("eligibility");
-  const tool = TOOLS.find((t) => t.id === active);
+  const tool = TOOLS.find((x) => x.id === active);
   const { Tool } = tool;
 
   return (
     <div className="mt-12 overflow-hidden rounded-[2.25rem] border border-border bg-background/90 shadow-[0_50px_120px_-70px_oklch(0.21_0.006_286/0.5)] backdrop-blur-sm">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border p-3 sm:p-4">
-        <div role="tablist" aria-label="Calculators" className="flex flex-wrap gap-1 rounded-full bg-secondary p-1">
-          {TOOLS.map((t) => (
+        <div role="tablist" aria-label={t("Calculators")} className="flex flex-wrap gap-1 rounded-full bg-secondary p-1">
+          {TOOLS.map((tab) => (
             <button
-              key={t.id}
+              key={tab.id}
               type="button"
               role="tab"
-              id={`calc-tab-${t.id}`}
-              aria-selected={t.id === active}
+              id={`calc-tab-${tab.id}`}
+              aria-selected={tab.id === active}
               aria-controls="calc-panel"
-              onClick={() => setActive(t.id)}
+              onClick={() => setActive(tab.id)}
               className={cn(
                 "relative h-9 rounded-full px-4 text-sm font-medium transition-colors",
-                t.id === active ? "text-background" : "text-muted-foreground hover:text-foreground"
+                tab.id === active ? "text-background" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {t.id === active && (
+              {tab.id === active && (
                 <motion.span layoutId="calc-pill" className="absolute inset-0 rounded-full bg-foreground" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
               )}
-              <span className="relative">{t.label}</span>
+              <span className="relative">{t(tab.label)}</span>
             </button>
           ))}
         </div>
         <Link href={tool.href} className="inline-flex items-center gap-1 px-2 text-sm font-medium text-brand-ink hover:underline">
-          Open full page <ArrowUpRight weight="bold" className="size-3.5" />
+          {t("Open full page")} <ArrowUpRight weight="bold" className="size-3.5" />
         </Link>
       </div>
 
@@ -64,7 +66,7 @@ export default function CalculatorPlayground() {
             className="grid gap-8 lg:col-span-12 lg:grid-cols-12 lg:gap-12"
           >
             <div className="lg:col-span-3">
-              <p className="text-2xl font-semibold tracking-[-0.025em] text-balance">{tool.title}</p>
+              <p className="text-2xl font-semibold tracking-[-0.025em] text-balance">{t(tool.title)}</p>
               <Scene name={tool.scene} className="mt-6 hidden h-44 w-auto lg:block" />
             </div>
             <div className="lg:col-span-9">

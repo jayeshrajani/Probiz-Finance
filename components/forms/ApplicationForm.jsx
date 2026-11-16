@@ -10,7 +10,9 @@ import Confetti from "@/components/fun/Confetti";
 import { Button } from "@/components/ui/button";
 import { errorMessage, postForm, postJSON } from "@/lib/api";
 import { leadMeta } from "@/lib/attribution";
+import { recalledContact } from "@/lib/callback";
 import { forms } from "@/lib/forms";
+import { useLocale, useT } from "@/lib/i18n";
 import { CONSENT_TEXT, HONEYPOT, isEmpty, validateField, visible } from "@/lib/lead-schema";
 import { useSiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
@@ -20,6 +22,8 @@ const MAX_UPLOAD = 4.4 * 1024 * 1024;
 
 export default function ApplicationForm({ formKey, preset = {}, productName, className }) {
   const config = forms[formKey];
+  const t = useT();
+  const stop = useLocale() === "hi" ? "।" : ".";
   const { primary } = useSiteSettings();
   const idPrefix = useId().replace(/:/g, "");
   const topRef = useRef(null);
@@ -42,6 +46,18 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   const trapRef = useRef(null);
   const doneRef = useRef(null);
 
+  // Someone who already asked for a callback this visit doesn't retype their name and number.
+  useEffect(() => {
+    const saved = recalledContact();
+    if (!saved) return;
+    const fill = {};
+    for (const f of config.steps.flatMap((s) => s.fields)) {
+      if (f.autoComplete === "name" && saved.name) fill[f.name] = saved.name;
+      if (f.autoComplete === "tel" && saved.mobile) fill[f.name] = saved.mobile;
+    }
+    setValues((v) => ({ ...fill, ...Object.fromEntries(Object.entries(v).filter(([, x]) => !isEmpty(x))) }));
+  }, [config]);
+
   // The form is taller than the confirmation, so scroll after the swap or the message lands above the screen.
   useEffect(() => {
     if (status !== "done") return;
@@ -51,6 +67,8 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
+  // Loan forms ask for everything up front, but only the first step has required fields: let people skip the rest.
+  const basicsOnly = steps.length > 1 && steps.slice(1).every((s) => !s.fields?.some((f) => f.required));
   const visibleFiles = visible(config.files, values);
   const uploadBytes = visibleFiles.reduce((sum, s) => sum + (files[s.name]?.size || 0), 0);
   const tooLarge = uploadBytes > MAX_UPLOAD;
@@ -141,6 +159,8 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
 
   const firstName = (values.fullName || values.first_Name || values.name || "").trim().split(" ")[0];
   const phone = values.contactNumber || values.mobile_no;
+  const lowered = productName ? productName.split(" ").map((w) => (w === w.toUpperCase() ? w : w.toLowerCase())).join(" ") : "";
+  const topic = !productName ? t("request") : t(productName) !== productName ? t(productName) : lowered;
 
   if (status === "done") {
     return (
@@ -151,20 +171,22 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
             <Confetti />
           </span>
           <h3 ref={doneRef} tabIndex={-1} className="headline mt-5 outline-none">
-            {firstName ? `Thank you, ${firstName}.` : "Thank you."} {repeat ? "We've added this to your request." : "We have your details."}
+            {firstName ? t("Thank you, {name}.", { name: firstName }) : t("Thank you.")} {repeat ? t("We've added this to your request.") : t("We have your details.")}
           </h3>
           <p className="mt-3 max-w-md leading-relaxed text-muted-foreground">
             {repeat
-              ? "You sent us a similar request recently, so your advisor will see both together instead of calling twice."
-              : `A Probiz advisor will call you${phone ? ` on ${phone}` : ""} to take your ${productName ? productName.split(" ").map((w) => (w === w.toUpperCase() ? w : w.toLowerCase())).join(" ") : "request"} forward.`}{" "}
-            If it's urgent, call us on <a href={primary.href} className="font-medium text-foreground underline-offset-4 hover:underline">{primary.display}</a>.
+              ? t("You sent us a similar request recently, so your advisor will see both together instead of calling twice.")
+              : phone
+                ? t("A Probiz advisor will call you on {phone} to take your {topic} forward.", { phone, topic })
+                : t("A Probiz advisor will call you to take your {topic} forward.", { topic })}{" "}
+            {t("If it's urgent, call us on")} <a href={primary.href} className="font-medium text-foreground underline-offset-4 hover:underline">{primary.display}</a>{stop}
           </p>
           <div className="mt-8 flex flex-wrap gap-2">
             <Button asChild>
-              <Link href="/">Back to home</Link>
+              <Link href="/">{t("Back to home")}</Link>
             </Button>
             <Button variant="outline" onClick={() => { setValues({ ...preset }); setFiles({}); setStep(0); setRepeat(false); setStatus("idle"); }}>
-              Submit another
+              {t("Submit another")}
             </Button>
           </div>
         </motion.div>
@@ -175,7 +197,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   return (
     <form ref={topRef} noValidate onSubmit={onSubmit} className={cn("scroll-mt-24 rounded-2xl border border-border bg-background p-6 sm:p-8", className)}>
       {steps.length > 1 && (
-        <ol className="mb-6 flex gap-1.5" aria-label="Application progress">
+        <ol className="mb-6 flex gap-1.5" aria-label={t("Application progress")}>
           {steps.map((s, i) => (
             <li key={s.id} className="min-w-0 flex-1">
               <button
@@ -194,7 +216,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
                   />
                 </span>
                 <span className={cn("mt-2 block text-xs leading-snug sm:truncate", i === step ? "font-medium text-foreground" : "text-muted-foreground", i < step && "group-hover:text-foreground")}>
-                  {s.title}
+                  {t(s.title)}
                 </span>
               </button>
             </li>
@@ -211,11 +233,14 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
           exit={{ opacity: 0, x: -16 * direction }}
           transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
         >
-          <legend className="headline text-xl">{current.title}</legend>
+          <legend className="headline text-xl">{t(current.title)}</legend>
+          {basicsOnly && step === 0 && (
+            <p className="mt-1.5 text-sm text-muted-foreground">{t("Only your name and mobile number are required. Fill in what you know; your advisor will ask for the rest.")}</p>
+          )}
 
           {current.files ? (
             <div className="mt-2">
-              <p className="text-sm text-muted-foreground">Optional. Add what you have now; your advisor can collect the rest later.</p>
+              <p className="text-sm text-muted-foreground">{t("Optional. Add what you have now; your advisor can collect the rest later.")}</p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {visibleFiles.map((slot) => (
                   <FileSlot key={slot.name} slot={slot} file={files[slot.name]} onChange={setFile} idPrefix={idPrefix} />
@@ -223,10 +248,10 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
               </div>
               <p className={cn("mt-4 text-xs", tooLarge ? "font-medium text-destructive" : "text-muted-foreground")}>
                 {tooLarge
-                  ? `Total ${formatBytes(uploadBytes)} is over the 4.4 MB limit. Remove a file or share it with your advisor later.`
+                  ? t("Total {size} is over the 4.4 MB limit. Remove a file or share it with your advisor later.", { size: formatBytes(uploadBytes) })
                   : uploadBytes
-                    ? `${formatBytes(uploadBytes)} of 4.4 MB`
-                    : "Up to 4.4 MB in total"}
+                    ? t("{size} of 4.4 MB", { size: formatBytes(uploadBytes) })
+                    : t("Up to 4.4 MB in total")}
               </p>
             </div>
           ) : (
@@ -263,16 +288,16 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
               className="mt-1 size-4 shrink-0 accent-[var(--brand)]"
             />
             <span>
-              {CONSENT_TEXT.replace("privacy policy.", "")}
+              {t(CONSENT_TEXT.replace("privacy policy.", "").trim())}{" "}
               <Link href="/privacy-policy" className="underline underline-offset-2 hover:text-foreground">
-                privacy policy
+                {t("privacy policy")}
               </Link>
-              .
+              {stop}
             </span>
           </label>
           {consentError && (
             <p id={`${idPrefix}-consent-error`} className="mt-1.5 pl-7 text-xs font-medium text-destructive">
-              Please tick this so we can contact you.
+              {t("Please tick this so we can contact you.")}
             </p>
           )}
         </div>
@@ -281,33 +306,40 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
       {submitError && (
         <p role="alert" className="mt-6 flex items-start gap-2 rounded-xl bg-destructive/8 px-4 py-3 text-sm text-destructive">
           <WarningCircle weight="fill" className="mt-0.5 size-4 shrink-0" />
-          {submitError}
+          {t(submitError)}
         </p>
       )}
 
       <div className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-6">
         {step > 0 ? (
           <Button type="button" variant="ghost" onClick={() => go(step - 1)}>
-            <ArrowLeft weight="bold" /> Back
+            <ArrowLeft weight="bold" /> {t("Back")}
           </Button>
         ) : (
           <p className="text-xs text-muted-foreground">
-            We only use your details to work on this request. <Link href="/privacy-policy" className="-my-2 inline-block py-2 underline underline-offset-2">Privacy policy</Link>
+            {t("We only use your details to work on this request.")} <Link href="/privacy-policy" className="-my-2 inline-block py-2 underline underline-offset-2">{t("Privacy policy")}</Link>
           </p>
         )}
-        <Button type="submit" size="lg" disabled={status === "submitting" || (isLast && tooLarge)}>
-          {status === "submitting" ? (
-            <>
-              <SpinnerGap className="animate-spin" /> Sending
-            </>
-          ) : isLast ? (
-            config.submitLabel || "Submit application"
-          ) : (
-            <>
-              Continue <ArrowRight weight="bold" />
-            </>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {basicsOnly && !isLast && (
+            <Button type="button" variant="ghost" onClick={() => validate([step]) && go(steps.length - 1)}>
+              {t("Skip to submit")}
+            </Button>
           )}
-        </Button>
+          <Button type="submit" size="lg" disabled={status === "submitting" || (isLast && tooLarge)}>
+            {status === "submitting" ? (
+              <>
+                <SpinnerGap className="animate-spin" /> {t("Sending")}
+              </>
+            ) : isLast ? (
+              t(config.submitLabel || "Submit application")
+            ) : (
+              <>
+                {t("Continue")} <ArrowRight weight="bold" />
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );

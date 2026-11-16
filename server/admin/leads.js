@@ -34,6 +34,7 @@ const LEAD_TYPES = [
   { type: 'marketing', label: 'Digital marketing', group: 'services', model: m('digitalMarketing.model'), page: '/digital-marketing-sevice' },
   { type: 'realestate', label: 'Real estate services', group: 'services', model: m('realState.model'), page: '/real-estate-services' },
   { type: 'dsa', label: 'DSA franchise', group: 'services', model: m('dsaService.model'), page: '/dsa-franchise' },
+  { type: 'callback', label: 'Callback requests', group: 'inbox', model: m('callback.model') },
   { type: 'contact', label: 'Contact messages', group: 'inbox', model: m('contact.model'), page: '/contact' },
   { type: 'inhouse', label: 'Property requirements', group: 'inbox', model: m('inHouse.model') },
   { type: 'itr', label: 'ITR filing (old form)', group: 'archive', model: m('itrInformation.model') },
@@ -75,6 +76,7 @@ const INTAKE = {
   marketing: ['digital-marketing-sevice', 'addDigitalMarketingService'],
   realestate: ['real-estate-services', 'addRealStateServices'],
   dsa: ['dsa-franchise', 'addDsaServices'],
+  callback: ['callback', 'addCallbackRequest'],
   contact: ['contact', 'addContactUs'],
   inhouse: [null, 'addInHouseProperty'],
 };
@@ -115,7 +117,7 @@ function summarize(def, doc) {
     phone: first(doc, ['contactNumber', 'mobile_no', 'mobileNo', 'mobile', 'mobileLinkedToAadhaar', 'contactNo']),
     email: first(doc, ['email', 'emailId', 'user_Email']),
     amount: first(doc, ['loanAmountRequired', 'loanAmount', 'budget', 'currentLoanAmount']),
-    detail: first(doc, ['loan_Type', 'propertyType', 'carType', 'goldType', 'courseName', 'businessName', 'companyName', 'enterpriseName', 'firmName', 'formType', 'location', 'message']),
+    detail: first(doc, ['interest', 'loan_Type', 'propertyType', 'carType', 'goldType', 'courseName', 'businessName', 'companyName', 'enterpriseName', 'firmName', 'formType', 'location', 'message']),
     createdAt: doc.createdAt,
   };
 }

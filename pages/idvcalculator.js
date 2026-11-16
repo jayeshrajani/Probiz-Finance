@@ -1,5 +1,8 @@
 import IdvCalculator from "@/components/calculators/IdvCalculator";
 import CalculatorPage from "@/components/templates/CalculatorPage";
+import { localeProps } from "@/lib/i18n-static";
+
+export const getStaticProps = localeProps;
 
 export default function IdvCalculatorPage() {
   return (

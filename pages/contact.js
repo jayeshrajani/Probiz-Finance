@@ -5,29 +5,38 @@ import Breadcrumbs from "@/components/blocks/Breadcrumbs";
 import DotField from "@/components/kokonutui/dot-field";
 import ApplicationForm from "@/components/forms/ApplicationForm";
 import SiteLayout from "@/components/site/SiteLayout";
+import { useT } from "@/lib/i18n";
+import { localeProps } from "@/lib/i18n-static";
 import { site } from "@/lib/site";
 import { useSiteSettings } from "@/lib/site-settings";
 
+export const getStaticProps = localeProps;
+
 export default function ContactPage() {
+  const t = useT();
   const { primary, secondary, whatsappHref, contactEmail, emailHref } = useSiteSettings();
   const channels = [
     { Icon: Phone, label: "Call", value: primary.display, href: primary.href },
     secondary && secondary.number !== primary.number && { Icon: Phone, label: "Or call", value: secondary.display, href: secondary.href },
-    whatsappHref && { Icon: WhatsappLogo, label: "WhatsApp", value: "Message us on WhatsApp", href: whatsappHref, external: true },
-    { Icon: ChatCircleDots, label: "Chat", value: "Ask the Probiz assistant", onClick: () => openAssistant() },
+    whatsappHref && { Icon: WhatsappLogo, label: "WhatsApp", value: t("Message us on WhatsApp"), href: whatsappHref, external: true },
+    { Icon: ChatCircleDots, label: "Chat", value: t("Ask the Probiz assistant"), onClick: () => openAssistant() },
     emailHref && { Icon: EnvelopeSimple, label: "Email", value: contactEmail, href: emailHref },
-    { Icon: MapPin, label: "Visit", value: site.address },
+    { Icon: MapPin, label: "Visit", value: t(site.address), href: site.mapLink, external: true },
   ].filter(Boolean);
 
   return (
-    <SiteLayout title="Contact Us" description={`Call ${primary.display}, email ${contactEmail} or visit us at ${site.address}.`} path="/contact">
+    <SiteLayout
+      title="Contact Us"
+      description={t("Call {phone}, email {email} or visit us at {address}.", { phone: primary.display, email: contactEmail, address: t(site.address) })}
+      path="/contact"
+    >
       <DotField spacing={18} className="block min-h-0 bg-transparent text-brand/35">
       <section className="container-page relative pt-10 pb-20 text-foreground md:pt-14">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Contact" }]} />
         <div className="mt-6 grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <h1 className="display-1 max-w-[12ch] text-balance">We're a call away.</h1>
-            <p className="lede mt-6 max-w-md">Questions about a loan, a policy or a document? Write to us and an advisor will get back to you.</p>
+            <h1 className="display-1 max-w-[12ch] text-balance">{t("We're a call away.")}</h1>
+            <p className="lede mt-6 max-w-md">{t("Questions about a loan, a policy or a document? Write to us and an advisor will get back to you.")}</p>
             <ul className="mt-10 grid gap-3">
               {channels.map(({ Icon, label, value, href, onClick, external }) => {
                 const inner = (
@@ -36,7 +45,7 @@ export default function ContactPage() {
                       <Icon weight="duotone" className="size-5" />
                     </span>
                     <span>
-                      <span className="block text-sm text-muted-foreground">{label}</span>
+                      <span className="block text-sm text-muted-foreground">{t(label)}</span>
                       <span className="block font-medium">{value}</span>
                     </span>
                   </>
@@ -72,7 +81,7 @@ export default function ContactPage() {
       </DotField>
       <section className="container-page pb-24">
         <iframe
-          title="Probiz Finance office location"
+          title={t("Probiz Finance office location")}
           src={site.mapEmbed}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"

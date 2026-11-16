@@ -13,6 +13,10 @@ import { errorMessage, getJSON, getStoredUser, sendJSON } from "@/lib/api";
 import { formatINRShort } from "@/lib/format";
 import { signIn, signOut } from "@/lib/use-user";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
+import { localeProps } from "@/lib/i18n-static";
+
+export const getStaticProps = localeProps;
 
 const PASSWORD_RULE = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{8,}$/;
 
@@ -28,25 +32,27 @@ const formatDate = (value) => (value ? new Date(value).toLocaleDateString("en-IN
 const formatAmount = (value) => (value && Number(value) > 0 ? formatINRShort(value) : value || null);
 
 function Card({ title, intro, children, className }) {
+  const t = useT();
   return (
     <section className={cn("rounded-[2rem] border border-border bg-background p-6 sm:p-8", className)}>
-      <h2 className="headline text-xl">{title}</h2>
-      {intro && <p className="mt-1.5 text-sm text-muted-foreground">{intro}</p>}
+      <h2 className="headline text-xl">{t(title)}</h2>
+      {intro && <p className="mt-1.5 text-sm text-muted-foreground">{t(intro)}</p>}
       <div className="mt-6">{children}</div>
     </section>
   );
 }
 
 function Field({ id, label, help, error, ...props }) {
+  const t = useT();
   return (
     <div className="grid gap-2">
       <label htmlFor={id} className="text-sm font-medium">
-        {label}
+        {t(label)}
       </label>
       <Input id={id} aria-invalid={error ? true : undefined} aria-describedby={error || help ? `${id}-note` : undefined} {...props} />
       {(error || help) && (
         <p id={`${id}-note`} className={cn("text-xs", error ? "font-medium text-destructive" : "text-muted-foreground")}>
-          {error || help}
+          {t(error || help)}
         </p>
       )}
     </div>
@@ -54,15 +60,16 @@ function Field({ id, label, help, error, ...props }) {
 }
 
 function Applications({ items }) {
+  const t = useT();
   if (!items.length) {
     return (
       <div className="rounded-2xl bg-secondary/60 px-6 py-10 text-center">
         <FileText weight="duotone" className="mx-auto size-10 text-muted-foreground/60" />
-        <p className="mt-4 font-medium">No applications yet</p>
-        <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">Applications you send while signed in show up here with their status.</p>
+        <p className="mt-4 font-medium">{t("No applications yet")}</p>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">{t("Applications you send while signed in show up here with their status.")}</p>
         <Button asChild className="mt-6">
           <Link href="/eligibility">
-            Check your eligibility <ArrowRight weight="bold" />
+            {t("Check your eligibility")} <ArrowRight weight="bold" />
           </Link>
         </Button>
       </div>
@@ -78,10 +85,10 @@ function Applications({ items }) {
             <div className="min-w-0">
               <p className="font-medium">{a.page ? <Link href={a.page} className="underline-offset-4 hover:underline">{a.product}</Link> : a.product}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {[`Sent ${formatDate(a.createdAt)}`, amount, a.advisor && `Advisor: ${a.advisor}`].filter(Boolean).join(" · ")}
+                {[t("Sent {date}", { date: formatDate(a.createdAt) }), amount, a.advisor && t("Advisor: {name}", { name: a.advisor })].filter(Boolean).join(" · ")}
               </p>
             </div>
-            <span className={cn("inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset", status.tone)}>{status.label}</span>
+            <span className={cn("inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset", status.tone)}>{t(status.label)}</span>
           </li>
         );
       })}
@@ -90,6 +97,7 @@ function Applications({ items }) {
 }
 
 function ProfileForm({ user, onSaved }) {
+  const t = useT();
   const [values, setValues] = useState({ user_Name: user.user_Name || "", mobile_no: user.mobile_no || "" });
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
@@ -107,9 +115,9 @@ function ProfileForm({ user, onSaved }) {
     setBusy(false);
     if (res.ok) {
       onSaved(res.data.user);
-      toast.success("Details saved.");
+      toast.success(t("Details saved."));
     } else {
-      toast.error(errorMessage(res.data, "We couldn't save your details."));
+      toast.error(t(errorMessage(res.data, "We couldn't save your details.")));
     }
   }
 
@@ -125,7 +133,7 @@ function ProfileForm({ user, onSaved }) {
       <Field id="user_Email" label="Email" value={user.user_Email || ""} readOnly disabled help="To change your email, contact us." />
       <div>
         <Button type="submit" disabled={busy || !dirty}>
-          {busy ? <SpinnerGap className="animate-spin" /> : null} Save details
+          {busy ? <SpinnerGap className="animate-spin" /> : null} {t("Save details")}
         </Button>
       </div>
     </form>
@@ -133,6 +141,7 @@ function ProfileForm({ user, onSaved }) {
 }
 
 function PasswordForm() {
+  const t = useT();
   const empty = { current: "", next: "", confirm: "" };
   const [values, setValues] = useState(empty);
   const [errors, setErrors] = useState({});
@@ -152,10 +161,10 @@ function PasswordForm() {
     setBusy(false);
     if (res.ok) {
       setValues(empty);
-      toast.success("Password updated.");
+      toast.success(t("Password updated."));
     } else {
       setErrors({ current: res.status === 400 && /current/i.test(res.data?.message || "") ? res.data.message : null });
-      toast.error(errorMessage(res.data, "We couldn't update your password."));
+      toast.error(t(errorMessage(res.data, "We couldn't update your password.")));
     }
   }
 
@@ -172,10 +181,10 @@ function PasswordForm() {
       <Field id="confirm" label="Confirm new password" type={type} autoComplete="new-password" value={values.confirm} onChange={set("confirm")} error={errors.confirm} />
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={busy}>
-          {busy ? <SpinnerGap className="animate-spin" /> : null} Update password
+          {busy ? <SpinnerGap className="animate-spin" /> : null} {t("Update password")}
         </Button>
         <Button type="button" variant="ghost" onClick={() => setShow((v) => !v)}>
-          {show ? <EyeSlash /> : <Eye />} {show ? "Hide" : "Show"} passwords
+          {show ? <EyeSlash /> : <Eye />} {show ? t("Hide passwords") : t("Show passwords")}
         </Button>
       </div>
     </form>
@@ -183,6 +192,7 @@ function PasswordForm() {
 }
 
 export default function AccountPage() {
+  const t = useT();
   const router = useRouter();
   const [state, setState] = useState({ loading: true, error: null, user: null, applications: [] });
 
@@ -228,22 +238,22 @@ export default function AccountPage() {
         {loading ? (
           <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground" role="status">
             <SpinnerGap className="size-6 animate-spin" />
-            <span className="sr-only">Loading your account</span>
+            <span className="sr-only">{t("Loading your account")}</span>
           </div>
         ) : error ? (
           <div className="mt-10 flex items-start gap-3 rounded-2xl bg-destructive/5 p-5 text-sm" role="alert">
             <WarningCircle weight="fill" className="mt-0.5 size-5 shrink-0 text-destructive" />
-            <p>{error}</p>
+            <p>{t(error)}</p>
           </div>
         ) : (
           <>
             <div className="mt-6 flex flex-wrap items-end justify-between gap-6">
               <div>
-                <h1 className="display-2">{firstName ? `Hello, ${firstName}.` : "Your account"}</h1>
+                <h1 className="display-2">{firstName ? t("Hello, {name}.", { name: firstName }) : t("Your account")}</h1>
                 <p className="lede mt-3">{user.user_Email}</p>
               </div>
               <Button variant="outline" onClick={onSignOut}>
-                <SignOut weight="bold" /> Sign out
+                <SignOut weight="bold" /> {t("Sign out")}
               </Button>
             </div>
             <div className="mt-10 grid gap-6 lg:grid-cols-12">

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 const optionValue = (o) => (typeof o === "string" ? o : o.value);
 const optionLabel = (o) => (typeof o === "string" ? o : o.label);
 
+// Labels and option text are translated; option values stay English because the server stores them.
 export default function FormField({ field, value, error, onChange, idPrefix }) {
+  const t = useT();
   const id = `${idPrefix}-${field.name}`;
   const describedBy = [field.help && `${id}-help`, error && `${id}-error`].filter(Boolean).join(" ") || undefined;
   const common = {
@@ -26,11 +29,11 @@ export default function FormField({ field, value, error, onChange, idPrefix }) {
     control = (
       <NativeSelect {...common}>
         <option value="" disabled>
-          Select
+          {t("Select")}
         </option>
         {field.options.map((o) => (
           <option key={optionValue(o)} value={optionValue(o)}>
-            {optionLabel(o)}
+            {t(optionLabel(o))}
           </option>
         ))}
       </NativeSelect>
@@ -54,18 +57,18 @@ export default function FormField({ field, value, error, onChange, idPrefix }) {
   return (
     <div className={cn("grid content-start gap-2", field.half ? "sm:col-span-1" : "sm:col-span-2")}>
       <label htmlFor={id} className="text-sm font-medium">
-        {field.label}
-        {!field.required && <span className="font-normal text-muted-foreground"> (optional)</span>}
+        {t(field.label)}
+        {!field.required && <span className="font-normal text-muted-foreground"> {t("(optional)")}</span>}
       </label>
       {control}
       {field.help && !error && (
         <p id={`${id}-help`} className="text-xs text-muted-foreground">
-          {field.help}
+          {t(field.help)}
         </p>
       )}
       {error && (
         <p id={`${id}-error`} className="text-xs font-medium text-destructive">
-          {error}
+          {t(error)}
         </p>
       )}
     </div>

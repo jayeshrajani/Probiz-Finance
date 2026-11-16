@@ -44,8 +44,8 @@
 }
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), var(--font-deva), "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), var(--font-deva), "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -349,6 +349,17 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/* Hindi: Devanagari matras need taller lines, and negative tracking breaks conjuncts. Unlayered, so it beats utilities. */
+html:lang(hi) * {
+  letter-spacing: normal;
+}
+html:lang(hi) :is(.display-1, .display-page, .display-2) {
+  line-height: 1.24;
+}
+html:lang(hi) .headline {
+  line-height: 1.35;
 }
 
 @media (prefers-reduced-motion: reduce) {

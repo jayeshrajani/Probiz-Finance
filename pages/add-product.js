@@ -11,6 +11,10 @@ import { Button } from "@/components/ui/button";
 import { errorMessage, postForm } from "@/lib/api";
 import { PROPERTY_TYPES, typeLabel } from "@/lib/property";
 import { useStoredUser } from "@/lib/use-user";
+import { useT } from "@/lib/i18n";
+import { localeProps } from "@/lib/i18n-static";
+
+export const getStaticProps = localeProps;
 
 const MAX_UPLOAD = 4.4 * 1024 * 1024;
 const BUILT = ["Flat", "Row House", "Bunglow", "Farm House", "Pent House", "Commercial Property"];
@@ -21,7 +25,7 @@ const sections = [
     title: "Property",
     fields: [
       { name: "propertyName", label: "Listing title", type: "text", required: true, help: "For example, 3 BHK flat with covered parking" },
-      { name: "propertyType", label: "Type", type: "select", required: true, half: true, options: PROPERTY_TYPES.map((t) => ({ value: t, label: typeLabel(t) })) },
+      { name: "propertyType", label: "Type", type: "select", required: true, half: true, options: PROPERTY_TYPES.map((type) => ({ value: type, label: typeLabel(type) })) },
       { name: "price", label: "Asking price (₹)", type: "number", required: true, half: true, inputMode: "numeric" },
       { name: "bhk_of_house", label: "Configuration", type: "select", half: true, options: ["1RK", "1BHK", "2BHK", "3BHK", "4BHK", "5BHK", "6BHK"], showIf: (v) => BUILT.includes(v.propertyType) },
       { name: "buildUpArea", label: "Built-up area (sq ft)", type: "number", half: true, inputMode: "numeric", showIf: (v) => BUILT.includes(v.propertyType) },
@@ -56,6 +60,7 @@ const sections = [
 const visible = (fields, v) => fields.filter((f) => !f.showIf || f.showIf(v));
 
 export default function AddPropertyPage() {
+  const t = useT();
   const user = useStoredUser();
   const router = useRouter();
   const [values, setValues] = useState({});
@@ -114,14 +119,14 @@ export default function AddPropertyPage() {
     return (
       <SiteLayout title="List Your Property" path="/add-product" noindex>
         <section className="container-page flex min-h-[60dvh] flex-col items-center justify-center py-24 text-center">
-          <h1 className="display-2 max-w-lg">Sign in to list your property.</h1>
-          <p className="lede mt-4 max-w-md">Listings are linked to an account so buyers reach the right owner.</p>
+          <h1 className="display-2 max-w-lg">{t("Sign in to list your property.")}</h1>
+          <p className="lede mt-4 max-w-md">{t("Listings are linked to an account so buyers reach the right owner.")}</p>
           <div className="mt-8 flex gap-3">
             <Button asChild size="lg">
-              <Link href="/sign-in?next=/add-product">Sign in</Link>
+              <Link href="/sign-in?next=/add-product">{t("Sign in")}</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/sign-up">Create an account</Link>
+              <Link href="/sign-up">{t("Create an account")}</Link>
             </Button>
           </div>
         </section>
@@ -134,14 +139,14 @@ export default function AddPropertyPage() {
       <SiteLayout title="List Your Property" path="/add-product" noindex>
         <section className="container-page flex min-h-[60dvh] flex-col items-center justify-center py-24 text-center">
           <CheckCircle weight="fill" className="size-14 text-brand" />
-          <h1 className="display-2 mt-6 max-w-lg">Your property is listed.</h1>
-          <p className="lede mt-4 max-w-md">Buyers can now find it in our listings.</p>
+          <h1 className="display-2 mt-6 max-w-lg">{t("Your property is listed.")}</h1>
+          <p className="lede mt-4 max-w-md">{t("Buyers can now find it in our listings.")}</p>
           <div className="mt-8 flex gap-3">
             <Button size="lg" onClick={() => router.push("/property")}>
-              See listings
+              {t("See listings")}
             </Button>
             <Button size="lg" variant="outline" onClick={() => { setValues({}); setImages([]); setVideo(null); setStatus("idle"); }}>
-              List another
+              {t("List another")}
             </Button>
           </div>
         </section>
@@ -153,13 +158,13 @@ export default function AddPropertyPage() {
     <SiteLayout title="List Your Property" path="/add-product" noindex>
       <section className="container-page max-w-4xl pt-10 pb-24 md:pt-14">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Property", href: "/property" }, { label: "List your property" }]} />
-        <h1 className="display-2 mt-6">List your property.</h1>
-        <p className="lede mt-4 max-w-xl">Add the details buyers ask about first. Good photos make the biggest difference.</p>
+        <h1 className="display-2 mt-6">{t("List your property.")}</h1>
+        <p className="lede mt-4 max-w-xl">{t("Add the details buyers ask about first. Good photos make the biggest difference.")}</p>
 
         <form onSubmit={onSubmit} noValidate className="mt-12 grid gap-12">
           {sections.map((s) => (
             <fieldset key={s.title} className="grid gap-x-4 gap-y-5 border-t border-border pt-8 sm:grid-cols-2">
-              <legend className="headline mb-6 text-xl">{s.title}</legend>
+              <legend className="headline mb-6 text-xl">{t(s.title)}</legend>
               {visible(s.fields, values).map((f) => (
                 <FormField key={f.name} field={f} value={values[f.name]} error={errors[f.name]} onChange={setValue} idPrefix="property" />
               ))}
@@ -167,13 +172,13 @@ export default function AddPropertyPage() {
           ))}
 
           <fieldset className="border-t border-border pt-8">
-            <legend className="headline mb-6 text-xl">Photos and video</legend>
+            <legend className="headline mb-6 text-xl">{t("Photos and video")}</legend>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-input px-4 py-4 hover:bg-secondary">
                 <ImageSquare weight="duotone" className="size-6 text-muted-foreground" />
                 <span>
-                  <span className="block text-sm font-medium">Add photos</span>
-                  <span className="block text-xs text-muted-foreground">Up to 10, JPG or PNG</span>
+                  <span className="block text-sm font-medium">{t("Add photos")}</span>
+                  <span className="block text-xs text-muted-foreground">{t("Up to 10, JPG or PNG")}</span>
                 </span>
                 <input
                   type="file"
@@ -189,8 +194,8 @@ export default function AddPropertyPage() {
               <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-input px-4 py-4 hover:bg-secondary">
                 <VideoCamera weight="duotone" className="size-6 text-muted-foreground" />
                 <span>
-                  <span className="block text-sm font-medium">{video ? video.name : "Add a video"}</span>
-                  <span className="block text-xs text-muted-foreground">One MP4, optional</span>
+                  <span className="block text-sm font-medium">{video ? video.name : t("Add a video")}</span>
+                  <span className="block text-xs text-muted-foreground">{t("One MP4, optional")}</span>
                 </span>
                 <input type="file" accept="video/mp4" className="sr-only" onChange={(e) => setVideo(e.target.files?.[0] || null)} />
               </label>
@@ -203,7 +208,7 @@ export default function AddPropertyPage() {
                     <button
                       type="button"
                       onClick={() => setImages((cur) => cur.filter((_, j) => j !== i))}
-                      aria-label={`Remove ${img.name}`}
+                      aria-label={t("Remove {name}", { name: img.name })}
                       className="absolute top-1.5 right-1.5 inline-flex size-7 items-center justify-center rounded-full bg-background/90 shadow"
                     >
                       <X weight="bold" className="size-3.5" />
@@ -213,14 +218,14 @@ export default function AddPropertyPage() {
               </ul>
             )}
             <p className={tooLarge ? "mt-3 text-xs font-medium text-destructive" : "mt-3 text-xs text-muted-foreground"}>
-              {tooLarge ? "Files are over the 4.4 MB limit. Remove some photos or compress them." : "Up to 4.4 MB in total."}
+              {tooLarge ? t("Files are over the 4.4 MB limit. Remove some photos or compress them.") : t("Up to 4.4 MB in total.")}
             </p>
           </fieldset>
 
           {submitError && (
             <p role="alert" className="flex items-start gap-2 rounded-xl bg-destructive/8 px-4 py-3 text-sm text-destructive">
               <WarningCircle weight="fill" className="mt-0.5 size-4 shrink-0" />
-              {submitError}
+              {t(submitError)}
             </p>
           )}
 
@@ -228,10 +233,10 @@ export default function AddPropertyPage() {
             <Button type="submit" size="lg" disabled={status === "submitting" || tooLarge}>
               {status === "submitting" ? (
                 <>
-                  <SpinnerGap className="animate-spin" /> Publishing
+                  <SpinnerGap className="animate-spin" /> {t("Publishing")}
                 </>
               ) : (
-                "Publish listing"
+                t("Publish listing")
               )}
             </Button>
           </div>

@@ -355,7 +355,7 @@ exports.homeLoanDetail = async (req, res) => {
 
     // Validate required fields
     const requiredFields = [
-      "fullName", "dateOfBirth", "address", "contactNumber"
+      "fullName", "contactNumber"
     ];
 
     let missingFields = requiredFields.filter(field => !req.body[field]);
@@ -1063,7 +1063,7 @@ exports.constructionLoanDetail = async (req, res) => {
 
     // Validate required fields
     const requiredFields = [
-      "fullName", "dateOfBirth", "address", "contactNumber"
+      "fullName", "contactNumber"
     ];
 
     let missingFields = requiredFields.filter(field => !req.body[field]);
@@ -1674,7 +1674,7 @@ exports.PlotPurchaseLoanDetail = async (req, res) => {
 
     // Validate required fields
     const requiredFields = [
-      "fullName", "dateOfBirth", "address", "contactNumber"
+      "fullName", "contactNumber"
     ];
 
     let missingFields = requiredFields.filter(field => !req.body[field]);
@@ -1830,7 +1830,7 @@ exports.PlotPurchaseConstructionLoanDetail = async (req, res) => {
 
     // Validate required fields
     const requiredFields = [
-      "fullName", "dateOfBirth", "address", "contactNumber"
+      "fullName", "contactNumber"
     ];
 
     let missingFields = requiredFields.filter(field => !req.body[field]);
@@ -1985,7 +1985,7 @@ exports.FlatePurchaseLoanDetail = async (req, res) => {
 
     // Validate required fields
     const requiredFields = [
-      "fullName", "dateOfBirth", "address", "contactNumber"
+      "fullName", "contactNumber"
     ];
 
     let missingFields = requiredFields.filter(field => !req.body[field]);
@@ -2138,7 +2138,7 @@ exports.LoanagainstPropertyDetail = async (req, res) => {
 
     // Validate required fields
     const requiredFields = [
-      "fullName", "dateOfBirth", "address", "contactNumber"
+      "fullName", "contactNumber"
     ];
 
     let missingFields = requiredFields.filter(field => !req.body[field]);
@@ -2289,7 +2289,7 @@ exports.CommercialPropertyPurchaseDetail = async (req, res) => {
 
     // Validate required fields
     const requiredFields = [
-      "fullName", "dateOfBirth", "address", "contactNumber"
+      "fullName", "contactNumber"
     ];
 
     let missingFields = requiredFields.filter(field => !req.body[field]);
@@ -2441,7 +2441,7 @@ exports.CommercialPropertyMortgageDetail = async (req, res) => {
 
     // Validate required fields
     const requiredFields = [
-      "fullName", "dateOfBirth", "address", "contactNumber"
+      "fullName", "contactNumber"
     ];
 
     let missingFields = requiredFields.filter(field => !req.body[field]);
@@ -3699,7 +3699,7 @@ exports.homeRenovationLoanDetail = async (req, res) => {
 
     // Validate required fields
     const requiredFields = [
-      "fullName", "dateOfBirth", "address", "contactNumber"
+      "fullName", "contactNumber"
     ];
 
     let missingFields = requiredFields.filter(field => !req.body[field]);

@@ -9,6 +9,7 @@ import SliderField from "@/components/calculators/SliderField";
 import AnimatedNumber from "@/components/fun/AnimatedNumber";
 import { Button } from "@/components/ui/button";
 import { emi, formatINRShort } from "@/lib/format";
+import { useLocale, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 // Example rates only; real offers depend on the lender and the borrower.
@@ -27,6 +28,9 @@ const ZONES = [
 ];
 
 export default function GoalPlanner() {
+  const t = useT();
+  const locale = useLocale();
+  const money = (v) => formatINRShort(v, locale);
   const [goalId, setGoalId] = useState("home");
   const goal = GOALS.find((g) => g.id === goalId);
   const [costs, setCosts] = useState(() => Object.fromEntries(GOALS.map((g) => [g.id, g.cost[3]])));
@@ -41,7 +45,7 @@ export default function GoalPlanner() {
 
   return (
     <div className="mt-12">
-      <div role="group" aria-label="Choose a goal" className="-mx-5 flex snap-x scroll-px-5 gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-5 sm:overflow-visible sm:px-0">
+      <div role="group" aria-label={t("Choose a goal")} className="-mx-5 flex snap-x scroll-px-5 gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-5 sm:overflow-visible sm:px-0">
         {GOALS.map((g) => (
           <button
             key={g.id}
@@ -54,7 +58,7 @@ export default function GoalPlanner() {
             )}
           >
             <Scene name={g.scene} className="mx-auto h-24 w-full transition-transform duration-500 group-hover:scale-[1.04]" />
-            <span className="mt-1 block px-1 font-semibold tracking-[-0.015em]">{g.label}</span>
+            <span className="mt-1 block px-1 font-semibold tracking-[-0.015em]">{t(g.label)}</span>
           </button>
         ))}
       </div>
@@ -67,13 +71,13 @@ export default function GoalPlanner() {
             min={goal.cost[0]}
             max={goal.cost[1]}
             step={goal.cost[2]}
-            format={formatINRShort}
+            format={money}
             onChange={(v) => setCosts((c) => ({ ...c, [goalId]: v }))}
           />
-          <SliderField label="Your monthly income" value={income} min={20000} max={500000} step={5000} format={formatINRShort} onChange={setIncome} />
+          <SliderField label="Your monthly income" value={income} min={20000} max={500000} step={5000} format={money} onChange={setIncome} />
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {goal.down ? `Assumes ${goal.down * 100}% down payment, so a loan of ${formatINRShort(loan)}. ` : ""}
-            Example rate {goal.rate}% over {goal.years} years.
+            {goal.down ? `${t("Assumes {down}% down payment, so a loan of {loan}.", { down: Math.round(goal.down * 100), loan: money(loan) })} ` : ""}
+            {t("Example rate {rate}% over {years} years.", { rate: goal.rate, years: goal.years })}
           </p>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -91,12 +95,12 @@ export default function GoalPlanner() {
 
         <div className="flex flex-col justify-between gap-8 rounded-[2rem] bg-foreground p-6 text-background sm:p-8 lg:col-span-6">
           <div>
-            <p className="text-sm text-background/60">Estimated EMI</p>
+            <p className="text-sm text-background/60">{t("Estimated EMI")}</p>
             <p className="mt-2 font-display text-[clamp(2.5rem,2rem+2vw,3.75rem)] font-semibold leading-none tracking-[-0.04em] tabular-nums">
               <AnimatedNumber value={monthly} />
             </p>
             <p className="mt-2 text-sm text-background/60">
-              That's {Math.round(ratio * 100)}% of your income.
+              {t("That's {percent}% of your income.", { percent: Math.round(ratio * 100) })}
             </p>
           </div>
 
@@ -111,16 +115,16 @@ export default function GoalPlanner() {
               />
             </div>
             <div className="mt-2 flex justify-between text-xs text-background/50">
-              <span>Comfortable</span>
-              <span>Stretching</span>
-              <span>Tough</span>
+              <span>{t("Comfortable")}</span>
+              <span>{t("Stretching")}</span>
+              <span>{t("Tough")}</span>
             </div>
             <p className="mt-6 text-lg font-semibold tracking-[-0.015em]" aria-live="polite">
-              {zone.label}. <span className="font-normal text-background/70">{zone.note}</span>
+              {t(zone.label)}. <span className="font-normal text-background/70">{t(zone.note)}</span>
             </p>
             <Button asChild variant="brand" className="mt-6">
               <Link href={goal.href}>
-                Explore this loan <ArrowRight weight="bold" />
+                {t("Explore this loan")} <ArrowRight weight="bold" />
               </Link>
             </Button>
           </div>

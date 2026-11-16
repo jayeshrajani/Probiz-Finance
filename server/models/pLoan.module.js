@@ -2,8 +2,8 @@ const mongoose = require('../odm');
 
 const PersonalLoanApplicationSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
-  dateOfBirth: { type: String, required: true },
-  address: { type: String, required: true },
+  dateOfBirth: { type: String, required: false },
+  address: { type: String, required: false },
   contactNumber: { type: String, required: true },
   alternateContactNumber: { type: String },
   companyName: { type: String, required: false },

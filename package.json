@@ -25,7 +25,8 @@
     "migrate:verify": "node scripts/migrate-firestore.js verify",
     "check:migration": "node scripts/check-migration.js",
     "check:e2e": "node scripts/check-e2e.mjs",
-    "check:rollback": "node scripts/check-rollback.js"
+    "check:rollback": "node scripts/check-rollback.js",
+    "check:i18n": "node scripts/i18n-check.mjs"
   },
   "engines": {
     "node": ">=20.9"

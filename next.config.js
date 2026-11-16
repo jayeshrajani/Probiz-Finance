@@ -20,6 +20,8 @@ const securityHeaders = [
 module.exports = {
   turbopack: { root: __dirname },
   reactStrictMode: true,
+  // English stays at the root; Hindi lives under /hi. No Accept-Language redirect: English is the default.
+  i18n: { locales: ['en', 'hi'], defaultLocale: 'en', localeDetection: false },
   serverExternalPackages: ['@electric-sql/pglite', 'postgres'],
   images: {
     loader: 'akamai',

@@ -5,6 +5,7 @@ const { signAdminToken } = require("../middlewares/staffAuth");
 const admin = require('../models/admin.model');
 const user = require("../models/user.model");
 const contact = require("../models/contact.model");
+const Callback = require("../models/callback.model");
 const news = require("../models/newslatter.model");
 const Property = require("../models/property.model");
 const PropertyInHouse = require("../models/inHouse.model");
@@ -139,6 +140,28 @@ exports.addContactUs = async (req, res) => {
         res.status(500).json({ error: 'Failed to add contact' });
     }
 
+};
+
+exports.addCallbackRequest = async (req, res) => {
+    try {
+        const clip = (v, n) => (v === undefined || v === null ? undefined : String(v).trim().slice(0, n) || undefined);
+        const { name, mobile_no } = req.body;
+        if (!name || !mobile_no) {
+            return res.status(400).json({ error: 'Name and mobile number are required' });
+        }
+        const saved = await new Callback({
+            name: clip(name, 120),
+            mobile_no: clip(mobile_no, 20),
+            interest: clip(req.body.interest, 120),
+            city: clip(req.body.city, 80),
+            message: clip(req.body.message, 1000),
+            language: req.body.language === 'hi' ? 'hi' : 'en',
+        }).save();
+        res.status(201).json({ message: 'Callback request saved', data: saved });
+    } catch (error) {
+        console.error('Error adding callback request', error);
+        res.status(500).json({ error: 'Failed to save callback request' });
+    }
 };
 
 exports.getContactUs = async (req, res) => {

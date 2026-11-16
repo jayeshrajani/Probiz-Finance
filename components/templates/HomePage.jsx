@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Check } from "@phosphor-icons/react";
+import { ArrowRight, ArrowUpRight, Calculator, Car, Check, Gauge, PiggyBank, ShieldCheck, Wallet } from "@phosphor-icons/react";
 import Scene from "@/components/art/Scene";
 import EmiCalculator from "@/components/calculators/EmiCalculator";
 import CalculatorPlayground from "@/components/fun/CalculatorPlayground";
@@ -14,6 +14,7 @@ import { organizationJsonLd } from "@/components/site/Seo";
 import SocialLinks from "@/components/site/SocialLinks";
 import { Button } from "@/components/ui/button";
 import { hrefFor, productBySlug, products, services } from "@/lib/catalog";
+import { useT } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
 const steps = [
@@ -33,51 +34,80 @@ const DOORS = [
   { title: "Services", body: "CA, registry, e-stamp, marketing and more.", scene: "docs", href: "/ca-services", n: services.length, quick: services.slice(0, 3).map((s) => ({ ...s, href: `/${s.slug}` })) },
 ];
 
+const QUICK_TOOLS = [
+  { href: "/checkfreescore", name: "Free CIBIL score", icon: Gauge },
+  { href: "/eligibility", name: "Loan eligibility", icon: Wallet },
+  { href: "/homeloan#emi", name: "EMI calculator", icon: Calculator },
+  { href: "/sipcalculator", name: "SIP calculator", icon: PiggyBank },
+  { href: "/idvcalculator", name: "Car IDV value", icon: Car },
+  { href: "/carinsurancecalculator", name: "Car insurance premium", icon: ShieldCheck },
+];
+
 function SectionHead({ eyebrow, title, body, className }) {
+  const t = useT();
   return (
     <div className={className}>
-      {eyebrow && <p className="text-sm font-medium text-brand-ink">{eyebrow}</p>}
-      <h2 className="display-2 mt-3 max-w-2xl text-balance">{title}</h2>
-      {body && <p className="lede mt-4 max-w-xl">{body}</p>}
+      {eyebrow && <p className="text-sm font-medium text-brand-ink">{t(eyebrow)}</p>}
+      <h2 className="display-2 mt-3 max-w-2xl text-balance">{t(title)}</h2>
+      {body && <p className="lede mt-4 max-w-xl">{t(body)}</p>}
     </div>
   );
 }
 
 function Hero() {
+  const t = useT();
   return (
     <section className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(45%_60%_at_88%_20%,var(--brand-soft),transparent),radial-gradient(40%_40%_at_0%_100%,oklch(0.97_0.004_286),transparent)]" />
       <div className="container-page relative grid items-center gap-14 pt-10 pb-20 md:pt-16 lg:grid-cols-12 lg:gap-12 lg:pb-28">
         <div className="animate-in fade-in slide-in-from-bottom-3 duration-700 lg:col-span-6">
           <p className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 py-1 pr-3.5 pl-1 text-sm font-medium">
-            <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-brand-ink">Across India</span>
-            Loans, insurance and paperwork since {site.since}
+            <span className="rounded-full bg-brand-soft px-2.5 py-0.5 text-brand-ink">{t("Across India")}</span>
+            {t("Loans, insurance and paperwork since {year}", { year: site.since })}
           </p>
           <h1 className="display-1 mt-7">
             <RotatingWord words={["Borrow", "Insure", "Invest", "Grow"]} label="Borrow, insure and invest with confidence." className="text-brand-ink" />
-            <span aria-hidden className="block">with confidence.</span>
+            <span aria-hidden className="block">{t("with confidence.")}</span>
           </h1>
           <p className="lede mt-6 max-w-lg text-pretty">
-            Home, business and personal loans from leading banks, plus insurance and investments, with the paperwork handled by one team wherever you are.
+            {t("Home, business and personal loans from leading banks, plus insurance and investments, with the paperwork handled by one team wherever you are.")}
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href="/eligibility">Check loan eligibility</Link>
+              <Link href="/eligibility">{t("Check loan eligibility")}</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
               <a href="#explore">
-                Explore products <ArrowRight weight="bold" />
+                {t("Explore products")} <ArrowRight weight="bold" />
               </a>
             </Button>
           </div>
-          <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
-            {["Low CIBIL considered", "Cash income considered", "Free calculators, no sign-up"].map((t) => (
-              <li key={t} className="inline-flex items-center gap-2">
+          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
+            {["Low CIBIL considered", "Cash income considered"].map((item) => (
+              <li key={item} className="inline-flex items-center gap-2">
                 <Check weight="bold" className="size-3.5 text-brand-ink" />
-                {t}
+                {t(item)}
               </li>
             ))}
           </ul>
+          <div className="mt-10">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t("Free tools, no sign-up")}</p>
+            <ul className="mt-3 grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-3">
+              {QUICK_TOOLS.map(({ href, name, icon: Icon }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="group flex h-full items-center gap-2.5 rounded-xl border border-border bg-background/80 px-3 py-2.5 text-sm font-medium transition-colors hover:border-brand/40 hover:bg-brand-soft hover:text-brand-ink"
+                  >
+                    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-secondary text-foreground/80 transition-colors group-hover:bg-background group-hover:text-brand-ink">
+                      <Icon weight="duotone" className="size-4.5" />
+                    </span>
+                    <span className="leading-tight">{t(name)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
           <SocialLinks className="mt-8" />
         </div>
 
@@ -85,13 +115,13 @@ function Hero() {
           <div className="relative rounded-[2.5rem] bg-[linear-gradient(160deg,var(--brand-soft),var(--cream)_60%)] p-4 pt-32 sm:p-8 sm:pt-36">
             <Scene name="home" className="pointer-events-none absolute -top-6 right-0 h-48 w-auto sm:-top-8 sm:right-4 sm:h-56" />
             <div className="art-float art-float-3 absolute top-10 left-6 hidden items-center gap-2 rounded-2xl bg-background/95 px-4 py-3 text-sm font-medium shadow-[0_18px_40px_-24px_oklch(0.21_0.006_286/0.45)] sm:flex">
-              <span className="size-2 rounded-full bg-brand" /> Move the sliders
+              <span className="size-2 rounded-full bg-brand" /> {t("Move the sliders")}
             </div>
             <div className="relative rounded-[1.75rem] border border-border bg-background p-5 shadow-[0_40px_100px_-56px_oklch(0.21_0.006_286/0.5)] sm:p-7">
               <div className="mb-6 flex items-center justify-between">
-                <p className="font-semibold tracking-[-0.015em]">What would your EMI be?</p>
+                <p className="font-semibold tracking-[-0.015em]">{t("What would your EMI be?")}</p>
                 <Link href="/homeloan#apply" className="text-sm font-medium text-brand-ink hover:underline">
-                  Apply
+                  {t("Apply")}
                 </Link>
               </div>
               <EmiCalculator compact defaults={{ amount: 3000000, rate: 8.5, years: 20 }} />
@@ -104,6 +134,7 @@ function Hero() {
 }
 
 function Doors() {
+  const t = useT();
   return (
     <section id="explore" className="section border-t border-border">
       <div className="container-page">
@@ -113,20 +144,20 @@ function Doors() {
             <article key={d.title} className="group relative flex flex-col overflow-hidden rounded-[2rem] border border-border bg-background transition-[box-shadow,transform] duration-300 hover:-translate-y-1 hover:shadow-[0_30px_60px_-36px_oklch(0.21_0.006_286/0.35)]">
               <div className="relative aspect-[4/3] bg-[linear-gradient(170deg,var(--brand-soft),var(--cream))]">
                 <Scene name={d.scene} className="absolute inset-0 m-auto h-[92%] w-[92%] transition-transform duration-700 ease-out group-hover:scale-[1.04]" />
-                <span className="absolute top-4 left-4 rounded-full bg-background/90 px-3 py-1 text-xs font-medium tabular-nums">{d.n} options</span>
+                <span className="absolute top-4 left-4 rounded-full bg-background/90 px-3 py-1 text-xs font-medium tabular-nums">{t("{n} options", { n: d.n })}</span>
               </div>
               <div className="flex flex-1 flex-col p-6">
                 <h3 className="text-2xl font-semibold tracking-[-0.025em]">
                   <Link href={d.href} className="after:absolute after:inset-0">
-                    {d.title}
+                    {t(d.title)}
                   </Link>
                 </h3>
-                <p className="mt-2 text-muted-foreground">{d.body}</p>
+                <p className="mt-2 text-muted-foreground">{t(d.body)}</p>
                 <ul className="relative z-10 mt-5 flex flex-wrap gap-2 sm:gap-1.5">
                   {d.quick.map((q) => (
                     <li key={q.slug}>
                       <Link href={hrefFor(q)} className="inline-flex rounded-full bg-secondary px-3.5 py-2.5 text-[0.8125rem] font-medium transition-colors hover:bg-brand-soft hover:text-brand-ink sm:px-3 sm:py-1.5">
-                        {q.name}
+                        {t(q.name)}
                       </Link>
                     </li>
                   ))}
@@ -152,6 +183,7 @@ function Planner() {
 }
 
 function HardCases() {
+  const t = useT();
   return (
     <section className="section border-t border-border">
       <div className="container-page">
@@ -159,26 +191,26 @@ function HardCases() {
         <div className="mt-12 grid gap-4 md:grid-cols-3 md:grid-rows-2">
           <article className="reveal relative flex flex-col justify-between overflow-hidden rounded-[1.75rem] bg-foreground p-8 text-background md:col-span-2 md:p-10">
             <Scene name="score" bare className="pointer-events-none absolute -right-6 -bottom-10 hidden h-72 w-auto md:block" />
-            <p className="relative text-sm text-background/60">Low CIBIL score</p>
+            <p className="relative text-sm text-background/60">{t("Low CIBIL score")}</p>
             <div className="relative mt-16 md:max-w-[60%]">
-              <p className="font-display text-[clamp(1.75rem,1.4rem+1.4vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.03em]">A low score is a starting point, not a rejection.</p>
-              <p className="mt-4 text-background/70">We structure applications for borrowers with low or challenged credit, and tell you honestly what will help.</p>
+              <p className="font-display text-[clamp(1.75rem,1.4rem+1.4vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.03em]">{t("A low score is a starting point, not a rejection.")}</p>
+              <p className="mt-4 text-background/70">{t("We structure applications for borrowers with low or challenged credit, and tell you honestly what will help.")}</p>
             </div>
           </article>
           <article className="reveal flex flex-col justify-between overflow-hidden rounded-[1.75rem] bg-brand-soft p-8">
-            <p className="text-sm text-brand-ink">Cash income</p>
+            <p className="text-sm text-brand-ink">{t("Cash income")}</p>
             <Scene name="shop" className="mx-auto my-2 h-32 w-auto" />
-            <p className="text-xl font-semibold leading-snug tracking-[-0.02em]">Shop owners and traders paid in cash are considered too.</p>
+            <p className="text-xl font-semibold leading-snug tracking-[-0.02em]">{t("Shop owners and traders paid in cash are considered too.")}</p>
           </article>
           <article className="reveal flex flex-col justify-between overflow-hidden rounded-[1.75rem] border border-border p-8">
-            <p className="text-sm text-muted-foreground">Complex property papers</p>
+            <p className="text-sm text-muted-foreground">{t("Complex property papers")}</p>
             <Scene name="docs" className="mx-auto my-2 h-32 w-auto" />
-            <p className="text-xl font-semibold leading-snug tracking-[-0.02em]">Unclear titles or legal complications, reviewed with our legal team.</p>
+            <p className="text-xl font-semibold leading-snug tracking-[-0.02em]">{t("Unclear titles or legal complications, reviewed with our legal team.")}</p>
           </article>
           <article className="reveal grid gap-8 overflow-hidden rounded-[1.75rem] bg-secondary p-8 md:col-span-2 md:grid-cols-[auto_1fr_auto] md:items-end md:p-10">
             <p className="font-display text-[clamp(4rem,3rem+4vw,6.5rem)] font-semibold leading-[0.85] tracking-[-0.05em] text-foreground/90">{site.since}</p>
             <p className="max-w-sm text-muted-foreground md:pb-2">
-              The year we started, in Indore. Today we help borrowers across India, and the same team handles registry, notary and e-stamp work too.
+              {t("The year we started, in Indore. Today we help borrowers across India, and the same team handles registry, notary and e-stamp work too.")}
             </p>
             <Scene name="city" bare className="-mb-10 hidden h-48 w-auto self-end lg:block" />
           </article>
@@ -200,14 +232,15 @@ function Score() {
 }
 
 function HowItWorks() {
+  const t = useT();
   return (
     <section className="section border-t border-border">
       <div className="container-page grid gap-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <div className="lg:sticky lg:top-28">
-            <p className="text-sm font-medium text-brand-ink">How it works</p>
-            <h2 className="display-2 mt-3 max-w-md">From first call to disbursal.</h2>
-            <p className="lede mt-5 max-w-sm">Four steps, one advisor, and no chasing the bank yourself.</p>
+            <p className="text-sm font-medium text-brand-ink">{t("How it works")}</p>
+            <h2 className="display-2 mt-3 max-w-md">{t("From first call to disbursal.")}</h2>
+            <p className="lede mt-5 max-w-sm">{t("Four steps, one advisor, and no chasing the bank yourself.")}</p>
             <Scene name="consult" className="mt-8 hidden h-56 w-auto lg:block" />
           </div>
         </div>
@@ -216,8 +249,8 @@ function HowItWorks() {
             <li key={s.title} className="reveal grid grid-cols-[3.5rem_1fr] gap-4 border-t border-border py-9 first:border-t-0 first:pt-0">
               <span className="inline-flex size-11 items-center justify-center rounded-full bg-brand-soft font-display text-lg font-semibold tabular-nums text-brand-ink">{i + 1}</span>
               <div>
-                <h3 className="text-xl font-semibold tracking-[-0.02em]">{s.title}</h3>
-                <p className="mt-2 max-w-lg leading-relaxed text-muted-foreground">{s.body}</p>
+                <h3 className="text-xl font-semibold tracking-[-0.02em]">{t(s.title)}</h3>
+                <p className="mt-2 max-w-lg leading-relaxed text-muted-foreground">{t(s.body)}</p>
               </div>
             </li>
           ))}
@@ -254,13 +287,14 @@ function Tools() {
 }
 
 function Services() {
+  const t = useT();
   return (
     <section className="section border-t border-border">
       <div className="container-page grid gap-12 lg:grid-cols-12">
         <div className="lg:col-span-4">
-          <p className="text-sm font-medium text-brand-ink">Beyond loans</p>
-          <h2 className="display-2 mt-3">More than loans.</h2>
-          <p className="lede mt-5 max-w-sm">Chartered accountants, legal documentation and marketing for the businesses we fund.</p>
+          <p className="text-sm font-medium text-brand-ink">{t("Beyond loans")}</p>
+          <h2 className="display-2 mt-3">{t("More than loans.")}</h2>
+          <p className="lede mt-5 max-w-sm">{t("Chartered accountants, legal documentation and marketing for the businesses we fund.")}</p>
         </div>
         <ul className="grid gap-x-10 sm:grid-cols-2 lg:col-span-8">
           {services.map((s) => {
@@ -272,8 +306,8 @@ function Services() {
                     <Icon weight="duotone" className="size-5" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold tracking-[-0.015em]">{s.name}</span>
-                    <span className="mt-0.5 block text-sm text-muted-foreground">{s.blurb}</span>
+                    <span className="block font-semibold tracking-[-0.015em]">{t(s.name)}</span>
+                    <span className="mt-0.5 block text-sm text-muted-foreground">{t(s.blurb)}</span>
                   </span>
                   <ArrowUpRight weight="bold" className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
                 </Link>
