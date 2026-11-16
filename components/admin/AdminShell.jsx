@@ -14,6 +14,7 @@ import {
   List,
   MagnifyingGlass,
   Newspaper,
+  PlusCircle,
   ShieldCheck,
   SignOut,
   SquaresFour,
@@ -84,6 +85,7 @@ function Sidebar({ onNavigate }) {
               <NavLink href="/admin-panel/leads?scope=unassigned" icon={UserCirclePlus} label="Pick up new leads" active={activeScope === "unassigned" && !filteredByProduct} count={counts.unassigned} onNavigate={onNavigate} />
             </>
           )}
+          <NavLink href="/admin-panel/leads/new" icon={PlusCircle} label="Add a lead" active={is("/admin-panel/leads/new")} onNavigate={onNavigate} />
         </div>
 
         <div>

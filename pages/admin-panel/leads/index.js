@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowSquareOut, DownloadSimple, MagnifyingGlass, Phone, X } from "@phosphor-icons/react";
+import { ArrowSquareOut, DownloadSimple, MagnifyingGlass, Phone, Plus, X } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { Empty, ErrorNote, LoadingRows, PageHeader, Pager, StatusBadge } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
@@ -155,6 +155,11 @@ function Leads() {
             <DownloadSimple /> {exporting ? "Exporting..." : "Export CSV"}
           </Button>
         )}
+        <Button asChild size="sm">
+          <Link href={typeDef?.formKey ? `/admin-panel/leads/new?type=${typeDef.type}` : "/admin-panel/leads/new"}>
+            <Plus weight="bold" /> Add lead
+          </Link>
+        </Button>
       </PageHeader>
 
       <Card className="overflow-hidden">

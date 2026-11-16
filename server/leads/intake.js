@@ -6,6 +6,8 @@ const { saveTracker, transaction } = require('../odm');
 const { deleteStoredFile } = require('../storage');
 const Lead = require('../models/lead.model');
 const User = require('../models/user.model');
+const Employee = require('../models/employee.model');
+const { requireStaff } = require('../middlewares/staffAuth');
 const { parseBody, runChain } = require('../http');
 const { byType, byFormKey, summarize } = require('../admin/leads');
 const { allow } = require('./rateLimit');
@@ -93,9 +95,13 @@ function makeGate(ctx) {
     delete body[HONEYPOT];
     ctx.meta = takeMeta(body);
     if (ctx.meta.channel && ctx.mode === 'new') ctx.channel = ctx.meta.channel;
-    if (ctx.channel === 'staff') return true;
+    const staffEntry = ctx.mode === 'staff';
+    const assignTo = String(body._assignTo || '');
+    delete body._assignTo;
+    // The legacy admin-only in-house endpoint keeps its old unchecked behaviour.
+    if (ctx.channel === 'staff' && !staffEntry) return true;
 
-    if (trap && String(trap).trim()) {
+    if (!staffEntry && trap && String(trap).trim()) {
       res.status(201).json({ message: THANKS });
       return false;
     }
@@ -103,19 +109,33 @@ function makeGate(ctx) {
       const names = req.rejectedFiles.map((f) => f.filename || f.field).join(', ');
       return deny(res, 400, `We couldn't accept ${names}. Upload PDF, JPG or PNG files of up to 5 MB each.`);
     }
-    const ip = clientIp(req);
-    const ok = await allow([
-      { key: `lead:${ip}:${ctx.def.type}`, limit: 5, windowSeconds: 600 },
-      { key: `lead:${ip}`, limit: 30, windowSeconds: 86400 },
-    ]);
-    if (!ok) return deny(res, 429, "You've sent a few requests already. Please try again in a few minutes, or call us.");
+    if (!staffEntry) {
+      const ip = clientIp(req);
+      const ok = await allow([
+        { key: `lead:${ip}:${ctx.def.type}`, limit: 5, windowSeconds: 600 },
+        { key: `lead:${ip}`, limit: 30, windowSeconds: 86400 },
+      ]);
+      if (!ok) return deny(res, 429, "You've sent a few requests already. Please try again in a few minutes, or call us.");
+    }
+
+    if (staffEntry) {
+      // Employees own what they enter; admins may hand it to an employee or leave it in the pool.
+      if (req.staff.role !== 'admin') ctx.assignee = { id: req.staff.id, name: req.staff.name };
+      else if (assignTo) {
+        const employee = await Employee.findOne({ _id: assignTo, deleteFlag: false }).lean();
+        if (!employee) return deny(res, 400, 'That employee no longer exists.');
+        ctx.assignee = { id: String(employee._id), name: employee.name };
+      }
+    }
 
     if (ctx.def.formKey) {
       const { validateLead } = await loadSchema();
       const errors = validateLead(ctx.def.formKey, body);
       if (Object.keys(errors).length) return deny(res, 400, 'Please check the highlighted fields.', { fields: errors });
     }
-    if (ctx.mode === 'new' && !ctx.meta.consent) return deny(res, 400, 'Please accept the privacy policy so we can contact you.');
+    if (ctx.mode !== 'legacy' && !ctx.meta.consent) {
+      return deny(res, 400, staffEntry ? 'Confirm the customer agreed to be contacted.' : 'Please accept the privacy policy so we can contact you.');
+    }
     return true;
   };
 }
@@ -185,8 +205,16 @@ async function upsertLead(ctx, refId, req) {
       for (const k of ['name', 'email', 'amount', 'detail']) if (s[k]) existing[k] = String(s[k]);
       if (!existing.userId && ctx.userId) existing.userId = ctx.userId;
       if (ctx.meta?.consent) existing.consent = { ...ctx.meta.consent, at: now };
+      const assign = !existing.assignedTo && ctx.assignee;
+      if (assign) {
+        existing.assignedTo = ctx.assignee.id;
+        existing.assignedName = ctx.assignee.name;
+      }
       await existing.save();
-      tx.afterCommit(() => emit(existing, 'lead.repeat', actor, { refId, source }));
+      tx.afterCommit(async () => {
+        await emit(existing, 'lead.repeat', actor, { refId, source });
+        if (assign) await emit(existing, 'lead.assigned', actor, assignedData(ctx, actor));
+      });
       return { lead: existing, repeat: true };
     }
 
@@ -201,6 +229,8 @@ async function upsertLead(ctx, refId, req) {
       amount: s.amount ? String(s.amount) : null,
       detail: s.detail ? String(s.detail).slice(0, 300) : null,
       status: 'new',
+      assignedTo: ctx.assignee?.id || null,
+      assignedName: ctx.assignee?.name || null,
       userId: ctx.userId,
       source,
       consent: ctx.meta?.consent ? { ...ctx.meta.consent, at: now } : null,
@@ -208,10 +238,15 @@ async function upsertLead(ctx, refId, req) {
       repeatCount: 0,
       lastActivityAt: now,
     });
-    tx.afterCommit(() => emit(lead, 'lead.created', actor, { refId, source }));
+    tx.afterCommit(async () => {
+      await emit(lead, 'lead.created', actor, { refId, source });
+      if (ctx.assignee) await emit(lead, 'lead.assigned', actor, assignedData(ctx, actor));
+    });
     return { lead, repeat: false };
   });
 }
+
+const assignedData = (ctx, actor) => ({ to: ctx.assignee.id, name: ctx.assignee.name, claimed: ctx.assignee.id === actor.id });
 
 function persist(controller) {
   return async (req, res) => {
@@ -241,6 +276,17 @@ function persist(controller) {
     }
     if (ok && ctx.mode === 'new') {
       return res.status(201).json({ message: THANKS, leadId: result?.lead?._id || null, repeat: Boolean(result?.repeat) });
+    }
+    if (ok && ctx.mode === 'staff') {
+      const lead = result?.lead;
+      return res.status(201).json({
+        message: 'Lead added.',
+        leadId: lead ? String(lead._id) : null,
+        type: ctx.def.type,
+        repeat: Boolean(result?.repeat),
+        assignedTo: lead?.assignedTo || null,
+        assignedName: lead?.assignedName || null,
+      });
     }
     for (const [k, v] of Object.entries(out.headers)) res.setHeader(k, v);
     if (out.body === undefined) return res.status(out.status).end();
@@ -277,15 +323,20 @@ function installLeadIntake(app, routes) {
     route.handlers = buildChain(def, route.handlers, { mode: 'legacy', channel: def.type === 'inhouse' ? 'staff' : 'legacy_api' });
   }
 
-  const intake = async (req, res) => {
-    const def = byFormKey[req.params.formKey];
-    const handlers = def && originals.get(def.type);
-    if (!handlers) return res.status(404).json({ message: 'Unknown form.', status: 404 });
-    if (!hasMultipart(handlers)) req.body = await parseBody(req);
-    await runChain(buildChain(def, handlers, { mode: 'new', channel: 'web_form' }), req, res);
+  const intake = (mode, channel) => {
+    const handler = async (req, res) => {
+      const def = byFormKey[req.params.formKey];
+      const handlers = def && originals.get(def.type);
+      if (!handlers) return res.status(404).json({ message: 'Unknown form.', status: 404 });
+      if (!hasMultipart(handlers)) req.body = await parseBody(req);
+      await runChain(buildChain(def, handlers, { mode, channel }), req, res);
+    };
+    handler.$body = 'deferred';
+    return handler;
   };
-  intake.$body = 'deferred';
-  app.post('/api/leads/:formKey', intake);
+  app.post('/api/leads/:formKey', intake('new', 'web_form'));
+  // Admins and employees entering a lead by hand (phone call, walk-in) through the same form and checks.
+  app.post('/api/admin/leads/:formKey', requireStaff, intake('staff', 'staff'));
 }
 
 on('lead.created', async function whatsappAlert(lead) {

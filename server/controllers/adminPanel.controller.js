@@ -133,7 +133,7 @@ exports.config = async (req, res) => {
       role: req.staff.role,
       statuses: STATUSES,
       groups: GROUPS,
-      types: LEAD_TYPES.map(({ type, label, group, page }) => ({ type, label, group, page: page || null })),
+      types: LEAD_TYPES.map(({ type, label, group, page, formKey }) => ({ type, label, group, page: page || null, formKey })),
       channels: CHANNELS,
       employees: employees.map((e) => ({ id: String(e._id), name: e.name })),
     },
