@@ -102,7 +102,7 @@ function NewLead() {
     try {
       const res = await adminFetch(`admin/leads/${def.formKey}`, { method: "POST", body });
       refreshCounts();
-      if (isSales) toast.success("Lead added. It is waiting for Operations L1.");
+      if (isSales) toast.success(`Lead ${res.leadRef ? `${res.leadRef} ` : ""}added. It is waiting for Operations L1.`);
       const visibleToMe = isAdmin || isSales || res.assignedTo === staff.id || (!res.assignedTo && res.stage === myLevel);
       if (res.leadId && visibleToMe) return router.push(`/admin-panel/leads/${res.type}/${res.leadId}`);
       setMerged(res);
@@ -119,8 +119,8 @@ function NewLead() {
       <Panel title="Added to an existing lead">
         <p className="text-sm text-muted-foreground">
           {merged.repeat
-            ? `This customer already has an open ${def?.label.toLowerCase() || ""} lead with ${merged.assignedName || "another advisor"}, so your entry was added to it.`
-            : "The lead was saved."}
+            ? `This customer already has an open ${def?.label.toLowerCase() || ""} lead${merged.leadRef ? ` (${merged.leadRef})` : ""} with ${merged.assignedName || "another advisor"}, so your entry was added to it.`
+            : merged.leadRef ? `Lead ${merged.leadRef} was saved.` : "The lead was saved."}
         </p>
         <div className="mt-4 flex gap-2">
           <Button asChild variant="outline" size="sm">

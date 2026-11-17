@@ -31,7 +31,8 @@ const leadSchema = mongoose.Schema(
     archived: { type: Boolean, default: false },
     archivedAt: { type: Date, default: null },
     archivedBy: { type: String, default: null },
-    // Reference shown to staff: product code + sequence (NUL-000042 becomes HL-000042 when the customer applies).
+    // Reference shown to staff: product code + that product's sequence (HL0042); seq is the number part.
+    // A NUL lead that converts gets the product's next number and keeps the old one in convertedFrom.
     ref: { type: String, default: null },
     seq: { type: Number, default: null },
     convertedFrom: { type: String, default: null },

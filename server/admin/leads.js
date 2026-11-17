@@ -98,15 +98,16 @@ for (const def of LEAD_TYPES) {
   def.endpoint = endpoint ? `/api/${endpoint}` : null;
 }
 
-// Reference prefix per lead type (HL-000123). NUL: signed in with a mobile OTP but not applied for anything yet.
+// Reference prefix per lead type (HL0001), each with its own sequence (server/leads/refs.js); types sharing a
+// prefix share the sequence. NUL: signed in with a mobile OTP but not applied yet. Never change a used prefix.
 const CODES = {
-  homeloan: 'HL', plotpurchase: 'PPL', plotconstruction: 'PCL', flatpurchase: 'FPL', lap: 'LAP', construction: 'CNL',
+  homeloan: 'HL', plotpurchase: 'PPL', plotconstruction: 'PCL', flatpurchase: 'FPL', lap: 'LAP', construction: 'CL',
   renovation: 'HRL', commercialpurchase: 'CPL', commercialmortgage: 'CPM', balancetransfer: 'BT', bttopup: 'BTT',
-  personal: 'PL', business: 'BL', mudra: 'MDL', projectfunding: 'PFL', car: 'CAR', education: 'EDL', gold: 'GL',
-  kisan: 'KCC', creditcard: 'CC', health: 'HIN', motor: 'MIN', investment: 'INV', ca: 'CA', legal: 'LEG',
-  estamp: 'EST', government: 'GOV', consultation: 'BCS', creditscore: 'CSC', marketing: 'DM', realestate: 'RE',
+  personal: 'PL', business: 'BL', mudra: 'ML', projectfunding: 'PF', car: 'CAR', education: 'EL', gold: 'GL',
+  kisan: 'KCC', creditcard: 'CC', health: 'HI', motor: 'MI', investment: 'INV', ca: 'CA', legal: 'REG',
+  estamp: 'ES', government: 'GS', consultation: 'BC', creditscore: 'CS', marketing: 'DM', realestate: 'RE',
   dsa: 'DSA', gstreg: 'GST', gumastareg: 'GUM', itrfiling: 'ITR', rentagreement: 'RA', udyam: 'UDY',
-  callback: 'CB', signin: 'NUL', contact: 'MSG', inhouse: 'PRQ', itr: 'ITO', msme: 'MSO', gumasta: 'GMO',
+  callback: 'CB', signin: 'NUL', contact: 'CON', inhouse: 'PR', itr: 'ITR', msme: 'MSME', gumasta: 'GUM',
 };
 for (const def of LEAD_TYPES) def.code = CODES[def.type] || 'LD';
 

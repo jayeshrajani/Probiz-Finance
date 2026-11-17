@@ -16,11 +16,28 @@ import { recalledContact } from "@/lib/callback";
 import { forms } from "@/lib/forms";
 import { useLocale, useT } from "@/lib/i18n";
 import { CONSENT_TEXT, HONEYPOT, isEmpty, validateField, visible } from "@/lib/lead-schema";
+import { LOCATION_EVENT, savedLocation } from "@/lib/location";
 import { useSiteSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/utils";
 
 // Hosting (Vercel) rejects request bodies above 4.5 MB.
 const MAX_UPLOAD = 4.4 * 1024 * 1024;
+
+// Forms without a city of their own get this on the first step; it travels in _meta, not the form record.
+const LOCATION_FIELD = { name: "_location", label: "Your city", type: "text", half: true, maxLength: 120, autoComplete: "address-level2" };
+
+// Which saved-location part fills which form field.
+function locationFill(fields, loc) {
+  const fill = {};
+  for (const f of fields) {
+    if (f.name === "_location") fill[f.name] = loc.label;
+    else if (f.autoComplete === "address-level2") fill[f.name] = loc.city;
+    else if (f.autoComplete === "address-level1") fill[f.name] = loc.state;
+    else if (f.name === "district") fill[f.name] = loc.district;
+    else if (f.name === "pinCode") fill[f.name] = loc.pinCode;
+  }
+  return Object.fromEntries(Object.entries(fill).filter(([, v]) => v));
+}
 
 export default function ApplicationForm({ formKey, preset = {}, productName, className }) {
   const config = forms[formKey];
@@ -30,9 +47,13 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   const idPrefix = useId().replace(/:/g, "");
   const topRef = useRef(null);
 
+  const cityField = config.steps.flatMap((s) => s.fields).find((f) => f.autoComplete === "address-level2")?.name;
   const steps = useMemo(
-    () => [...config.steps, ...(config.files?.length ? [{ id: "documents", title: "Documents", files: true }] : [])],
-    [config]
+    () => [
+      ...config.steps.map((s, i) => (i === 0 && !cityField ? { ...s, fields: [...s.fields, LOCATION_FIELD] } : s)),
+      ...(config.files?.length ? [{ id: "documents", title: "Documents", files: true }] : []),
+    ],
+    [config, cityField]
   );
 
   const [values, setValues] = useState(() => ({ ...preset }));
@@ -48,6 +69,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   // The saved lead, so the customer can prove the number with a code (a genuine lead for the team).
   const [submitted, setSubmitted] = useState(null);
   const otpAvailable = useOtpAvailable();
+  const [leadRef, setLeadRef] = useState(null);
   const trapRef = useRef(null);
   const doneRef = useRef(null);
 
@@ -62,6 +84,20 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
     }
     setValues((v) => ({ ...fill, ...Object.fromEntries(Object.entries(v).filter(([, x]) => !isEmpty(x))) }));
   }, [config]);
+
+  // The visitor's location fills only empty fields, so anything they typed or changed stays.
+  useEffect(() => {
+    const fields = steps.flatMap((s) => s.fields || []);
+    const apply = (loc) => {
+      if (!loc) return;
+      const fill = locationFill(fields, loc);
+      setValues((v) => ({ ...v, ...Object.fromEntries(Object.entries(fill).filter(([k]) => isEmpty(v[k]))) }));
+    };
+    apply(savedLocation());
+    const onLocation = (e) => apply(e.detail);
+    window.addEventListener(LOCATION_EVENT, onLocation);
+    return () => window.removeEventListener(LOCATION_EVENT, onLocation);
+  }, [steps]);
 
   // The form is taller than the confirmation, so scroll after the swap or the message lands above the screen.
   useEffect(() => {
@@ -128,7 +164,11 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
         if (!isEmpty(values[field.name])) payload[field.name] = String(values[field.name]).trim();
       }
     }
-    const meta = leadMeta({ consent: true });
+    const place = (cityField ? [values[cityField], values.district, values.state, values.pinCode] : [values._location])
+      .filter((x) => !isEmpty(x))
+      .map((x) => String(x).trim())
+      .join(", ");
+    const meta = leadMeta({ consent: true, location: place });
     const trap = trapRef.current?.value || "";
     const endpoint = `leads/${formKey}`;
 
@@ -149,6 +189,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
     if (res.ok) {
       setRepeat(Boolean(res.data?.repeat));
       setSubmitted(res.data?.leadId ? { leadId: String(res.data.leadId), verified: Boolean(res.data.phoneVerified) } : null);
+      setLeadRef(res.data?.leadRef || null);
       setStatus("done");
       track("generate_lead", { form: formKey, product: productName || formKey, repeat: Boolean(res.data?.repeat) });
     } else {
@@ -180,6 +221,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
           <h3 ref={doneRef} tabIndex={-1} className="headline mt-5 outline-none">
             {firstName ? t("Thank you, {name}.", { name: firstName }) : t("Thank you.")} {repeat ? t("We've added this to your request.") : t("We have your details.")}
           </h3>
+          {leadRef && <p className="mt-3 font-medium tabular-nums">{t("Your reference number is {id}.", { id: leadRef })}</p>}
           <p className="mt-3 max-w-md leading-relaxed text-muted-foreground">
             {repeat
               ? t("You sent us a similar request recently, so your advisor will see both together instead of calling twice.")
@@ -207,7 +249,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
             <Button asChild>
               <Link href="/">{t("Back to home")}</Link>
             </Button>
-            <Button variant="outline" onClick={() => { setValues({ ...preset }); setFiles({}); setStep(0); setRepeat(false); setStatus("idle"); }}>
+            <Button variant="outline" onClick={() => { const loc = savedLocation(); setValues({ ...(loc ? locationFill(steps.flatMap((s) => s.fields || []), loc) : {}), ...preset }); setFiles({}); setStep(0); setRepeat(false); setStatus("idle"); }}>
               {t("Submit another")}
             </Button>
           </div>

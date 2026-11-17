@@ -50,7 +50,7 @@ async function recordSignin(user, phone, meta = {}) {
       tx.afterCommit(() => emit(target, 'lead.signed_in', actor, null));
       return { lead: target, created: false };
     }
-    const seq = await nextSeq(tx);
+    const seq = await nextSeq(tx, 'signin');
     const record = await MobileSignin.create({ name: user.user_Name || null, mobile_no: phone, userId });
     const source = { channel: 'otp_signin', ...(meta.source || {}) };
     const lead = await Lead.create({

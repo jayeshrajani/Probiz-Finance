@@ -67,6 +67,7 @@ function takeMeta(body) {
       referrer: clip(meta.source?.referrer),
       landingPage: clip(meta.source?.landingPage),
       device: clip(meta.source?.device, 20),
+      location: clip(meta.source?.location, 120),
       utm: Object.fromEntries(['source', 'medium', 'campaign', 'term', 'content'].map((k) => [k, clip(utm[k], 120)]).filter(([, v]) => v)),
     },
     consent: meta.consent?.accepted === true ? { accepted: true, version: clip(meta.consent.version, 40), text: clip(meta.consent.text, 500) } : null,
@@ -241,12 +242,13 @@ async function upsertLead(ctx, refId, req) {
       return { lead: existing, repeat: true };
     }
 
-    // Signed in with an OTP earlier and now applying: the NUL lead becomes this product's lead (same number).
+    // Signed in with an OTP earlier and now applying: the NUL lead becomes this product's lead, with the next
+    // number for that product (NUL0007 becomes, say, HL0042; convertedFrom keeps NUL0007).
     const signin = signinKey && !ctx.noMerge ? await Lead.findOne({ dedupeKey: signinKey }) : null;
     if (signin && signin.type === 'signin' && !signin.archived && OPEN.includes(signin.status)) {
       const from = signin.ref;
       const placeholders = signin.refIds || [];
-      if (!signin.seq) signin.seq = await nextSeq(tx);
+      signin.seq = await nextSeq(tx, def.type);
       Object.assign(signin, {
         type: def.type,
         formKey: def.formKey,
@@ -270,7 +272,7 @@ async function upsertLead(ctx, refId, req) {
       return { lead: signin, repeat: false, converted: true };
     }
 
-    const seq = await nextSeq(tx);
+    const seq = await nextSeq(tx, def.type);
     const lead = await Lead.create({
       type: def.type,
       formKey: def.formKey,
@@ -348,6 +350,7 @@ function persist(controller) {
       return res.status(201).json({
         message: 'Lead added.',
         leadId: lead ? String(lead._id) : null,
+        leadRef: lead?.ref || null,
         type: ctx.def.type,
         repeat: Boolean(result?.repeat),
         assignedTo: lead?.assignedTo || null,
@@ -406,13 +409,18 @@ function installLeadIntake(app, routes) {
   app.post('/api/admin/leads/:formKey', requireStaff, intake('staff', 'staff'));
 }
 
+const alertLabel = (lead) => {
+  const label = byType[lead.type]?.label || lead.type;
+  return lead.ref ? `${label} (${lead.ref})` : label;
+};
+
 on('lead.created', async function whatsappAlert(lead) {
-  await notifyNewLead(lead, byType[lead.type]?.label || lead.type);
+  await notifyNewLead(lead, alertLabel(lead));
 });
 
 // A mobile sign-in that turns into an application is news for the team as well.
 on('lead.converted', async function whatsappAlert(lead) {
-  await notifyNewLead(lead, byType[lead.type]?.label || lead.type);
+  await notifyNewLead(lead, alertLabel(lead));
 });
 
 module.exports = { installLeadIntake, upsertLead, normalizePhone, HONEYPOT, clientIp, takeMeta };

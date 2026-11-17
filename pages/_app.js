@@ -14,6 +14,7 @@ import { SiteSettingsProvider } from "@/lib/site-settings";
 
 const Assistant = dynamic(() => import("@/components/assistant/Assistant"), { ssr: false });
 const CallbackDialog = dynamic(() => import("@/components/site/CallbackDialog"), { ssr: false });
+const LocationPrompt = dynamic(() => import("@/components/site/LocationPrompt"), { ssr: false });
 
 // Apple devices render SF Pro through the system stack; Inter is the fallback elsewhere.
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
@@ -61,6 +62,7 @@ export default function App({ Component, pageProps }) {
               <Assistant />
               <CallbackDialog />
               <Analytics />
+              <LocationPrompt />
             </SiteSettingsProvider>
           </I18nProvider>
         )}

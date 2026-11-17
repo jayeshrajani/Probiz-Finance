@@ -27,6 +27,8 @@
   "Requested through the website assistant.": "वेबसाइट असिस्टेंट से अनुरोध किया गया।",
   "We already had a recent request from you, so I've added this to it. An advisor will call {name} on {mobile}.": "आपका एक अनुरोध हाल ही में आ चुका है, इसलिए मैंने इसे उसी में जोड़ दिया है। सलाहकार {name} को {mobile} पर कॉल करेंगे।",
   "Done. An advisor will call {name} on {mobile} soon.": "हो गया। सलाहकार जल्द ही {name} को {mobile} पर कॉल करेंगे।",
+  "We already had a recent request from you, so I've added this to it. An advisor will call {name} on {mobile}. Your reference number is {id}.": "आपका एक अनुरोध हाल ही में आ चुका है, इसलिए मैंने इसे उसी में जोड़ दिया है। सलाहकार {name} को {mobile} पर कॉल करेंगे। आपका संदर्भ नंबर {id} है।",
+  "Done. An advisor will call {name} on {mobile} soon. Your reference number is {id}.": "हो गया। सलाहकार जल्द ही {name} को {mobile} पर कॉल करेंगे। आपका संदर्भ नंबर {id} है।",
   "Add more details on the {product} form": "{product} फ़ॉर्म में और जानकारी जोड़ें",
   "Find a loan": "लोन ढूँढें",
   "No problem. Anything else I can help with?": "कोई बात नहीं। मैं और किसी चीज़ में मदद करूँ?",

@@ -20,7 +20,8 @@
         "We may collect the following types of information:",
         "Personal Information: Name, email address, phone number, company name, and other details you provide when contacting us or filling out forms.",
         "Usage Data: Information about how you access and use our website, including IP address, browser type, pages visited, and time spent.",
-        "Cookies and Tracking Technologies: We use cookies and similar tools to enhance user experience, analyze website performance, and deliver relevant content."
+        "Cookies and Tracking Technologies: We use cookies and similar tools to enhance user experience, analyze website performance, and deliver relevant content.",
+        "Location: Only if you allow it, your browser shares your location. We send the coordinates once to our map provider (BigDataCloud) to find your city, state and PIN code, keep only those on your device to fill in our forms, and include the city you confirm with your request. We do not store your coordinates."
       ],
       "bullets": []
     },

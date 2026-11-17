@@ -80,10 +80,11 @@ for (const formKey of Object.keys(forms)) {
   const phone = freshPhone();
   const res = await submit(formKey, sampleValues(formKey, phone));
   ok(res.status === 201 && res.data.leadId && res.data.repeat === false, `${formKey} -> 201`, res);
+  ok(/^[A-Z]{2,4}\d{4,}$/.test(res.data.leadRef || ""), `${formKey} -> reference ${res.data.leadRef}`, res.data);
   if (res.data.leadId) {
     const { data } = await get(`admin/leads?q=${phone}&limit=5`);
     const row = data.data?.find((r) => r.id === res.data.leadId);
-    ok(row && row.channel === "web_form" && row.status === "new", `${formKey} visible to admin`, data);
+    ok(row && row.channel === "web_form" && row.status === "new" && row.ref === res.data.leadRef, `${formKey} visible to admin`, data);
   }
 }
 
@@ -122,8 +123,11 @@ console.log("\nDuplicate merge");
   const first = await submit("homeloan", sampleValues("homeloan", phone));
   const second = await submit("homeloan", sampleValues("homeloan", phone));
   ok(second.data.repeat === true && second.data.leadId === first.data.leadId, "same product + phone within 7 days merges", [first.data, second.data]);
+  ok(first.data.leadRef?.startsWith("HL") && second.data.leadRef === first.data.leadRef, "repeat keeps the reference", [first.data, second.data]);
+  const byNo = await get(`admin/leads?q=${first.data.leadRef?.toLowerCase()}&limit=5`);
+  ok(byNo.data.data?.length === 1 && byNo.data.data[0].id === first.data.leadId, "admin search finds the lead number", byNo.data);
   const other = await submit("carloan", sampleValues("carloan", phone));
-  ok(other.data.repeat === false && other.data.leadId !== first.data.leadId, "different product stays a separate lead", other.data);
+  ok(other.data.repeat === false && other.data.leadId !== first.data.leadId && other.data.leadRef?.startsWith("CAR"), "different product stays a separate lead", other.data);
   const detail = await get(`admin/leads/homeloan/${first.data.leadId}`);
   ok(detail.data.data?.submissions?.length === 2 && detail.data.data.lead.repeatCount === 1, "lead keeps both submissions", detail.data.data?.lead);
   ok(detail.data.data?.notes?.some((n) => n.text === "Submitted the form again"), "repeat shows in activity");

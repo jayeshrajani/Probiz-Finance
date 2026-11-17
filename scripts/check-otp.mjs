@@ -79,7 +79,7 @@ const wrong = sent.data.devCode === "000000" ? "111111" : "000000";
 const bad = await call("otp/verify", { body: { purpose: "signin", mobile: phoneA, code: wrong } });
 ok(bad.status === 400 && bad.data.left === 4, "wrong code refused, 4 tries left", bad.data);
 const good = await call("otp/verify", { body: { purpose: "signin", mobile: phoneA, code: sent.data.devCode, _meta: meta } });
-ok(good.status === 200 && good.data.accessToken && good.data.isNew === true && /^NUL-\d{6}$/.test(good.data.leadRef || ""), "right code signs in a new customer with a NUL lead", good.data);
+ok(good.status === 200 && good.data.accessToken && good.data.isNew === true && /^NUL\d{4,}$/.test(good.data.leadRef || ""), "right code signs in a new customer with a NUL lead", good.data);
 ok(!JSON.stringify(good.data).includes("password\""), "no password field in the response");
 ok((await call("otp/verify", { body: { purpose: "signin", mobile: phoneA, code: sent.data.devCode } })).status === 400, "a code works only once");
 const tokenA = good.data.accessToken;
@@ -96,7 +96,7 @@ const again2 = await call("otp/verify", { body: { purpose: "signin", mobile: pho
 ok(again2.status === 200 && again2.data.isNew === false && again2.data.leadRef === nulRef, "same account and same NUL lead", again2.data);
 ok((await findLead(phoneA)).length === 1, "still one lead for the number");
 
-console.log("Account: interest, then application converts NUL to HL with the same number");
+console.log("Account: interest, then application converts NUL to the next HL number");
 const acct = await get("account", { token: tokenA });
 ok(acct.status === 200 && acct.data.user.mobileVerified === true && acct.data.user.hasPassword === false && acct.data.interest?.options?.length > 5 && acct.data.applications.length === 0,
   "account shows verified number, no password, interest options, no applications", acct.data);
@@ -104,8 +104,8 @@ const pick = await call("account/interest", { body: { type: "homeloan" }, token:
 ok(pick.status === 200 && pick.data.page === "/homeloan", "interest returns the product page", pick.data);
 ok((await findLead(nulRef))[0]?.detail === "Home loan", "NUL lead notes the interest");
 const applied = await homeLoan(phoneA, tokenA);
-const hlRef = nulRef.replace(/^NUL/, "HL");
-ok(applied.status === 201 && applied.data.leadRef === hlRef && applied.data.phoneVerified === true, `application converts ${nulRef} to ${hlRef}, verified`, applied.data);
+const hlRef = applied.data.leadRef;
+ok(applied.status === 201 && /^HL\d{4,}$/.test(hlRef || "") && applied.data.phoneVerified === true, `application converts ${nulRef} to ${hlRef}, verified`, applied.data);
 const [hlRow] = await findLead(hlRef);
 ok(hlRow?.type === "homeloan" && hlRow.id === nulRow?.id && hlRow.convertedFrom === nulRef, "same lead, now a home loan, remembers the NUL reference", hlRow);
 const hlDetail = hlRow && (await detail(hlRow));
@@ -117,7 +117,7 @@ ok(acct2.data.interest === null && acct2.data.applications.length === 1, "accoun
 console.log("Anonymous application, verified afterwards");
 const phoneB = freshPhone(2);
 const anon = await homeLoan(phoneB);
-ok(anon.status === 201 && anon.data.phoneVerified === false && /^HL-\d{6}$/.test(anon.data.leadRef || "") && anon.data.leadId, "new lead gets a reference, not verified", anon.data);
+ok(anon.status === 201 && anon.data.phoneVerified === false && /^HL\d{4,}$/.test(anon.data.leadRef || "") && anon.data.leadId, "new lead gets a reference, not verified", anon.data);
 const leadSend = await call("otp/send", { body: { purpose: "lead", leadId: anon.data.leadId } });
 ok(leadSend.status === 200 && leadSend.data.to.endsWith(phoneB.slice(-4)), "code goes to the number on the lead", leadSend.data);
 const leadOk = await call("otp/verify", { body: { purpose: "lead", leadId: anon.data.leadId, code: leadSend.data.devCode } });

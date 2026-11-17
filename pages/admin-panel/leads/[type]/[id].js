@@ -190,6 +190,7 @@ function Origin({ lead, customer }) {
     ["Referrer", src.referrer],
     ["Campaign", utm.join(", ") || null],
     ["Device", src.device],
+    ["Location", src.location],
     ["Consent", lead.consent?.accepted ? `Given ${formatDateTime(lead.consent.at)}` : "Not recorded"],
     ["Mobile", lead.phoneVerified ? "Verified by OTP" : "Not verified"],
     ["Account", customer ? `${customer.name || "Signed-in customer"}${customer.email ? ` (${customer.email})` : ""}` : "Not signed in"],
@@ -343,7 +344,7 @@ function LeadDetail() {
           <DeviceMobile className="size-4 shrink-0 text-muted-foreground" />
           <span className="flex-1 text-muted-foreground">
             Signed in with a mobile code but has not applied yet{lead.detail ? `; interested in ${lead.detail}` : ""}. When they apply, this lead becomes that
-            product&apos;s lead with the same number (for a home loan, {lead.ref} becomes {lead.ref?.replace(/^NUL/, "HL")}). If they don&apos;t apply, it is removed 7
+            product&apos;s lead and gets that product&apos;s next number (for a home loan, an HL number); {lead.ref} stays on it as the earlier reference. If they don&apos;t apply, it is removed 7
             days after the sign-in; their account stays.
           </span>
         </Card>

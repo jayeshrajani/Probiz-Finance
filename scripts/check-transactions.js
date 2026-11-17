@@ -42,6 +42,7 @@ const Employee = require('../server/models/employee.model');
 const { byType } = require('../server/admin/leads');
 const { upsertLead } = require('../server/leads/intake');
 const { backfillLeads } = require('../server/leads/backfill');
+const { ensureRefs } = require('../server/leads/refs');
 const { allow } = require('../server/leads/rateLimit');
 const panel = require('../server/controllers/adminPanel.controller');
 const adminCtl = require('../server/controllers/admin.controller');
@@ -127,6 +128,16 @@ S('6 parallel submissions from one phone (seven-day merge)', async () => {
   return { ok, detail: `leads=${leads.length} repeatCount=${leads[0]?.repeatCount} refIds=${refs.size} events=${events.map((e) => e.type).sort().join(',')}` };
 });
 
+S('5 parallel submissions from different phones get consecutive lead numbers', async () => {
+  const def = byType.personal;
+  const recs = await Promise.all(Array.from({ length: 5 }, (_, i) => def.model.create({ fullName: `Number ${i}`, contactNumber: `987650020${i}` })));
+  const ctx = { def, mode: 'new', channel: 'web_form', meta: { consent: { accepted: true, version: 'check' }, source: {} }, userId: null, noMerge: true };
+  const out = await Promise.allSettled(recs.map((r) => upsertLead(ctx, String(r._id), {})));
+  const nos = out.map((r) => r.value?.lead?.ref).sort();
+  const ok = out.every((r) => r.status === 'fulfilled') && nos.join() === ['PL0001', 'PL0002', 'PL0003', 'PL0004', 'PL0005'].join();
+  return { ok, detail: `numbers=${nos.join(',')}` };
+});
+
 S('2 employees claim the same lead at once', async () => {
   const [a, b] = await Promise.all([employee('A'), employee('B')]);
   const lead = await newLead();
@@ -210,6 +221,19 @@ S('2 parallel backfills create one envelope per record, with the original time',
     details.push(`${envelopes.length}${sameTime ? '' : '(time differs)'}`);
   }
   return { ok, detail: `created=${first.created}+${second.created} envelopes=${details.join('/')}` };
+});
+
+S('2 parallel ensureRefs number older leads per product, oldest first', async () => {
+  const at = (min) => new Date(Date.UTC(2020, 0, 1, 0, min));
+  const make = (type, min, extra = {}) =>
+    new Lead({ type, refId: `old-${randomBytes(4).toString('hex')}`, name: 'Old', status: 'new', lastActivityAt: at(min), ...extra }).save({ createdAt: at(min) });
+  await make('education', 2);
+  await make('education', 1, { ref: 'EDL-000042', seq: 42 });
+  await make('kisan', 3);
+  const rows = () => Lead.find({ type: { $in: ['education', 'kisan'] } }).lean();
+  await Promise.all([ensureRefs(await rows()), ensureRefs(await rows())]);
+  const got = (await rows()).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).map((l) => l.ref);
+  return { ok: got.join() === 'EL0001,EL0002,KCC0001', detail: `refs=${got.join(',')}` };
 });
 
 S('employee removal returns open leads to the pool', async () => {

@@ -286,12 +286,13 @@ export default function Assistant() {
       if (res.ok) {
         rememberContact(f.name, f.mobile);
         setFlow(null);
+        const ref = res.data?.leadRef ? " Your reference number is {id}." : "";
         setMessages((m) => [
           ...m,
           withId({
             from: "bot",
-            text: res.data?.repeat ? "We already had a recent request from you, so I've added this to it. An advisor will call {name} on {mobile}." : "Done. An advisor will call {name} on {mobile} soon.",
-            vars: { name: f.name.split(" ")[0], mobile: `+91 ${f.mobile}` },
+            text: (res.data?.repeat ? "We already had a recent request from you, so I've added this to it. An advisor will call {name} on {mobile}." : "Done. An advisor will call {name} on {mobile} soon.") + ref,
+            vars: { name: f.name.split(" ")[0], mobile: `+91 ${f.mobile}`, id: res.data?.leadRef },
             links: f.topic ? [{ label: "Add more details on the {product} form", vars: { product: f.topic.name }, href: `/${f.topic.slug}${f.topic.form}` }] : [],
             chips: [CONTACT, "Find a loan"],
           }),

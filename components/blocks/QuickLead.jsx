@@ -27,6 +27,7 @@ export default function QuickLead({ interest, topics, moreHref, autoFocus, onDon
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [sentTo, setSentTo] = useState("");
+  const [leadRef, setLeadRef] = useState(null);
   const trapRef = useRef(null);
   const nameRef = useRef(null);
 
@@ -56,6 +57,7 @@ export default function QuickLead({ interest, topics, moreHref, autoFocus, onDon
     if (res.ok) {
       rememberContact(name.trim(), phone);
       setSentTo(phone);
+      setLeadRef(res.data?.leadRef || null);
       setStatus("done");
       onDone?.();
     } else {
@@ -70,6 +72,7 @@ export default function QuickLead({ interest, topics, moreHref, autoFocus, onDon
         <CheckCircle weight="fill" className="size-10 text-brand" />
         <p className="headline text-xl">{t("Thanks, {name}. We'll call you soon.", { name: name.trim().split(" ")[0] })}</p>
         <p className="text-sm leading-relaxed text-muted-foreground">{t("An advisor will call you on {mobile}. Keep your phone handy.", { mobile: `+91 ${sentTo}` })}</p>
+        {leadRef && <p className="text-sm font-medium tabular-nums">{t("Your reference number is {id}.", { id: leadRef })}</p>}
         {moreHref && (
           <a href={moreHref} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-ink hover:underline">
             {t("Add more details to speed things up")} <ArrowRight weight="bold" className="size-3.5" />
