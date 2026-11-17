@@ -4,13 +4,12 @@ const ObjectId = Schema.ObjectId;
 
 
 const userSchema = new Schema({
+    // Accounts created by mobile OTP sign-in start with only a mobile number.
     user_Name: {
         type: String,
-        required: [true, "please enter user name"],
     },
     user_Email: {
         type: String,
-        required: [true, "please enter email"],
     },
     country_code:{
         type: String,
@@ -22,7 +21,18 @@ const userSchema = new Schema({
     },
     password: {
         type: String,
-        required: [true, "please enter password"]
+    },
+    signupMethod: {
+        type: String,
+        default: 'password'
+    },
+    mobileVerified: {
+        type: Boolean,
+        default: false
+    },
+    mobileVerifiedAt: {
+        type: Date,
+        default: null
     },
 
     isActive: {

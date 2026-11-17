@@ -895,6 +895,9 @@ Stage 4B results summary:
 - **Service cards (2026-11-17):** headings first, details on hover or tap (`docs/changes/2026-11-17_shivansh_service-cards-hover.md`).
 - **Merge and deploy guide for Jayesh (2026-11-17):** `docs/MERGE_AND_DEPLOY_GUIDE.md`, kept up to date with every push to `shivansh_dev`; GA4 deploy steps also in the GA4 change note.
 - **KYC safeguards (2026-11-17):** document access log (`document_access`, admin endpoint); a masked-Aadhaar instruction was added and removed the same day (owner: normal Aadhaar, to avoid losing customers). `check:firestore-adapter` 125/125, `check:storage` 22/22 (Storage emulator; Java at `%USERPROFILE%\tools\jdk-21.0.13+9-jre`). Bucket lockdown and Cloud audit logs prepared, not run (need approval). See `docs/changes/2026-11-17_shivansh_kyc-document-safeguards.md`.
+- **Staging bucket lockdown (Cloud Shell, 2026-11-17, owner-approved):** public access prevention `enforced`, uniform bucket-level access `true`. Download-token URL test: 200 with token, 403 without (test object removed). Owner account granted `roles/storage.objectAdmin` on the bucket (needed after uniform access to read/delete files). App service account `firebase-adminsdk-fbsvc` has `storage.objects.*` via `roles/firebase.sdkAdminServiceAgent` (verified). `_Default` log bucket retention 365 days. Storage Data Read/Write audit logs: Console step.
+- **Staging data check (2026-11-17, counts only):** 48 collections, 71 leads, 6 customers, 235 private and 5 public files: Jayesh's test data from his Vercel deployment (which uses this project). Owner: no old customer data exists anywhere (manual process before), so the old-KYC migration tasks are dropped.
+- **Mobile OTP sign-in and lead references (2026-11-17):** see `docs/changes/2026-11-17_shivansh_mobile-otp-and-lead-refs.md`. `check:otp` 38/38, `check:firestore-adapter` 129/129, `check:intake` passed, build 246 pages.
 
 ## Codebase Analysis (Stage 4A, commit 9f2bb93)
 

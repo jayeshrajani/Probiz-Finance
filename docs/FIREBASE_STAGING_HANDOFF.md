@@ -22,7 +22,8 @@ This guide contains no secrets; credentials are never stored in Git or shared in
 
 Console: https://console.firebase.google.com/project/probiz-finance-staging/overview
 
-Not done yet: production data source identification and migration (section 5), website hosting, custom domain, bucket hardening test (uniform bucket-level access / public access prevention with property download URLs).
+Not done yet: production data source identification and migration (section 5), website hosting, custom domain.
+Done 2026-11-17: bucket hardening (public access prevention enforced, uniform bucket-level access on; property download-token URLs still work), log retention 365 days.
 
 ## 2. Access (granted by the project owner)
 

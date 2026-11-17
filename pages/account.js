@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Eye, EyeSlash, FileText, SignOut, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
+import { ArrowRight, Eye, EyeSlash, FileText, SealCheck, SignOut, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import Breadcrumbs from "@/components/blocks/Breadcrumbs";
+import OtpForm, { useOtpAvailable } from "@/components/forms/OtpForm";
 import SiteLayout from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { errorMessage, getJSON, getStoredUser, sendJSON } from "@/lib/api";
+import { errorMessage, getJSON, getStoredUser, postJSON, sendJSON } from "@/lib/api";
 import { formatINRShort } from "@/lib/format";
 import { signIn, signOut } from "@/lib/use-user";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,35 @@ function Applications({ items }) {
   );
 }
 
+function Interest({ interest }) {
+  const t = useT();
+  const router = useRouter();
+  const [busy, setBusy] = useState(null);
+
+  async function pick(option) {
+    setBusy(option.type);
+    const res = await postJSON("account/interest", { type: option.type });
+    if (res.ok && res.data?.page) router.push(res.data.page);
+    else {
+      setBusy(null);
+      toast.error(t(errorMessage(res.data)));
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {interest.options.map((o) => (
+        <Button key={o.type} type="button" variant={interest.chosen === o.label ? "default" : "outline"} disabled={Boolean(busy)} onClick={() => pick(o)}>
+          {busy === o.type && <SpinnerGap className="animate-spin" />} {t(o.label)}
+        </Button>
+      ))}
+      <Button asChild variant="ghost">
+        <Link href="/contact">{t("Something else")}</Link>
+      </Button>
+    </div>
+  );
+}
+
 function ProfileForm({ user, onSaved }) {
   const t = useT();
   const [values, setValues] = useState({ user_Name: user.user_Name || "", mobile_no: user.mobile_no || "" });
@@ -129,8 +159,8 @@ function ProfileForm({ user, onSaved }) {
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
       <Field id="user_Name" label="Full name" autoComplete="name" value={values.user_Name} onChange={set("user_Name")} error={errors.user_Name} />
-      <Field id="mobile_no" label="Mobile number" type="tel" inputMode="numeric" maxLength={10} autoComplete="tel" value={values.mobile_no} onChange={set("mobile_no")} error={errors.mobile_no} />
-      <Field id="user_Email" label="Email" value={user.user_Email || ""} readOnly disabled help="To change your email, contact us." />
+      <Field id="mobile_no" label="Mobile number" type="tel" inputMode="numeric" maxLength={10} autoComplete="tel" value={values.mobile_no} onChange={set("mobile_no")} error={errors.mobile_no} help={user.mobileVerified ? "Verified" : "Not verified yet"} />
+      {user.user_Email && <Field id="user_Email" label="Email" value={user.user_Email} readOnly disabled help="To change your email, contact us." />}
       <div>
         <Button type="submit" disabled={busy || !dirty}>
           {busy ? <SpinnerGap className="animate-spin" /> : null} {t("Save details")}
@@ -140,7 +170,7 @@ function ProfileForm({ user, onSaved }) {
   );
 }
 
-function PasswordForm() {
+function PasswordForm({ hasPassword = true }) {
   const t = useT();
   const empty = { current: "", next: "", confirm: "" };
   const [values, setValues] = useState(empty);
@@ -151,7 +181,7 @@ function PasswordForm() {
   async function onSubmit(e) {
     e.preventDefault();
     const errs = {};
-    if (!values.current) errs.current = "Required";
+    if (hasPassword && !values.current) errs.current = "Required";
     if (!PASSWORD_RULE.test(values.next)) errs.next = "Use 8+ characters with upper and lower case, a number and a symbol";
     if (values.confirm !== values.next) errs.confirm = "Passwords don't match";
     setErrors(errs);
@@ -176,7 +206,7 @@ function PasswordForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
-      <Field id="current" label="Current password" type={type} autoComplete="current-password" value={values.current} onChange={set("current")} error={errors.current} />
+      {hasPassword && <Field id="current" label="Current password" type={type} autoComplete="current-password" value={values.current} onChange={set("current")} error={errors.current} />}
       <Field id="next" label="New password" type={type} autoComplete="new-password" value={values.next} onChange={set("next")} error={errors.next} help="At least 8 characters with upper and lower case, a number and a symbol." />
       <Field id="confirm" label="Confirm new password" type={type} autoComplete="new-password" value={values.confirm} onChange={set("confirm")} error={errors.confirm} />
       <div className="flex flex-wrap items-center gap-3">
@@ -194,7 +224,8 @@ function PasswordForm() {
 export default function AccountPage() {
   const t = useT();
   const router = useRouter();
-  const [state, setState] = useState({ loading: true, error: null, user: null, applications: [] });
+  const [state, setState] = useState({ loading: true, error: null, user: null, applications: [], interest: null });
+  const otpAvailable = useOtpAvailable();
 
   useEffect(() => {
     if (!getStoredUser()?.accessToken) {
@@ -208,7 +239,7 @@ export default function AccountPage() {
         signOut();
         router.replace("/sign-in?next=/account");
       } else if (res.ok) {
-        setState({ loading: false, error: null, user: res.data.user, applications: res.data.applications || [] });
+        setState({ loading: false, error: null, user: res.data.user, applications: res.data.applications || [], interest: res.data.interest || null });
       } else {
         setState((s) => ({ ...s, loading: false, error: errorMessage(res.data) }));
       }
@@ -223,12 +254,17 @@ export default function AccountPage() {
     signIn({ ...getStoredUser(), ...user });
   }
 
+  function onVerified() {
+    setState((s) => ({ ...s, user: { ...s.user, mobileVerified: true } }));
+    toast.success(t("Mobile number verified."));
+  }
+
   function onSignOut() {
     signOut();
     router.push("/");
   }
 
-  const { loading, error, user, applications } = state;
+  const { loading, error, user, applications, interest } = state;
   const firstName = (user?.user_Name || "").split(" ")[0];
 
   return (
@@ -250,22 +286,41 @@ export default function AccountPage() {
             <div className="mt-6 flex flex-wrap items-end justify-between gap-6">
               <div>
                 <h1 className="display-2">{firstName ? t("Hello, {name}.", { name: firstName }) : t("Your account")}</h1>
-                <p className="lede mt-3">{user.user_Email}</p>
+                <p className="lede mt-3 flex items-center gap-2">
+                  {user.user_Email || `+91 ${user.mobile_no}`}
+                  {user.mobileVerified && <SealCheck weight="fill" className="size-5 text-brand" aria-label={t("Mobile number verified")} />}
+                </p>
               </div>
               <Button variant="outline" onClick={onSignOut}>
                 <SignOut weight="bold" /> {t("Sign out")}
               </Button>
             </div>
+            {interest && (
+              <Card title="What can we help you with?" intro="Pick what you're looking for. We'll take you to a short application, and an advisor will call you." className="mt-10">
+                <Interest interest={interest} />
+              </Card>
+            )}
+            {!user.mobileVerified && otpAvailable && (
+              <Card title="Verify your mobile number" intro="So our advisors know it's really you. We'll send a code to the number in your details." className="mt-6">
+                <OtpForm purpose="account" onDone={onVerified} />
+              </Card>
+            )}
             <div className="mt-10 grid gap-6 lg:grid-cols-12">
               <Card title="Your applications" intro="Status updates appear here as our team works on them." className="lg:col-span-7 lg:row-span-2">
                 <Applications items={applications} />
               </Card>
               <Card title="Your details" className="lg:col-span-5">
-                <ProfileForm key={user._id} user={user} onSaved={onSaved} />
+                <ProfileForm key={`${user._id}-${user.mobileVerified}`} user={user} onSaved={onSaved} />
               </Card>
-              <Card title="Password" className="lg:col-span-5">
-                <PasswordForm />
-              </Card>
+              {user.user_Email ? (
+                <Card title={user.hasPassword === false ? "Set a password" : "Password"} className="lg:col-span-5">
+                  <PasswordForm hasPassword={user.hasPassword !== false} />
+                </Card>
+              ) : (
+                <Card title="Signing in" intro="You sign in with your mobile number and a one-time code. No password needed." className="lg:col-span-5">
+                  <span />
+                </Card>
+              )}
             </div>
           </>
         )}

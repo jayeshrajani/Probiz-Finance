@@ -41,6 +41,7 @@ const LEAD_TYPES = [
   { type: 'rentagreement', label: 'Rent agreement', group: 'services', model: serviceModels.rent, page: '/rent-agreement' },
   { type: 'udyam', label: 'Udyam (MSME) registration', group: 'services', model: serviceModels.udyam, page: '/udyam-registration' },
   { type: 'callback', label: 'Callback requests', group: 'inbox', model: m('callback.model') },
+  { type: 'signin', label: 'Mobile sign-ins', group: 'inbox', model: m('mobileSignin.model') },
   { type: 'contact', label: 'Contact messages', group: 'inbox', model: m('contact.model'), page: '/contact' },
   { type: 'inhouse', label: 'Property requirements', group: 'inbox', model: m('inHouse.model') },
   { type: 'itr', label: 'ITR filing (old form)', group: 'archive', model: m('itrInformation.model') },
@@ -96,6 +97,18 @@ for (const def of LEAD_TYPES) {
   def.formKey = formKey || null;
   def.endpoint = endpoint ? `/api/${endpoint}` : null;
 }
+
+// Reference prefix per lead type (HL-000123). NUL: signed in with a mobile OTP but not applied for anything yet.
+const CODES = {
+  homeloan: 'HL', plotpurchase: 'PPL', plotconstruction: 'PCL', flatpurchase: 'FPL', lap: 'LAP', construction: 'CNL',
+  renovation: 'HRL', commercialpurchase: 'CPL', commercialmortgage: 'CPM', balancetransfer: 'BT', bttopup: 'BTT',
+  personal: 'PL', business: 'BL', mudra: 'MDL', projectfunding: 'PFL', car: 'CAR', education: 'EDL', gold: 'GL',
+  kisan: 'KCC', creditcard: 'CC', health: 'HIN', motor: 'MIN', investment: 'INV', ca: 'CA', legal: 'LEG',
+  estamp: 'EST', government: 'GOV', consultation: 'BCS', creditscore: 'CSC', marketing: 'DM', realestate: 'RE',
+  dsa: 'DSA', gstreg: 'GST', gumastareg: 'GUM', itrfiling: 'ITR', rentagreement: 'RA', udyam: 'UDY',
+  callback: 'CB', signin: 'NUL', contact: 'MSG', inhouse: 'PRQ', itr: 'ITO', msme: 'MSO', gumasta: 'GMO',
+};
+for (const def of LEAD_TYPES) def.code = CODES[def.type] || 'LD';
 
 const GROUPS = [
   { id: 'loans', label: 'Loans' },

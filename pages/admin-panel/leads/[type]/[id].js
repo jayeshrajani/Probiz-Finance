@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { Archive, ArrowBendUpLeft, ArrowBendUpRight, ArrowCounterClockwise, ArrowLeft, ArrowSquareOut, EnvelopeSimple, Eye, FileText, HandGrabbing, Phone, SpinnerGap, Trash, WhatsappLogo } from "@phosphor-icons/react";
+import { Archive, ArrowBendUpLeft, ArrowBendUpRight, ArrowCounterClockwise, ArrowLeft, ArrowSquareOut, DeviceMobile, EnvelopeSimple, Eye, FileText, HandGrabbing, Phone, SealCheck, SpinnerGap, Trash, WhatsappLogo } from "@phosphor-icons/react";
 import AdminShell, { stageLabel, useAdmin } from "@/components/admin/AdminShell";
 import { ConfirmDialog, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
@@ -170,6 +170,7 @@ function Notes({ type, id, notes, onChange, readOnly }) {
 const CHANNEL_LABEL = {
   web_form: "Website form",
   assistant: "Website assistant",
+  otp_signin: "Mobile sign-in (OTP)",
   staff: "Added by staff",
   legacy_api: "Older form",
   legacy_import: "Imported",
@@ -179,6 +180,8 @@ function Origin({ lead, customer }) {
   const src = lead.source || {};
   const utm = Object.entries(src.utm || {}).map(([k, v]) => `${k}: ${v}`);
   const rows = [
+    ["Reference", lead.ref],
+    ["Earlier", lead.convertedFrom ? `${lead.convertedFrom} (mobile sign-in before applying)` : null],
     ["Channel", CHANNEL_LABEL[src.channel] || "Unknown"],
     ["Added by", src.addedBy?.name ? `${src.addedBy.name}${src.addedBy.role ? ` (${src.addedBy.role})` : ""}` : null],
     ["Topic", src.topic],
@@ -188,6 +191,7 @@ function Origin({ lead, customer }) {
     ["Campaign", utm.join(", ") || null],
     ["Device", src.device],
     ["Consent", lead.consent?.accepted ? `Given ${formatDateTime(lead.consent.at)}` : "Not recorded"],
+    ["Mobile", lead.phoneVerified ? "Verified by OTP" : "Not verified"],
     ["Account", customer ? `${customer.name || "Signed-in customer"}${customer.email ? ` (${customer.email})` : ""}` : "Not signed in"],
   ].filter(([, v]) => v);
   return (
@@ -217,6 +221,12 @@ function LeadDetail() {
   const [forwarding, setForwarding] = useState(false);
   const [sendingBack, setSendingBack] = useState(false);
   const [reason, setReason] = useState("");
+  const actualType = data?.data?.lead?.type;
+
+  // A mobile sign-in that became an application keeps its id under the new product.
+  useEffect(() => {
+    if (actualType && type && actualType !== type) router.replace(`/admin-panel/leads/${actualType}/${id}`);
+  }, [actualType, type, id, router]);
 
   if (error) return <ErrorNote error={error} onRetry={reload} />;
   if (loading || !data) return <LoadingRows rows={8} />;
@@ -270,11 +280,20 @@ function LeadDetail() {
 
       <div className="mb-8 flex flex-wrap items-start justify-between gap-6">
         <div>
-          <h1 className="font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">{lead.name}</h1>
+          <h1 className="flex flex-wrap items-center gap-x-3 gap-y-1 font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.025em]">
+            {lead.name}
+            {lead.ref && <span className="rounded-md bg-secondary px-2 py-0.5 font-mono text-sm font-medium tracking-normal text-muted-foreground">{lead.ref}</span>}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {lead.typeLabel}, received {formatDateTime(lead.createdAt)}
             {lead.repeatCount > 0 && `. Sent ${lead.repeatCount + 1} times, last ${timeAgo(lead.lastActivityAt)}`}
           </p>
+          {lead.phone && (
+            <p className={cn("mt-2 inline-flex items-center gap-1.5 text-sm", lead.phoneVerified ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+              {lead.phoneVerified ? <SealCheck weight="fill" className="size-4" /> : <DeviceMobile className="size-4" />}
+              {lead.phoneVerified ? "Mobile number verified by OTP" : "Mobile number not verified yet"}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {phone && (
@@ -318,6 +337,17 @@ function LeadDetail() {
           )}
         </div>
       </div>
+
+      {lead.type === "signin" && (
+        <Card className="mb-4 flex-row items-center gap-3 border-dashed bg-secondary/60 px-4 py-3 text-sm">
+          <DeviceMobile className="size-4 shrink-0 text-muted-foreground" />
+          <span className="flex-1 text-muted-foreground">
+            Signed in with a mobile code but has not applied yet{lead.detail ? `; interested in ${lead.detail}` : ""}. When they apply, this lead becomes that
+            product&apos;s lead with the same number (for a home loan, {lead.ref} becomes {lead.ref?.replace(/^NUL/, "HL")}). If they don&apos;t apply, it is removed 7
+            days after the sign-in; their account stays.
+          </span>
+        </Card>
+      )}
 
       {archived && (
         <Card className="mb-4 flex-row items-center gap-3 border-dashed bg-secondary/60 px-4 py-3 text-sm">

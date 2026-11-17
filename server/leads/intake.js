@@ -15,6 +15,8 @@ const { emit, on } = require('./events');
 const { notifyNewLead } = require('./notify/whatsapp');
 const { normalizePhone } = require('./backfill');
 const { personaOf, levelOf, stageOf } = require('../admin/personas');
+const MobileSignin = require('../models/mobileSignin.model');
+const { formatRef, nextSeq } = require('./refs');
 
 const HONEYPOT = 'company_website';
 const DEDUPE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -197,11 +199,15 @@ async function upsertLead(ctx, refId, req) {
   const source = { channel: ctx.channel, topic: ctx.meta?.topic || null, ...(ctx.meta?.source || {}) };
   if (ctx.mode === 'staff' && req.staff) source.addedBy = { id: req.staff.id, name: req.staff.name || req.staff.email || null, role: req.staff.role, persona: req.staff.persona || null };
   const dedupeKey = phone ? `${def.type}:${phone}` : null;
+  const signinKey = phone ? `signin:${phone}` : null;
+  // A signed-in customer who proved this number with an OTP makes the lead verified.
+  const customer = ctx.userId ? await User.findById(ctx.userId).lean() : null;
+  const verified = Boolean(phone && customer?.mobileVerified && normalizePhone(customer.mobile_no) === phone);
 
   // One transaction, locked on the duplicate key and the record: concurrent submissions from the same phone
   // produce one lead plus repeats, and the backfill cannot create a second envelope for the same record.
   return transaction(async (tx) => {
-    await tx.lock(dedupeKey && `lead:dedupe:${dedupeKey}`, `lead:ref:${def.type}:${refId}`);
+    await tx.lock(dedupeKey && `lead:dedupe:${dedupeKey}`, signinKey && `lead:dedupe:${signinKey}`, `lead:ref:${def.type}:${refId}`);
     const owner = await Lead.findOne({ type: def.type, refIds: refId });
     if (owner) return { lead: owner, repeat: false };
 
@@ -219,6 +225,7 @@ async function upsertLead(ctx, refId, req) {
       for (const k of ['name', 'email', 'amount', 'detail']) if (s[k]) existing[k] = String(s[k]);
       if (!existing.userId && ctx.userId) existing.userId = ctx.userId;
       if (ctx.meta?.consent) existing.consent = { ...ctx.meta.consent, at: now };
+      if (verified && !existing.phoneVerified) Object.assign(existing, { phoneVerified: true, phoneVerifiedAt: now });
       // Only an owner working at the lead's current level can take it over.
       const assign = !existing.assignedTo && ctx.assignee && stageOf(existing) === (ctx.stage || 'l1');
       if (assign) {
@@ -234,11 +241,45 @@ async function upsertLead(ctx, refId, req) {
       return { lead: existing, repeat: true };
     }
 
+    // Signed in with an OTP earlier and now applying: the NUL lead becomes this product's lead (same number).
+    const signin = signinKey && !ctx.noMerge ? await Lead.findOne({ dedupeKey: signinKey }) : null;
+    if (signin && signin.type === 'signin' && !signin.archived && OPEN.includes(signin.status)) {
+      const from = signin.ref;
+      const placeholders = signin.refIds || [];
+      if (!signin.seq) signin.seq = await nextSeq(tx);
+      Object.assign(signin, {
+        type: def.type,
+        formKey: def.formKey,
+        refId,
+        refIds: [refId],
+        ref: formatRef(def.type, signin.seq),
+        convertedFrom: from,
+        dedupeKey,
+        source: { ...source, previous: signin.source || null },
+        lastActivityAt: now,
+      });
+      for (const k of ['name', 'email', 'amount', 'detail']) if (s[k]) signin[k] = String(s[k]).slice(0, k === 'detail' ? 300 : 200);
+      if (!signin.userId && ctx.userId) signin.userId = ctx.userId;
+      if (ctx.meta?.consent) signin.consent = { ...ctx.meta.consent, at: now };
+      if (verified && !signin.phoneVerified) Object.assign(signin, { phoneVerified: true, phoneVerifiedAt: now });
+      await signin.save();
+      tx.afterCommit(async () => {
+        await emit(signin, 'lead.converted', actor, { from, to: signin.ref, label: def.label, refId, source });
+        for (const id of placeholders) await MobileSignin.findByIdAndDelete(id).catch(() => {});
+      });
+      return { lead: signin, repeat: false, converted: true };
+    }
+
+    const seq = await nextSeq(tx);
     const lead = await Lead.create({
       type: def.type,
       formKey: def.formKey,
       refId,
       refIds: [refId],
+      ref: formatRef(def.type, seq),
+      seq,
+      phoneVerified: verified,
+      phoneVerifiedAt: verified ? now : null,
       name: s.name ? String(s.name) : null,
       phone: phone || (s.phone ? String(s.phone) : null),
       email: s.email ? String(s.email) : null,
@@ -293,7 +334,14 @@ function persist(controller) {
       }
     }
     if (ok && ctx.mode === 'new') {
-      return res.status(201).json({ message: THANKS, leadId: result?.lead?._id || null, repeat: Boolean(result?.repeat) });
+      const lead = result?.lead;
+      return res.status(201).json({
+        message: THANKS,
+        leadId: lead?._id || null,
+        leadRef: lead?.ref || null,
+        phoneVerified: Boolean(lead?.phoneVerified),
+        repeat: Boolean(result?.repeat),
+      });
     }
     if (ok && ctx.mode === 'staff') {
       const lead = result?.lead;
@@ -362,4 +410,9 @@ on('lead.created', async function whatsappAlert(lead) {
   await notifyNewLead(lead, byType[lead.type]?.label || lead.type);
 });
 
-module.exports = { installLeadIntake, upsertLead, normalizePhone, HONEYPOT, clientIp };
+// A mobile sign-in that turns into an application is news for the team as well.
+on('lead.converted', async function whatsappAlert(lead) {
+  await notifyNewLead(lead, byType[lead.type]?.label || lead.type);
+});
+
+module.exports = { installLeadIntake, upsertLead, normalizePhone, HONEYPOT, clientIp, takeMeta };

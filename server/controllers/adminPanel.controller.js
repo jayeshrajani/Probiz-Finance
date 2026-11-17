@@ -15,10 +15,12 @@ const { ensureBackfilled } = require('../leads/backfill');
 const { emit } = require('../leads/events');
 const { withFileLinks, storedValues, deleteStoredFile } = require('../storage');
 const { PERSONAS, STAGES, STAGE_LABEL, EMAIL_DOMAIN, personaOf, levelOf, stageOf, staffEmail } = require('../admin/personas');
+const { ensureRefs } = require('../leads/refs');
+const { purgeSigninLeads } = require('../leads/mobile');
 
 const STATUSES = ['new', 'contacted', 'in_progress', 'won', 'lost'];
 const OPEN = new Set(['new', 'contacted', 'in_progress']);
-const CHANNELS = ['web_form', 'assistant', 'staff', 'legacy_api', 'legacy_import'];
+const CHANNELS = ['web_form', 'assistant', 'otp_signin', 'staff', 'legacy_api', 'legacy_import'];
 const DAY = 24 * 60 * 60 * 1000;
 const HIDDEN_FIELDS = new Set(['_id', '__v', 'password', 'deleteFlag']);
 
@@ -45,6 +47,9 @@ const addToHandled = (lead, id) => {
 
 const row = (lead, req) => ({
   id: String(lead._id),
+  ref: lead.ref || null,
+  convertedFrom: lead.convertedFrom || null,
+  phoneVerified: Boolean(lead.phoneVerified),
   type: lead.type,
   typeLabel: byType[lead.type]?.label || lead.type,
   name: lead.name || 'Unnamed',
@@ -73,7 +78,20 @@ async function loadLeads(filter = {}) {
 
 const staffActor = (req) => ({ kind: 'staff', id: req.staff.id, name: req.staff.name || req.staff.email });
 
-const CHANNEL_LABEL = { web_form: 'website form', assistant: 'website assistant', staff: 'staff entry', legacy_api: 'older form', legacy_import: 'older form' };
+// Mobile sign-in (NUL) leads older than 7 days go; the daily cron does the same, this covers hosts without it.
+let lastPurge = 0;
+async function maybePurge() {
+  if (Date.now() - lastPurge < 60 * 60 * 1000) return;
+  lastPurge = Date.now();
+  try {
+    await purgeSigninLeads();
+  } catch (err) {
+    console.error('[leads] sign-in cleanup failed', err.message);
+  }
+}
+
+const CHANNEL_LABEL = { web_form: 'website form', assistant: 'website assistant', otp_signin: 'mobile sign-in', staff: 'staff entry', legacy_api: 'older form', legacy_import: 'older form' };
+const VERIFIED_VIA = { signin: 'signed in with a mobile code', account: 'from their account', application: 'after applying' };
 
 // The activity feed shown on the lead page, newest first.
 function activity(events) {
@@ -84,6 +102,14 @@ function activity(events) {
         return `Came in through the ${CHANNEL_LABEL[d.source?.channel] || 'website'}${d.source?.topic ? ` (${d.source.topic})` : ''}`;
       case 'lead.repeat':
         return 'Submitted the form again';
+      case 'lead.signed_in':
+        return 'Signed in on the website with a mobile code';
+      case 'lead.interest':
+        return `Interested in ${d.label}`;
+      case 'lead.converted':
+        return `Applied for ${d.label || 'a product'}: ${d.from || 'mobile sign-in'} became ${d.to}`;
+      case 'lead.phone_verified':
+        return `Mobile number verified (${VERIFIED_VIA[d.via] || 'by code'})`;
       case 'lead.assigned':
         return d.claimed ? `${d.name} picked up this lead` : `Assigned to ${d.name}`;
       case 'lead.unassigned':
@@ -186,7 +212,7 @@ exports.config = async (req, res) => {
 
 exports.overview = async (req, res) => {
   await ensureBackfilled();
-  const everything = await Lead.find({}).lean();
+  const everything = await ensureRefs(await Lead.find({}).lean());
   const raw = everything.filter((l) => !l.archived);
   const all = raw.map((l) => row(l, req));
   const level = myLevel(req);
@@ -266,7 +292,8 @@ exports.list = async (req, res) => {
   if (group && !GROUPS.some((g) => g.id === group)) return fail(res, 404, 'Unknown lead category.');
 
   await ensureBackfilled();
-  const found = await Lead.find(type === 'all' ? {} : { type }).lean();
+  await maybePurge();
+  const found = await ensureRefs(await Lead.find(type === 'all' ? {} : { type }).lean());
   let leads = found.filter((l) => canSee(req, l)).map((l) => row(l, req)).sort(byActivity);
   if (group) leads = leads.filter((l) => byType[l.type]?.group === group);
 
@@ -290,7 +317,7 @@ exports.list = async (req, res) => {
   if (range) leads = leads.filter((l) => new Date(l.createdAt) >= range.start && new Date(l.createdAt) < range.end);
 
   const q = String(req.query.q || '').trim().toLowerCase();
-  if (q) leads = leads.filter((l) => [l.name, l.phone, l.email, l.detail].some((v) => v && String(v).toLowerCase().includes(q)));
+  if (q) leads = leads.filter((l) => [l.name, l.phone, l.email, l.detail, l.ref, l.convertedFrom].some((v) => v && String(v).toLowerCase().includes(q)));
   const statusCounts = Object.fromEntries(STATUSES.map((s) => [s, leads.filter((l) => l.status === s).length]));
   const status = String(req.query.status || '');
   if (STATUSES.includes(status)) leads = leads.filter((l) => l.status === status);
@@ -301,17 +328,20 @@ exports.list = async (req, res) => {
 };
 
 async function findLead(req, res) {
-  const def = byType[req.params.type];
+  let def = byType[req.params.type];
   if (!def) {
     fail(res, 404, 'Unknown lead type.');
     return null;
   }
   await ensureBackfilled();
   const id = String(req.params.id);
-  // Older links used the per-form record id; resolve those to the envelope that holds it.
+  // Older links used the per-form record id; resolve those to the envelope that holds it. A mobile sign-in that
+  // became an application keeps its id but changes type, so links from the WhatsApp alert still work.
   const lead =
     (await Lead.findOne({ _id: id, type: def.type })) ||
-    (await Lead.find({ type: def.type })).find((l) => (l.refIds?.length ? l.refIds : [l.refId]).includes(id));
+    (await Lead.find({ type: def.type })).find((l) => (l.refIds?.length ? l.refIds : [l.refId]).includes(id)) ||
+    (await Lead.findById(id));
+  if (lead && byType[lead.type]) def = byType[lead.type];
   if (!lead) {
     fail(res, 404, 'Lead not found.');
     return null;
@@ -343,6 +373,7 @@ exports.get = async (req, res) => {
   const found = await findLead(req, res);
   if (!found) return;
   const { def, lead } = found;
+  await ensureRefs([lead]);
   res.setHeader('Cache-Control', 'no-store');
   // Sales follow progress only: no application fields, documents or customer account.
   if (isSales(req)) {
@@ -360,7 +391,7 @@ exports.get = async (req, res) => {
       lead: { ...row(lead, req), page: def.page || null, source: lead.source || null, consent: lead.consent || null },
       fields: docs[0] ? withFileLinks(clean(docs[0]), by) : {},
       submissions: docs.map((d) => ({ id: String(d._id), createdAt: d.createdAt, fields: withFileLinks(clean(d), by) })),
-      customer: customer ? { id: String(customer._id), name: customer.user_Name || null, email: customer.user_Email || null } : null,
+      customer: customer ? { id: String(customer._id), name: customer.user_Name || null, email: customer.user_Email || null, mobileVerified: Boolean(customer.mobileVerified) } : null,
       ...(await view(lead, req)),
     },
   });
