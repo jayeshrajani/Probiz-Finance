@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, Eye, Handshake, ShieldCheck } from "@phosphor-icons/react";
 import Breadcrumbs from "@/components/blocks/Breadcrumbs";
+import JollyHero from "@/components/fun/JollyHero";
 import HalftoneBackground from "@/components/kokonutui/halftone-background";
-import InkBackground from "@/components/kokonutui/ink-background";
 import TopoBackground from "@/components/kokonutui/topo-background";
 import SiteLayout from "@/components/site/SiteLayout";
 import AddressLink from "@/components/site/AddressLink";
@@ -37,18 +37,13 @@ export default function AboutPage() {
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "About" }]} />
       </div>
 
-      <InkBackground
-        as="h1"
-        text={t("Trusted since {year}.", { year: site.since })}
-        accent="oklch(0.733 0.186 52)"
-        className="mt-2 min-h-[520px] bg-transparent text-foreground [--bg-ink:var(--foreground)] [--bg-paper:var(--background)] sm:min-h-[640px]"
-      >
+      <JollyHero title={t("Trusted since {year}.", { year: site.since })} highlight={String(site.since)} className="mt-2 min-h-[520px] sm:min-h-[640px]">
         <div className="max-w-2xl text-center">
           <p className="text-xl font-semibold tracking-[-0.02em] text-balance sm:text-2xl">{t("Financial advice for families and businesses across India.")}</p>
           <p className="lede mt-4 text-pretty">{t(paragraphs[0])}</p>
-          <p className="mt-6 text-sm text-muted-foreground">{t("Drag across the page to write with the ink.")}</p>
+          <p className="mt-6 text-sm text-muted-foreground">{t("Toss the stickers around, or tap one for a little celebration.")}</p>
         </div>
-      </InkBackground>
+      </JollyHero>
 
       <section className="border-t border-border">
         <TopoBackground labels className="block min-h-0 bg-cream text-brand">
