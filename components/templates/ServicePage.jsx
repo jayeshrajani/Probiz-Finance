@@ -4,6 +4,7 @@ import ApplySection from "@/components/blocks/ApplySection";
 import Breadcrumbs from "@/components/blocks/Breadcrumbs";
 import ProductTile from "@/components/blocks/ProductTile";
 import { LeadPanel } from "@/components/blocks/QuickLead";
+import ServiceCard from "@/components/blocks/ServiceCard";
 import ScoreMeter from "@/components/fun/ScoreMeter";
 import SiteLayout from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
@@ -78,28 +79,12 @@ export default function ServicePage({ slug }) {
         <section className="section border-t border-border">
           <div className="container-page">
             <h2 className="display-2 max-w-2xl">{t("What we handle.")}</h2>
-            <div className="mt-12 columns-1 gap-5 md:columns-2 lg:columns-3">
+            {/* A grid, not CSS columns: an opening card must not reshuffle the others between columns. */}
+            <div className="mt-12 grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3">
               {content.sections.map((s) => (
-                <article key={s.heading} className="reveal mb-5 break-inside-avoid rounded-2xl border border-border p-6">
-                  <h3 className="text-lg font-semibold tracking-[-0.015em]">{t(s.heading)}</h3>
-                  {s.intro && <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t(s.intro)}</p>}
-                  {s.items?.length > 0 && (
-                    <ul className="mt-4 grid gap-2.5">
-                      {s.items.map((item) => (
-                        <li key={item.title} className="flex gap-2.5 text-sm leading-relaxed">
-                          <Check weight="bold" className="mt-1 size-3.5 shrink-0 text-brand-ink" />
-                          <span>
-                            {item.description ? <span className="font-medium">{t(item.title)}. </span> : t(item.title)}
-                            {item.description && <span className="text-muted-foreground">{t(item.description)}</span>}
-                            {item.bullets?.length > 0 && (
-                              <span className="mt-1 block text-muted-foreground">{item.bullets.map((b) => t(b)).join(", ")}</span>
-                            )}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
+                <div key={s.heading} className="reveal">
+                  <ServiceCard section={s} />
+                </div>
               ))}
             </div>
           </div>

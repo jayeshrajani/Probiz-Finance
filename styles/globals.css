@@ -340,6 +340,95 @@
   transform: rotateY(180deg);
 }
 
+/* Service cards (ServiceCard): heading only; the list opens on mouse hover, or on tap/Enter (data-open). */
+.svc-card {
+  transition:
+    transform 360ms var(--ease-out-expo),
+    box-shadow 360ms var(--ease-out-expo),
+    border-color 360ms var(--ease-out-expo);
+}
+.svc-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows 300ms var(--ease-out-expo),
+    visibility 0s linear 300ms;
+}
+.svc-body > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.svc-item {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms ease-out;
+}
+.svc-arrow,
+.svc-caret {
+  transition:
+    transform 360ms var(--ease-out-expo),
+    color 200ms ease-out;
+}
+.svc-card[data-open="true"] {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklch, var(--brand-ink) 25%, var(--border));
+  box-shadow: 0 14px 32px -18px rgb(0 0 0 / 0.22);
+}
+.svc-card[data-open="true"] .svc-body {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition:
+    grid-template-rows 380ms var(--ease-out-expo),
+    visibility 0s;
+}
+.svc-card[data-open="true"] .svc-item {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 320ms ease-out,
+    transform 380ms var(--ease-out-expo);
+  transition-delay: calc(60ms + min(var(--i, 0), 10) * 35ms);
+}
+.svc-card[data-open="true"] .svc-arrow {
+  transform: translate(2px, -2px);
+  color: var(--brand-ink);
+}
+.svc-card[data-open="true"] .svc-caret {
+  transform: rotate(180deg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .svc-card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in oklch, var(--brand-ink) 25%, var(--border));
+    box-shadow: 0 14px 32px -18px rgb(0 0 0 / 0.22);
+  }
+  .svc-card:hover .svc-body {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition:
+      grid-template-rows 380ms var(--ease-out-expo),
+      visibility 0s;
+  }
+  .svc-card:hover .svc-item {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 320ms ease-out,
+      transform 380ms var(--ease-out-expo);
+    transition-delay: calc(60ms + min(var(--i, 0), 10) * 35ms);
+  }
+  .svc-card:hover .svc-arrow {
+    transform: translate(2px, -2px);
+    color: var(--brand-ink);
+  }
+  .svc-card:hover .svc-caret {
+    transform: rotate(180deg);
+  }
+}
+
 @keyframes reveal-up {
   from {
     opacity: 0;
