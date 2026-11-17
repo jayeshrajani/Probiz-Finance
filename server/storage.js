@@ -99,16 +99,23 @@ function linkTtlSeconds() {
 }
 
 // `pf:<path>` -> `/api/files/<payload>.<signature>.<ext>` valid for PRIVATE_FILE_URL_TTL_SECONDS (default 10 min).
-function fileLink(ref) {
+// `by` ({ staffId, staffName, role, leadId, leadType }) travels signed inside the link for the access log.
+function fileLink(ref, by) {
   const objectPath = typeof ref === 'string' && ref.startsWith('pf:') ? ref.slice(3) : null;
   const ext = objectPath && objectPath.split('.').pop();
   if (!objectPath || !['png', 'jpg', 'pdf'].includes(ext)) return null;
-  const payload = Buffer.from(JSON.stringify({ p: objectPath, e: Math.floor(Date.now() / 1000) + linkTtlSeconds() })).toString('base64url');
+  const data = { p: objectPath, e: Math.floor(Date.now() / 1000) + linkTtlSeconds(), ...(by ? { b: by } : {}) };
+  const payload = Buffer.from(JSON.stringify(data)).toString('base64url');
   return `/api/files/${payload}.${sign(payload)}.${ext}`;
 }
 
 // Returns the object path for a valid, unexpired link token, otherwise null.
 function verifyFileLink(token) {
+  return readFileLink(token)?.path || null;
+}
+
+// { path, by } for a valid, unexpired link token, otherwise null.
+function readFileLink(token) {
   const m = LINK_RE.exec(String(token || ''));
   if (!m) return null;
   const [, payload, signature, ext] = m;
@@ -122,19 +129,20 @@ function verifyFileLink(token) {
     return null;
   }
   if (!data || typeof data.p !== 'string' || !Number.isFinite(data.e) || data.e < Date.now() / 1000) return null;
-  return data.p.endsWith(`.${ext}`) ? data.p : null;
+  if (!data.p.endsWith(`.${ext}`)) return null;
+  return { path: data.p, by: data.b && typeof data.b === 'object' ? data.b : null };
 }
 
 // Replaces every `pf:` reference inside a record with a signed link (for responses to authorised staff).
-function withFileLinks(value) {
-  if (typeof value === 'string') return value.startsWith('pf:') ? fileLink(value) || value : value;
-  if (Array.isArray(value)) return value.map(withFileLinks);
+function withFileLinks(value, by) {
+  if (typeof value === 'string') return value.startsWith('pf:') ? fileLink(value, by) || value : value;
+  if (Array.isArray(value)) return value.map((v) => withFileLinks(v, by));
   if (value && typeof value === 'object' && !(value instanceof Date)) {
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, withFileLinks(v)]));
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, withFileLinks(v, by)]));
   }
   return value;
 }
 
 const openPrivateFile = (objectPath) => provider().open(objectPath);
 
-module.exports = { storeFile, deleteStoredFile, storedValues, fileLink, verifyFileLink, withFileLinks, openPrivateFile, linkTtlSeconds };
+module.exports = { storeFile, deleteStoredFile, storedValues, fileLink, verifyFileLink, readFileLink, withFileLinks, openPrivateFile, linkTtlSeconds };

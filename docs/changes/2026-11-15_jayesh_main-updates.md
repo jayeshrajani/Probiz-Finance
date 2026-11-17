@@ -1,4 +1,4 @@
-# Jayesh Rajani: changes on `main` (2026-11-13 to 2026-11-15)
+# Jayesh Rajani: changes on `main` (2026-11-13 to 2026-11-16)
 
 Author: Jayesh Rajani. Source: `git log --author=Jayesh origin/main`, reviewed 2026-11-16 by Shivansh. Commit hashes refer to `main`.
 
@@ -27,6 +27,18 @@ Default behaviour is unchanged: Postgres and legacy file storage unless the Fire
 | `36ae11c` | Careers, hosting | Job openings with an admin editor (`pages/admin-panel/careers.js`, job model, `/api` routes, `npm run seed:jobs`); careers page and company copy updates; `vercel.json` region `bom1` (Mumbai) |
 | `8f2a870` | Admin, forms, Firebase on Vercel | Admin overview fix (range-only `lead_event` query, no extra Firestore index); one sidebar link per category; stricter loan forms (GST number, required amount/income/gold weight, gold type, country of study, clearer labels); confirmation scroll/focus; floating buttons hidden on phones while typing; Firebase on Vercel via `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` with a clear error when missing; `/api/health` logs its failure reason |
 | `549133c` | Website | Social links on the home page and higher in the footer (`components/site/SocialLinks.jsx`); mobile layout fixes |
+
+## 2026-11-16
+
+| Commit | Area | Change |
+|---|---|---|
+| `933a3ff` | Admin | Staff can add leads by hand (`pages/admin-panel/leads/new.js`, "Add lead" in the leads list and sidebar); `server/leads/intake.js` accepts staff-entered leads |
+| `5c727d4` | Website | Hindi/English site: Next.js i18n (`locales: ['en','hi']`, `/hi/...` URLs), `lib/i18n.js` (`useT()`, English text is the key), `lib/i18n-static.js`, Hindi dictionaries in `locales/hi/*.json`, `components/site/LanguageToggle.jsx`, `npm run check:i18n` (`scripts/i18n-check.mjs`), sitemap with Hindi URLs |
+| | Leads | Quick callback requests (name + mobile): `server/models/callback.model.js`, `POST /api/addCallbackRequest` (lead type `callback`, "Callback requests" inbox), `lib/callback.js`, `components/site/CallbackDialog.jsx` (header "Get a callback"), `components/blocks/QuickLead.jsx` (product and service pages) |
+| | Assistant, forms | Reworked chat assistant (`components/assistant/*`, callback inside the chat, contact card); shorter loan forms (`lib/forms.js`) with name/mobile pre-filled from an earlier callback in the same visit |
+
+Note: the i18n check reports 4 untranslated strings on `main`. Two are not text (`(prefers-reduced-motion: reduce)` and a canvas font string)
+and can be excluded from the check; the other two ("Swim before work.", "Write freely.") need Hindi.
 
 ## Review notes (Shivansh, 2026-11-16)
 

@@ -58,3 +58,27 @@ Suggested key events (conversions) in GA4: `generate_lead`, `whatsapp_click`, `p
 - Privacy policy (`content/legal.json`, sections "Cookies and Tracking Technologies" and "6. Cookies") should name Google Analytics and the opt-in. Draft for approval:
   "We use Google Analytics, only if you allow it, to understand how visitors use this website. It sets cookies and receives your IP address and device details; we do not send your name, phone number, email or form answers. You can change your choice at any time with 'Cookie preferences' at the bottom of every page."
 - The existing Facebook Pixel (`pages/_app.js`, ID `5323417621055552`) loads without asking. Consider putting it behind the same consent.
+
+## Deploy instructions (after `shivansh_dev` is merged into `main`)
+
+The code is safe to merge on its own: without the variable below, nothing loads and no banner is shown.
+
+1. **Vercel > Project > Settings > Environment Variables > Add**
+   - Key: `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+   - Value: `G-JFRQMSBFQ9`
+   - Environments: tick **Production only** (untick Preview and Development).
+   - Not a secret (it is visible in every page's HTML), but keep it out of `.env.local` so local and preview visits do not count.
+2. **Redeploy production.** `NEXT_PUBLIC_*` values are baked in at build time, so the variable has no effect until a new build:
+   Vercel > Deployments > latest Production deployment > "..." > Redeploy (or push a new commit to `main`).
+3. **Check the live site** in a private/incognito window:
+   - The "Analytics cookies" notice appears at the bottom. Click "Allow".
+   - Browser DevTools > Network: a request to `googletagmanager.com/gtag/js?id=G-JFRQMSBFQ9` and then `collect` requests to `google-analytics.com`.
+   - GA4 (analytics.google.com, property for probizfinance.com) > Reports > **Realtime**: your visit appears within about a minute.
+   - Click the WhatsApp button and a phone number: `whatsapp_click` and `phone_click` appear in Realtime > "Event count by Event name".
+   - Open `/admin-panel`: no notice, no `gtag` request.
+4. **Mark key events** in GA4 > Admin > Data display > Events (events appear there after they have happened once, up to 24 hours):
+   switch on "Mark as key event" for `generate_lead`, `whatsapp_click`, `phone_click`. Or create them in advance under Admin > Key events > "New key event" with the exact names.
+5. **Do not** add the Tag Manager (`GTM-5M29V599`) snippet or a second hard-coded `gtag` snippet: page views would be counted twice.
+
+Rollback: delete the variable in Vercel and redeploy; the notice and all tracking disappear. Code changes are not needed.
+Nothing else is required: the site has no Content-Security-Policy that would block Google's scripts (`next.config.js` only sets `upgrade-insecure-requests`).

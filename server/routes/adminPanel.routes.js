@@ -23,4 +23,5 @@ module.exports = (app) => {
     app.put('/api/admin/employees/:id/password', requireAdmin, panel.resetEmployeePassword);
     // Admin-only: shows how the client address is resolved behind the hosting proxy (sets TRUST_PROXY_HOPS).
     app.get('/api/admin/client-ip', requireAdmin, panel.clientIp);
+    app.get('/api/admin/document-access', requireAdmin, panel.documentAccess);
 };
