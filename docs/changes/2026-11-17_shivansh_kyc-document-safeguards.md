@@ -1,16 +1,18 @@
-# KYC document safeguards: masked Aadhaar and document access log
+# KYC document safeguards: document access log
 
 Author: Shivansh. Date: 2026-11-17. Branch: `shivansh_dev`.
 Background: Indian rules for storing KYC documents (summary below; not legal advice, to be confirmed by the client's lawyer).
 
 ## Code changes
 
-### 1. Masked Aadhaar only
+### 1. Masked Aadhaar: added, then removed (owner decision, 2026-11-17)
 
-- Every Aadhaar upload slot (all forms in `lib/forms.js`, and the admin "Add a lead" page, which uses the same `FileSlot`) now says
-  "Masked Aadhaar only: first 8 digits hidden." with a link to myAadhaar (`https://myaadhaar.uidai.gov.in/`), where customers download a masked e-Aadhaar.
-- Hindi translations added in `locales/hi/ui.json`.
-- The server cannot tell masked from unmasked images; staff should ask for a masked copy if a full Aadhaar arrives.
+- A "Masked Aadhaar only" instruction was added to every Aadhaar upload slot and then removed the same day.
+- Owner's decision: downloading a masked Aadhaar is tedious for customers and may lose leads, so customers upload their normal Aadhaar.
+- Consequence: full Aadhaar numbers are stored. UIDAI rules restrict storing full Aadhaar numbers by entities that are not authorised;
+  this is a known risk accepted by the owner, to be reviewed with the lawyer. It makes the other safeguards (private storage,
+  access log, retention and deletion) more important. Possible later options without asking customers: staff mask the number
+  before sharing with a lender, or documents are deleted soon after the lender receives them.
 
 ### 2. Document access log (who opened which customer document)
 
@@ -28,7 +30,6 @@ Background: Indian rules for storing KYC documents (summary below; not legal adv
 | `server/routes/files.routes.js` | Writes the `DocumentAccess` record before streaming; closes the file stream on failure |
 | `server/models/documentAccess.model.js` | New model |
 | `server/controllers/adminPanel.controller.js`, `server/routes/adminPanel.routes.js` | Lead detail passes the staff member and lead into the links; new `documentAccess` endpoint |
-| `lib/forms.js`, `components/forms/FileSlot.jsx`, `locales/hi/ui.json` | Masked-Aadhaar instruction |
 | `scripts/check-storage.mjs` | Two new checks (access logged with staff, lead and IP; log kept after lead deletion) |
 
 ### Verification (2026-11-17)
@@ -37,7 +38,7 @@ Background: Indian rules for storing KYC documents (summary below; not legal adv
 - `check:firestore-adapter` (Firestore emulator): all 125 scenarios passed, including the new model.
 - `check:storage` (Storage emulator, app on an isolated copy of the synthetic baseline database, 60 s links): **22 of 22 passed**, including the two new checks,
   link expiry, tampered links, access control and upload validation.
-- Browser: `/homeloan` Documents step shows the instruction under both Aadhaar slots; the myAadhaar link is clickable.
+- After removing the masked-Aadhaar instruction: `lib/forms.js` and `components/forms/FileSlot.jsx` are identical to `main`.
 
 ## Indian rules that apply to stored KYC documents (summary)
 
@@ -59,7 +60,7 @@ Optional for production: a customer-managed key (Cloud KMS, CMEK) so Probiz cont
 | 1 | Customer documents private (`private/documents/...`, `pf:` references), deny-all storage rules, 10-minute signed links after the lead access check | Done (Firebase work) |
 | 2 | Data in India (`asia-south1`, Mumbai) | Done (staging); production project must use the same region |
 | 3 | Upload checks (real file type, 5 MB), no documents or personal data in logs | Done (Firebase work) |
-| 4 | Masked Aadhaar instruction | **Done (this change)** |
+| 4 | Masked Aadhaar | **Not used (owner decision 2026-11-17):** normal Aadhaar uploads; risk accepted, to be reviewed with the lawyer |
 | 5 | App-level document access log | **Done (this change)** |
 | 6 | Bucket lockdown: public access prevention, uniform bucket-level access | To do in Cloud Shell, with approval (steps below) |
 | 7 | Google Cloud audit logs for Storage (data read/write), kept 365 days | To do in Cloud Shell, with approval (steps below) |

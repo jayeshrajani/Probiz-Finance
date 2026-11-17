@@ -22,7 +22,7 @@ Everything below is on top of `main` `5c727d4` (Jayesh's Hindi/English site). Li
 | Google Analytics 4 with a consent notice, plus conversion events (leads, WhatsApp/phone/email/map clicks, chat, newsletter) | **Yes: one Vercel variable, then redeploy** (step 3.6) | [changes/2026-11-16_shivansh_ga4-analytics.md](changes/2026-11-16_shivansh_ga4-analytics.md) |
 | WhatsApp button opens with a pre-filled message naming the product or service on the page | No | [changes/2026-11-16_shivansh_whatsapp-prefilled-messages.md](changes/2026-11-16_shivansh_whatsapp-prefilled-messages.md) |
 | Service pages: cards show headings only, details open on hover (tap on phones) | No | [changes/2026-11-17_shivansh_service-cards-hover.md](changes/2026-11-17_shivansh_service-cards-hover.md) |
-| KYC safeguards: "masked Aadhaar only" on every Aadhaar upload; log of which staff member opened which customer document (`/api/admin/document-access?leadId=...`, admin only) | No (new `document_access` collection/table is created automatically; no index) | [changes/2026-11-17_shivansh_kyc-document-safeguards.md](changes/2026-11-17_shivansh_kyc-document-safeguards.md) |
+| KYC safeguards: log of which staff member opened which customer document (`/api/admin/document-access?leadId=...`, admin only). Aadhaar uploads stay as they are (owner decision) | No (new `document_access` collection/table is created automatically; no index) | [changes/2026-11-17_shivansh_kyc-document-safeguards.md](changes/2026-11-17_shivansh_kyc-document-safeguards.md) |
 | Change notes for Jayesh's own commits (for the record) | No | [changes/2026-11-15_jayesh_main-updates.md](changes/2026-11-15_jayesh_main-updates.md) |
 | Firebase implementation log updates | No | [FIREBASE_IMPLEMENTATION_LOG.md](FIREBASE_IMPLEMENTATION_LOG.md) |
 
@@ -85,7 +85,6 @@ Then `npm run dev` and check in the browser (synthetic data only):
 | `/homeloan` | WhatsApp button opens `wa.me/91...?text=Hi Probiz Finance, I'm interested in Home Loan...` |
 | `/contact` | WhatsApp text is the general greeting |
 | `/ca-services` | "What we handle." cards show headings only; hover opens one; on a phone-sized window a tap opens it |
-| `/homeloan` > Documents step | Under both Aadhaar slots: "Masked Aadhaar only: first 8 digits hidden. Download from myAadhaar" |
 | Admin panel > a lead with an uploaded document (Firebase storage mode) | Open the document, then as admin `GET /api/admin/document-access?leadId=<lead id>` lists your access |
 | Any page | No analytics notice and no "Cookie preferences" link (expected until the GA4 variable is set) |
 | `/admin-panel` | Unchanged |
@@ -128,8 +127,6 @@ General rule: keep Jayesh's structure (i18n `t()`, layout, new components) and r
 | `lib/callback.js`, `components/forms/ApplicationForm.jsx`, `components/site/NewsletterForm.jsx` | `main`'s logic and `t()` | One `track(...)` call after a successful submit (`generate_lead` / `sign_up`) |
 | `components/templates/ServicePage.jsx` | Everything except the "What we handle." cards | The grid of `<ServiceCard section={s} />` |
 | `styles/globals.css` | All of `main` | The `.svc-*` block (service cards) |
-| `lib/forms.js` | All of `main`'s forms | The loop at the end that marks Aadhaar slots (`slot.aadhaar = true`) and `MASKED_AADHAAR_URL` |
-| `components/forms/FileSlot.jsx` | `main`'s layout | The masked-Aadhaar line shown when `slot.aadhaar` is set |
 | `server/storage.js`, `server/routes/files.routes.js`, `server/controllers/adminPanel.controller.js` | `main`'s logic | Links carry `by` (staff and lead); `/api/files` writes `DocumentAccess` before sending; `documentAccess` endpoint |
 | `locales/hi/ui.json` | All keys from both sides (it is one flat JSON object; check it still parses) | |
 
