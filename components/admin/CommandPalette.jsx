@@ -8,32 +8,36 @@ import { useAdmin } from "@/components/admin/AdminShell";
 import { cn } from "@/lib/utils";
 
 const PAGES = [
-  { label: "Overview", staffLabel: "My day", href: "/admin-panel/dashboard", hint: "Page" },
+  { label: "Overview", staffLabel: "My day", salesLabel: "My dashboard", href: "/admin-panel/dashboard", hint: "Page", sales: true },
   { label: "All leads", href: "/admin-panel/leads", hint: "Page", adminOnly: true },
   { label: "Unassigned leads", staffLabel: "Pick up new leads", href: "/admin-panel/leads?scope=unassigned", hint: "Page" },
-  { label: "My leads", href: "/admin-panel/leads?scope=mine", hint: "Page", staffOnly: true },
+  { label: "My leads", href: "/admin-panel/leads?scope=mine", hint: "Page", staffOnly: true, sales: true },
+  { label: "Handled earlier", href: "/admin-panel/leads?scope=handled", hint: "Page", staffOnly: true },
+  { label: "Add a lead", href: "/admin-panel/leads/new", hint: "Page", sales: true },
   { label: "Property listings", href: "/admin-panel/properties", hint: "Page" },
   { label: "Customers", href: "/admin-panel/customers", hint: "Page", adminOnly: true },
   { label: "Subscribers", href: "/admin-panel/subscribers", hint: "Page", adminOnly: true },
   { label: "Careers and job openings", href: "/admin-panel/careers", hint: "Page", adminOnly: true },
   { label: "Website settings", href: "/admin-panel/settings", hint: "Page", adminOnly: true },
-  { label: "Team and account", staffLabel: "My account", href: "/admin-panel/team", hint: "Page" },
+  { label: "Team and account", staffLabel: "My account", href: "/admin-panel/team", hint: "Page", sales: true },
 ];
 
 export default function CommandPalette({ open, onClose }) {
-  const { config, isAdmin } = useAdmin();
+  const { config, isAdmin, isSales } = useAdmin();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
 
   const items = useMemo(() => {
-    const pages = PAGES.filter((p) => (isAdmin ? !p.staffOnly : !p.adminOnly)).map((p) => (!isAdmin && p.staffLabel ? { ...p, label: p.staffLabel } : p));
+    const pages = PAGES.filter((p) => (isAdmin ? !p.staffOnly : isSales ? p.sales : !p.adminOnly)).map((p) =>
+      isAdmin ? p : { ...p, label: (isSales && p.salesLabel) || p.staffLabel || p.label }
+    );
     const all = [...pages, ...config.types.map((t) => ({ label: t.label, href: `/admin-panel/leads?type=${t.type}`, hint: "Leads" }))];
     const term = q.trim().toLowerCase();
     const matches = term ? all.filter((i) => i.label.toLowerCase().includes(term)) : all;
     return term ? [{ label: `Search leads for "${q.trim()}"`, href: `/admin-panel/leads?q=${encodeURIComponent(q.trim())}`, hint: "Search" }, ...matches] : matches;
-  }, [q, config.types, isAdmin]);
+  }, [q, config.types, isAdmin, isSales]);
 
   useEffect(() => {
     if (!open) return;

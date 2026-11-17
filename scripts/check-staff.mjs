@@ -57,7 +57,9 @@ ok((await call('DELETE', url, { token: neha })).s === 403, 'employee cannot dele
 
 r = await call('PATCH', url, { token: admin, body: { assignTo: arjunId } });
 ok(r.s === 200 && r.d.data.assignedTo === arjunId, 'admin reassigns to Arjun');
-ok((await call('GET', url, { token: neha })).s === 403 && (await call('GET', url, { token: arjun })).s === 200, 'access follows the new owner');
+ok((await call('GET', url, { token: arjun })).s === 200 && (await call('PATCH', url, { token: neha, body: { note: 'still mine?' } })).s === 403, 'editing follows the new owner');
+r = await call('GET', url, { token: neha });
+ok(r.s === 200 && r.d.data.canEdit === false, 'Neha keeps a read-only view of a lead she worked', r.d);
 r = await call('PATCH', url, { token: admin, body: { assignTo: null } });
 ok(r.s === 200 && !r.d.data.assignedTo, 'admin moves it back to the pool');
 
@@ -115,6 +117,68 @@ ok((await call('DELETE', `admin/employees/${temp.d.data._id}`, { token: admin })
 ok((await call('GET', 'admin/me', { token: tempToken })).s === 401, "removed employee's token stops working");
 r = await call('GET', `admin/leads/contact/${id2}`, { token: admin });
 ok(!r.d.data.assignedTo && r.d.data.notes.some((x) => /left/.test(x.text)), 'their open lead is back in the pool');
+
+// Personas: sales add leads and follow them read-only; operations L1 picks up and forwards to L2; L2 can send back.
+const arjunMe = (await call('GET', 'admin/me', { token: arjun })).d.data;
+const nehaMe = (await call('GET', 'admin/me', { token: neha })).d.data;
+ok(arjunMe.persona === 'ops_l1' && nehaMe.persona === 'ops_l1', 'demo employees work at Operations L1', [arjunMe.persona, nehaMe.persona]);
+const mk = async (name, persona) => {
+  const res = await call('POST', 'admin/employees', { token: admin, body: { name, persona, mobile: '9000000000', employeeId: `P-${persona}-${name}`, password: 'Persona@1234' } });
+  return { id: res.d.data?._id, email: res.d.data?.email, token: res.d.data?.email ? await login(res.d.data.email, 'Persona@1234') : null };
+};
+const sam = await mk(`Sam${n}`, 'sales');
+const sam2 = await mk(`Sam${n} Two`, 'sales');
+const lee = await mk(`Lee${n}`, 'ops_l2');
+ok(sam.email === `sam${n}.sales@probiz.com` && lee.email === `lee${n}.opsl2@probiz.com`, 'sign-in email is made from first name and role', [sam.email, lee.email]);
+ok(sam2.email === `sam${n}2.sales@probiz.com` && sam2.token, 'a clashing email gets a number', sam2.email);
+ok((await call('POST', 'admin/employees', { token: admin, body: { name: 'X', persona: 'boss', mobile: '9', employeeId: `X-${n}`, password: 'Persona@1234' } })).s === 400, 'unknown role rejected');
+
+const staffLead = async (token, suffix) =>
+  call('POST', 'admin/leads/contact', { token, body: { name: `E2E Sales ${suffix}`, email: `e2e${n}s${suffix}@example.com`, mobile_no: `97${n}1`.slice(0, 10), message: 'E2E persona', _meta: { consent: meta.consent } } });
+r = await staffLead(sam.token, 'a');
+ok(r.s === 201 && !r.d.assignedTo && r.d.stage === 'l1', 'sales lead goes to the Operations L1 pool', r.d);
+const sid = r.d.leadId;
+const surl = `admin/leads/contact/${sid}`;
+r = await call('GET', surl, { token: sam.token });
+ok(r.s === 200 && r.d.data.canEdit === false && Object.keys(r.d.data.fields).length === 0 && r.d.data.submissions.length === 0, 'sales see their lead without application fields', r.d.data);
+ok((await call('PATCH', surl, { token: sam.token, body: { note: 'hi' } })).s === 403, 'sales cannot change leads');
+r = await call('GET', 'admin/leads?type=all&limit=200&q=E2E', { token: sam.token });
+ok(r.d.data.some((l) => l.id === sid) && !r.d.data.some((l) => l.id === id2), 'sales list has their lead, not website leads', r.d.data.map((l) => l.id));
+ok((await call('GET', surl, { token: sam2.token })).s === 403, "sales cannot open another executive's lead");
+r = await staffLead(sam2.token, 'b');
+ok(r.s === 201 && r.d.leadId !== sid && !r.d.repeat, 'same phone from another executive makes a separate lead', r.d);
+const sid2 = r.d.leadId;
+ok((await call('GET', surl, { token: lee.token })).s === 403, 'L2 cannot open the L1 pool');
+
+r = await call('PATCH', surl, { token: arjun, body: { forward: true } });
+ok(r.s === 200 && r.d.data.stage === 'l2' && !r.d.data.assignedTo && r.d.data.l1OwnerName && !r.d.data.canEdit, 'L1 forwards to the L2 pool', r.d);
+ok((await call('PATCH', surl, { token: arjun, body: { note: 'x' } })).s === 403 && (await call('GET', surl, { token: arjun })).s === 200, 'L1 keeps a read-only view');
+ok((await call('PATCH', surl, { token: lee.token, body: { sendBack: true } })).s === 400, 'sending back needs a reason');
+r = await call('PATCH', surl, { token: lee.token, body: { sendBack: true, reason: 'PAN copy missing' } });
+ok(r.s === 200 && r.d.data.stage === 'l1' && r.d.data.assignedTo === arjunId && r.d.data.notes.some((x) => /PAN copy missing/.test(x.text)), 'L2 sends it back to the L1 owner', r.d);
+r = await call('GET', surl, { token: sam.token });
+ok(r.d.data.stage === 'l1' && r.d.data.assignedName && r.d.data.notes.some((x) => /Sent back/.test(x.text)), 'sales see the level, advisor and timeline', r.d.data);
+await call('PATCH', surl, { token: arjun, body: { forward: true } });
+r = await call('PATCH', surl, { token: lee.token, body: { status: 'won' } });
+ok(r.s === 200 && r.d.data.status === 'won' && r.d.data.assignedTo === lee.id, 'L2 picks it up and converts it', r.d);
+
+ok((await call('PATCH', surl, { token: admin, body: { assignTo: sam.id } })).s === 400, 'sales executives cannot be assigned leads');
+r = await call('PATCH', `admin/leads/contact/${sid2}`, { token: admin, body: { assignTo: lee.id } });
+ok(r.s === 200 && r.d.data.stage === 'l2' && r.d.data.assignedTo === lee.id, 'admin assignment moves the lead to the assignee level', r.d);
+ok((await call('PUT', `admin/employees/${lee.id}`, { token: admin, body: { persona: 'sales' } })).s === 409, 'role change blocked while they own open leads');
+r = await call('PATCH', `admin/leads/contact/${sid2}`, { token: admin, body: { stage: 'l1' } });
+ok(r.s === 200 && r.d.data.stage === 'l1' && !r.d.data.assignedTo, 'admin moves a lead to the L1 pool');
+r = await call('PUT', `admin/employees/${lee.id}`, { token: admin, body: { persona: 'ops_l1' } });
+ok(r.s === 200 && r.d.data.persona === 'ops_l1', 'role changes once nothing is open', r.d);
+ok((await call('PUT', `admin/employees/${lee.id}`, { token: neha, body: { persona: 'sales' } })).s === 403, 'employees cannot change roles');
+
+r = await call('GET', 'admin/overview?analytics=1&days=7', { token: admin });
+const samStats = r.d.data.analytics.sales.find((s) => s.id === sam.id);
+ok(samStats?.added === 1 && samStats?.won === 1 && !r.d.data.analytics.team.some((t) => t.id === sam.id), 'sales performance credits the executive', r.d.data.analytics.sales);
+r = await call('GET', `admin/leads?type=all&limit=200&addedBy=${sam.id}`, { token: admin });
+ok(r.d.data.length === 1 && r.d.data[0].id === sid, 'admin filters leads by who added them', r.d.data.map((l) => l.id));
+for (const lid of [sid, sid2]) await call('DELETE', `admin/leads/contact/${lid}`, { token: admin });
+for (const e of [sam, sam2, lee]) await call('DELETE', `admin/employees/${e.id}`, { token: admin });
 
 // Passwords.
 ok((await call('PUT', 'admin/me/password', { token: neha, body: { current: 'wrong', next: 'Whatever@123' } })).s === 400, 'wrong current password rejected');

@@ -34,17 +34,23 @@ function FilterSelect({ label, value, onChange, children, className }) {
 
 function Leads() {
   const router = useRouter();
-  const { config, isAdmin } = useAdmin();
-  const { type = "", group = "", status = "", q = "", page = "1", scope = "", channel = "", from = "", to = "" } = router.query;
+  const { config, isAdmin, isSales } = useAdmin();
+  const { type = "", group = "", status = "", q = "", page = "1", scope = "", channel = "", from = "", to = "", stage = "", addedBy = "" } = router.query;
   const typeDef = config.types.find((t) => t.type === type);
   const groupDef = config.groups.find((g) => g.id === group);
   const owner = config.employees.find((e) => e.id === scope);
+  const adder = isAdmin ? config.employees.find((e) => e.id === addedBy) : null;
+  const opsEmployees = config.employees.filter((e) => e.persona !== "sales");
   const heading = typeDef
     ? typeDef.label
     : groupDef
       ? groupDef.label
-      : scope === "mine"
+      : adder
+      ? `Added by ${adder.name}`
+      : isSales || scope === "mine"
       ? "My leads"
+      : scope === "handled"
+      ? "Handled earlier"
       : scope === "archived" && isAdmin
       ? "Archived leads"
       : scope === "unassigned"
@@ -56,8 +62,11 @@ function Leads() {
           : isAdmin
             ? "All leads"
             : "My leads and new leads";
-  const subheading =
-    scope === "archived" && isAdmin
+  const subheading = isSales
+    ? "Leads you added. Operations pick them up from here; open one to follow its progress."
+    : scope === "handled"
+    ? "Leads you worked before that have moved on. View only."
+    : scope === "archived" && isAdmin
       ? "Kept, but hidden from every other list and count. Open one to restore it."
       : scope === "unassigned"
       ? isAdmin
@@ -90,12 +99,14 @@ function Leads() {
     if (q) p.set("q", q);
     if (scope) p.set("scope", scope);
     if (channel) p.set("channel", channel);
+    if (stage) p.set("stage", stage);
+    if (addedBy) p.set("addedBy", addedBy);
     if (from && to) {
       p.set("from", from);
       p.set("to", to);
     }
     return p;
-  }, [type, group, status, q, scope, channel, from, to]);
+  }, [type, group, status, q, scope, channel, stage, addedBy, from, to]);
 
   const path = useMemo(() => {
     if (!router.isReady) return null;
@@ -109,7 +120,7 @@ function Leads() {
   const rows = data?.data || [];
   const counts = data?.statusCounts || {};
   const allCount = Object.values(counts).reduce((a, b) => a + b, 0);
-  const filtered = Boolean(q || status || channel || (from && to));
+  const filtered = Boolean(q || status || channel || stage || (from && to));
 
   async function exportCsv() {
     setExporting(true);
@@ -131,6 +142,7 @@ function Leads() {
         { label: "Amount", value: (r) => r.amount },
         { label: "Detail", value: (r) => r.detail },
         { label: "Status", value: (r) => STATUS_META[r.status]?.label },
+        { label: "Level", value: (r) => r.stage?.toUpperCase() },
         { label: "Advisor", value: (r) => r.assignedName || "Unassigned" },
         { label: "Source", value: (r) => (r.addedBy ? `Added by ${r.addedBy}` : CHANNEL_LABEL[r.channel] || "") },
         { label: "Times sent", value: (r) => r.repeatCount + 1 },
@@ -181,27 +193,40 @@ function Leads() {
             </Tabs>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <FilterSelect label="Advisor" value={scope} onChange={(v) => setQuery({ scope: v, page: "" })}>
-              {isAdmin ? (
-                <>
-                  <SelectItem value={ANY}>Any advisor</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                  {config.employees.length > 0 && <SelectSeparator />}
-                  {config.employees.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.name}
-                    </SelectItem>
-                  ))}
-                </>
-              ) : (
-                <>
-                  <SelectItem value={ANY}>Mine and unassigned</SelectItem>
-                  <SelectItem value="mine">Only mine</SelectItem>
-                  <SelectItem value="unassigned">Only unassigned</SelectItem>
-                </>
-              )}
-            </FilterSelect>
+            {!isSales && (
+              <FilterSelect label="Advisor" value={scope} onChange={(v) => setQuery({ scope: v, page: "" })}>
+                {isAdmin ? (
+                  <>
+                    <SelectItem value={ANY}>Any advisor</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                    {opsEmployees.length > 0 && <SelectSeparator />}
+                    {opsEmployees.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.name}
+                      </SelectItem>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <SelectItem value={ANY}>Everything I can see</SelectItem>
+                    <SelectItem value="mine">Only mine</SelectItem>
+                    <SelectItem value="unassigned">Ready to pick up</SelectItem>
+                    <SelectItem value="handled">Handled earlier</SelectItem>
+                  </>
+                )}
+              </FilterSelect>
+            )}
+            {(isAdmin || isSales) && (
+              <FilterSelect label="Level" value={stage} onChange={(v) => setQuery({ stage: v, page: "" })} className="sm:min-w-36">
+                <SelectItem value={ANY}>Any level</SelectItem>
+                {(config.stages || []).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </FilterSelect>
+            )}
             <FilterSelect label="Source" value={channel} onChange={(v) => setQuery({ channel: v, page: "" })}>
               <SelectItem value={ANY}>Any source</SelectItem>
               {(config.channels || []).map((c) => (
@@ -267,6 +292,7 @@ function Leads() {
                     <TableHead>Amount</TableHead>
                     <TableHead className="hidden xl:table-cell">Detail</TableHead>
                     <TableHead>Last activity</TableHead>
+                    <TableHead className="hidden lg:table-cell">Level</TableHead>
                     <TableHead className="hidden lg:table-cell">Advisor</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -279,7 +305,14 @@ function Leads() {
                           {r.name}
                         </Link>
                         <span className="block text-xs text-muted-foreground">
-                          {[!typeDef && r.typeLabel, r.addedBy ? `added by ${r.addedBy}` : CHANNEL_LABEL[r.channel], r.repeatCount > 0 && `sent ${r.repeatCount + 1} times`].filter(Boolean).join(", ")}
+                          {[
+                            !typeDef && r.typeLabel,
+                            r.addedBy ? `added by ${r.addedBy}` : CHANNEL_LABEL[r.channel],
+                            r.repeatCount > 0 && `sent ${r.repeatCount + 1} times`,
+                            r.readOnly && !isAdmin && !isSales && "view only",
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -291,6 +324,7 @@ function Leads() {
                       <TableCell className="whitespace-nowrap text-muted-foreground" title={`Received ${formatDateTime(r.createdAt)}`}>
                         {timeAgo(r.lastActivityAt || r.createdAt)}
                       </TableCell>
+                      <TableCell className="hidden text-muted-foreground lg:table-cell">{r.stage?.toUpperCase()}</TableCell>
                       <TableCell className={cn("hidden lg:table-cell", !r.assignedName && "text-muted-foreground")}>{r.assignedName || "Unassigned"}</TableCell>
                       <TableCell>
                         <StatusBadge status={r.status} />
@@ -310,7 +344,9 @@ function Leads() {
                       <StatusBadge status={r.status} className="shrink-0 text-xs" />
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                      {[r.typeLabel, timeAgo(r.lastActivityAt || r.createdAt), amountText(r.amount)].filter(Boolean).join(", ")}
+                      {[r.typeLabel, timeAgo(r.lastActivityAt || r.createdAt), amountText(r.amount), isSales && `${r.stage?.toUpperCase()}, ${r.assignedName || "waiting"}`]
+                        .filter(Boolean)
+                        .join(", ")}
                     </span>
                   </Link>
                   {r.phone && (

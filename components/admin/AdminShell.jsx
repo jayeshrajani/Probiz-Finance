@@ -9,6 +9,7 @@ import {
   ArrowSquareOut,
   Briefcase,
   Buildings,
+  ClockCounterClockwise,
   CurrencyInr,
   EnvelopeSimple,
   Globe,
@@ -35,6 +36,8 @@ import { cn } from "@/lib/utils";
 
 const AdminContext = createContext(null);
 export const useAdmin = () => useContext(AdminContext);
+export const personaLabel = (config, persona) => config.personas?.find((p) => p.id === persona)?.label || null;
+export const stageLabel = (config, stage) => config.stages?.find((s) => s.id === stage)?.label || null;
 
 const GROUP_ICONS = { loans: CurrencyInr, cover: ShieldCheck, services: Briefcase, inbox: EnvelopeSimple };
 const GROUP_TONES = {
@@ -80,7 +83,7 @@ function NavLink({ href, icon: Icon, label, active, count, tone, onNavigate }) {
 }
 
 function Sidebar({ onNavigate }) {
-  const { config, counts, staff, isAdmin, signOut } = useAdmin();
+  const { config, counts, staff, isAdmin, isSales, signOut } = useAdmin();
   const router = useRouter();
   const onLeads = router.pathname.startsWith("/admin-panel/leads");
   const activeType = onLeads ? router.query.type || null : null;
@@ -100,46 +103,51 @@ function Sidebar({ onNavigate }) {
 
       <nav aria-label="Staff" className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
         <div className="space-y-0.5">
-          <NavLink href="/admin-panel/dashboard" icon={SquaresFour} label={isAdmin ? "Overview" : "My day"} active={is("/admin-panel/dashboard")} onNavigate={onNavigate} />
+          <NavLink href="/admin-panel/dashboard" icon={SquaresFour} label={isAdmin ? "Overview" : isSales ? "My dashboard" : "My day"} active={is("/admin-panel/dashboard")} onNavigate={onNavigate} />
           {isAdmin ? (
             <>
               <NavLink href="/admin-panel/leads" icon={Tray} label="All leads" active={activeScope === "" && !filteredByProduct} count={counts.open} onNavigate={onNavigate} />
               <NavLink href="/admin-panel/leads?scope=unassigned" icon={UserCirclePlus} label="Unassigned" active={activeScope === "unassigned" && !filteredByProduct} count={counts.unassigned} onNavigate={onNavigate} />
               <NavLink href="/admin-panel/leads?scope=archived" icon={Archive} label="Archived" active={activeScope === "archived" && !filteredByProduct} count={counts.archived} onNavigate={onNavigate} />
             </>
+          ) : isSales ? (
+            <NavLink href="/admin-panel/leads?scope=mine" icon={Tray} label="My leads" active={activeScope === "mine" && !filteredByProduct} count={counts.active} onNavigate={onNavigate} />
           ) : (
             <>
               <NavLink href="/admin-panel/leads?scope=mine" icon={Tray} label="My leads" active={activeScope === "mine" && !filteredByProduct} count={counts.active} onNavigate={onNavigate} />
               <NavLink href="/admin-panel/leads?scope=unassigned" icon={UserCirclePlus} label="Pick up new leads" active={activeScope === "unassigned" && !filteredByProduct} count={counts.unassigned} onNavigate={onNavigate} />
+              <NavLink href="/admin-panel/leads?scope=handled" icon={ClockCounterClockwise} label="Handled earlier" active={activeScope === "handled" && !filteredByProduct} onNavigate={onNavigate} />
             </>
           )}
           <NavLink href="/admin-panel/leads/new" icon={PlusCircle} label="Add a lead" active={is("/admin-panel/leads/new")} onNavigate={onNavigate} />
         </div>
 
-        <div>
-          <p className={sectionLabel}>Categories</p>
-          <div className="space-y-1 rounded-xl border border-border bg-secondary/40 p-1">
-            {config.groups
-              .filter((g) => SIDEBAR_GROUPS.includes(g.id))
-              .map((g) => (
-                <NavLink
-                  key={g.id}
-                  href={{ pathname: "/admin-panel/leads", query: { group: g.id } }}
-                  icon={GROUP_ICONS[g.id]}
-                  tone={GROUP_TONES[g.id]}
-                  label={g.label}
-                  active={activeGroup === g.id}
-                  count={config.types.filter((t) => t.group === g.id).reduce((n, t) => n + (counts.byType[t.type] || 0), 0)}
-                  onNavigate={onNavigate}
-                />
-              ))}
+        {!isSales && (
+          <div>
+            <p className={sectionLabel}>Categories</p>
+            <div className="space-y-1 rounded-xl border border-border bg-secondary/40 p-1">
+              {config.groups
+                .filter((g) => SIDEBAR_GROUPS.includes(g.id))
+                .map((g) => (
+                  <NavLink
+                    key={g.id}
+                    href={{ pathname: "/admin-panel/leads", query: { group: g.id } }}
+                    icon={GROUP_ICONS[g.id]}
+                    tone={GROUP_TONES[g.id]}
+                    label={g.label}
+                    active={activeGroup === g.id}
+                    count={config.types.filter((t) => t.group === g.id).reduce((n, t) => n + (counts.byType[t.type] || 0), 0)}
+                    onNavigate={onNavigate}
+                  />
+                ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <p className={sectionLabel}>Manage</p>
           <div className="space-y-0.5">
-            <NavLink href="/admin-panel/properties" icon={Buildings} label="Property listings" active={is("/admin-panel/properties")} onNavigate={onNavigate} />
+            {!isSales && <NavLink href="/admin-panel/properties" icon={Buildings} label="Property listings" active={is("/admin-panel/properties")} onNavigate={onNavigate} />}
             {isAdmin && (
               <>
                 <NavLink href="/admin-panel/customers" icon={Users} label="Customers" active={is("/admin-panel/customers")} onNavigate={onNavigate} />
@@ -160,7 +168,9 @@ function Sidebar({ onNavigate }) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium">{staff.name}</span>
-            <span className="block truncate text-xs text-muted-foreground">{staff.platform ? "Platform manager" : isAdmin ? "Admin" : [staff.title || "Employee", staff.employeeId].filter(Boolean).join(", ")}</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {staff.platform ? "Platform manager" : isAdmin ? "Admin" : [personaLabel(config, staff.persona) || staff.title || "Employee", staff.employeeId].filter(Boolean).join(", ")}
+            </span>
           </span>
           <button type="button" onClick={signOut} aria-label="Sign out" className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground">
             <SignOut className="size-4" />
@@ -201,7 +211,9 @@ export default function AdminShell({ title, children }) {
       return;
     }
     Promise.all([adminFetch("admin/me"), adminFetch("admin/config")])
-      .then(([me, cfg]) => setSession({ staff: me.data, isAdmin: me.data.role === "admin", config: cfg.data }))
+      .then(([me, cfg]) =>
+        setSession({ staff: me.data, isAdmin: me.data.role === "admin", isSales: me.data.role === "employee" && me.data.persona === "sales", config: cfg.data })
+      )
       .catch(() => router.replace("/admin-panel"));
     refreshCounts();
   }, [router, refreshCounts]);

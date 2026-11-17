@@ -27,6 +27,11 @@ const employeeSchema = mongoose.Schema({
         type: String,
         required: [true, "please enter employeeId"]
     },
+    // sales | ops_l1 | ops_l2 (server/admin/personas.js); missing on older records means ops_l1.
+    persona: {
+        type: String,
+        default: 'ops_l1'
+    },
     deleteFlag: {
         type: Boolean,
         default: false

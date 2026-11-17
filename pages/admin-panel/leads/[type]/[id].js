@@ -5,12 +5,13 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { Archive, ArrowCounterClockwise, ArrowLeft, ArrowSquareOut, EnvelopeSimple, FileText, HandGrabbing, Phone, SpinnerGap, Trash, WhatsappLogo } from "@phosphor-icons/react";
-import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
+import { Archive, ArrowBendUpLeft, ArrowBendUpRight, ArrowCounterClockwise, ArrowLeft, ArrowSquareOut, EnvelopeSimple, Eye, FileText, HandGrabbing, Phone, SpinnerGap, Trash, WhatsappLogo } from "@phosphor-icons/react";
+import AdminShell, { stageLabel, useAdmin } from "@/components/admin/AdminShell";
 import { ConfirmDialog, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { adminFetch, formatDateTime, STATUS_META, timeAgo, useAdminData } from "@/lib/admin-api";
@@ -92,7 +93,7 @@ function splitFields(fields, labels = {}) {
   return { details, files };
 }
 
-function Notes({ type, id, notes, onChange }) {
+function Notes({ type, id, notes, onChange, readOnly }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   async function add(e) {
@@ -111,23 +112,25 @@ function Notes({ type, id, notes, onChange }) {
   }
   return (
     <Panel title="Activity" description="Notes and status changes, newest first">
-      <form onSubmit={add} className="grid gap-2">
-        <label htmlFor="note" className="sr-only">
-          Add a note
-        </label>
-        <Textarea
-          id="note"
-          rows={3}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Called, asked for bank statements..."
-          className="min-h-20 resize-none text-sm"
-        />
-        <Button type="submit" size="sm" className="justify-self-end" disabled={busy || !text.trim()}>
-          {busy && <SpinnerGap className="animate-spin" />} Add note
-        </Button>
-      </form>
-      <ol className="mt-6 grid gap-0">
+      {!readOnly && (
+        <form onSubmit={add} className="grid gap-2">
+          <label htmlFor="note" className="sr-only">
+            Add a note
+          </label>
+          <Textarea
+            id="note"
+            rows={3}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Called, asked for bank statements..."
+            className="min-h-20 resize-none text-sm"
+          />
+          <Button type="submit" size="sm" className="justify-self-end" disabled={busy || !text.trim()}>
+            {busy && <SpinnerGap className="animate-spin" />} Add note
+          </Button>
+        </form>
+      )}
+      <ol className={cn("grid gap-0", !readOnly && "mt-6")}>
         <AnimatePresence initial={false}>
           {notes.map((n) => (
             <motion.li
@@ -158,7 +161,7 @@ function Notes({ type, id, notes, onChange }) {
             </motion.li>
           ))}
         </AnimatePresence>
-        {notes.length === 0 && <li className="text-sm text-muted-foreground">No activity yet. Add the first note after you call.</li>}
+        {notes.length === 0 && <li className="text-sm text-muted-foreground">{readOnly ? "No activity yet." : "No activity yet. Add the first note after you call."}</li>}
       </ol>
     </Panel>
   );
@@ -203,7 +206,7 @@ function Origin({ lead, customer }) {
 
 function LeadDetail() {
   const router = useRouter();
-  const { config, refreshCounts, isAdmin, staff } = useAdmin();
+  const { config, refreshCounts, isAdmin, isSales, staff } = useAdmin();
   const { type, id } = router.query;
   const { data, error, loading, reload } = useAdminData(router.isReady ? `admin/leads/${type}/${id}` : null);
   const [override, setOverride] = useState(null);
@@ -211,6 +214,9 @@ function LeadDetail() {
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [shown, setShown] = useState(0);
+  const [forwarding, setForwarding] = useState(false);
+  const [sendingBack, setSendingBack] = useState(false);
+  const [reason, setReason] = useState("");
 
   if (error) return <ErrorNote error={error} onRetry={reload} />;
   if (loading || !data) return <LoadingRows rows={8} />;
@@ -219,8 +225,9 @@ function LeadDetail() {
   const submissions = data.data.submissions?.length ? data.data.submissions : [{ id: "current", createdAt: lead.createdAt, fields: data.data.fields }];
   const fields = (submissions[shown] || submissions[0]).fields;
   const current = override || data.data;
-  const { status, notes, assignedTo, assignedName, archived } = current;
-  const canEdit = isAdmin || !assignedTo || assignedTo === staff.id;
+  const { status, notes, assignedTo, assignedName, archived, stage, l1OwnerName, canEdit } = current;
+  const isOpen = status === "new" || status === "contacted" || status === "in_progress";
+  const levelOf = (persona) => config.personas?.find((p) => p.id === persona)?.level;
   const { details, files } = splitFields(fields, labelsFor(config.types.find((t) => t.type === type)?.formKey));
   const phone = lead.phone ? String(lead.phone).replace(/\D/g, "").slice(-10) : null;
 
@@ -231,8 +238,10 @@ function LeadDetail() {
       setOverride(res.data);
       refreshCounts();
       toast.success(message);
+      return true;
     } catch (err) {
       toast.error(err.message);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -317,19 +326,45 @@ function LeadDetail() {
         </Card>
       )}
 
+      {!isAdmin && !canEdit && (
+        <Card className="mb-4 flex-row items-center gap-3 border-dashed bg-secondary/60 px-4 py-3 text-sm">
+          <Eye className="size-4 shrink-0 text-muted-foreground" />
+          <span className="flex-1 text-muted-foreground">
+            {isSales ? "You added this lead. Operations work it from here; you can follow its progress." : "View only. This lead has moved on from you."}
+          </span>
+        </Card>
+      )}
+
       <Card className="mb-4 flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <p className="text-sm">
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span className="rounded-md bg-secondary px-1.5 py-0.5 text-xs font-medium">{stageLabel(config, stage) || "Operations L1"}</span>
           {assignedName ? (
-            <>
+            <span>
               <span className="text-muted-foreground">Advisor: </span>
               <span className="font-medium">{assignedTo === staff.id ? `${assignedName} (you)` : assignedName}</span>
-            </>
+            </span>
           ) : (
-            <span className="text-muted-foreground">No advisor yet.</span>
+            <span className="text-muted-foreground">Waiting to be picked up.</span>
           )}
+          {stage === "l2" && l1OwnerName && <span className="text-muted-foreground">Forwarded by {l1OwnerName}</span>}
         </p>
         {isAdmin ? (
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground" id="stage-label">
+              Level
+            </span>
+            <Select value={stage} disabled={saving} onValueChange={(v) => v !== stage && patch({ stage: v }, `Moved to the ${stageLabel(config, v)} pool`)}>
+              <SelectTrigger aria-labelledby="stage-label" className="min-w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end">
+                {config.stages.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.id.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <span className="text-muted-foreground" id="assign-label">
               Assign to
             </span>
@@ -346,21 +381,43 @@ function LeadDetail() {
               </SelectTrigger>
               <SelectContent align="end">
                 <SelectItem value="none">Unassigned</SelectItem>
-                {config.employees.length > 0 && <SelectSeparator />}
-                {config.employees.map((x) => (
-                  <SelectItem key={x.id} value={x.id}>
-                    {x.name}
-                  </SelectItem>
-                ))}
+                {config.stages.map((s) => {
+                  const list = config.employees.filter((x) => levelOf(x.persona) === s.id);
+                  return list.length ? (
+                    <SelectGroup key={s.id}>
+                      <SelectSeparator />
+                      <SelectLabel>{s.label}</SelectLabel>
+                      {list.map((x) => (
+                        <SelectItem key={x.id} value={x.id}>
+                          {x.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ) : null;
+                })}
                 {assignedTo && !config.employees.some((x) => x.id === assignedTo) && <SelectItem value={assignedTo}>{assignedName} (removed)</SelectItem>}
               </SelectContent>
             </Select>
           </div>
         ) : (
-          !assignedTo && (
-            <Button size="sm" disabled={saving} onClick={() => patch({ claim: true }, "This lead is yours now")}>
-              <HandGrabbing weight="bold" /> Pick up this lead
-            </Button>
+          canEdit && (
+            <div className="flex flex-wrap gap-2">
+              {!assignedTo && (
+                <Button size="sm" disabled={saving} onClick={() => patch({ claim: true }, "This lead is yours now")}>
+                  <HandGrabbing weight="bold" /> Pick up this lead
+                </Button>
+              )}
+              {stage === "l1" && isOpen && (
+                <Button size="sm" variant="outline" disabled={saving} onClick={() => setForwarding(true)}>
+                  <ArrowBendUpRight weight="bold" /> Forward to L2
+                </Button>
+              )}
+              {stage === "l2" && (
+                <Button size="sm" variant="outline" disabled={saving} onClick={() => setSendingBack(true)}>
+                  <ArrowBendUpLeft weight="bold" /> Send back to L1
+                </Button>
+              )}
+            </div>
           )
         )}
       </Card>
@@ -387,59 +444,144 @@ function LeadDetail() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="grid content-start gap-6 xl:col-span-2">
-          <Panel title="Application details">
-            {submissions.length > 1 && (
-              <Tabs value={String(shown)} onValueChange={(v) => setShown(Number(v))} className="mb-6">
-                <TabsList aria-label="Submissions" className="h-auto flex-wrap">
-                  {submissions.map((s, i) => (
-                    <TabsTrigger key={s.id} value={String(i)} className="px-3">
-                      {i === 0 ? "Latest" : `Earlier ${i}`}, {formatDateTime(s.createdAt)}
-                    </TabsTrigger>
+          {isSales ? (
+            <Panel title="Lead summary" description="Application details and documents are with operations.">
+              <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+                {[
+                  ["Phone", lead.phone],
+                  ["Email", lead.email],
+                  ["Amount", lead.amount && formatValue("amount", lead.amount)],
+                  ["Detail", lead.detail],
+                ]
+                  .filter(([, v]) => v)
+                  .map(([k, v]) => (
+                    <div key={k} className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">{k}</dt>
+                      <dd className="mt-1 text-sm font-medium break-words">{v}</dd>
+                    </div>
                   ))}
-                </TabsList>
-              </Tabs>
-            )}
-            <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-              {details.map((d) => (
-                <div key={d.key} className="min-w-0">
-                  <dt className="text-xs text-muted-foreground">{d.label}</dt>
-                  <dd className="mt-1 text-sm font-medium break-words">{d.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </Panel>
+              </dl>
+            </Panel>
+          ) : (
+            <>
+              <Panel title="Application details">
+                {submissions.length > 1 && (
+                  <Tabs value={String(shown)} onValueChange={(v) => setShown(Number(v))} className="mb-6">
+                    <TabsList aria-label="Submissions" className="h-auto flex-wrap">
+                      {submissions.map((s, i) => (
+                        <TabsTrigger key={s.id} value={String(i)} className="px-3">
+                          {i === 0 ? "Latest" : `Earlier ${i}`}, {formatDateTime(s.createdAt)}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                )}
+                <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+                  {details.map((d) => (
+                    <div key={d.key} className="min-w-0">
+                      <dt className="text-xs text-muted-foreground">{d.label}</dt>
+                      <dd className="mt-1 text-sm font-medium break-words">{d.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </Panel>
 
-          <Panel title="Documents" description={files.length ? `${files.length} uploaded` : "Nothing uploaded with this application"}>
-            {files.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Ask the customer to share documents on WhatsApp or email if you need them.</p>
-            ) : (
-              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {files.map((f) => (
-                  <li key={f.url}>
-                    <a href={f.url} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border border-border transition-colors hover:border-foreground/20">
-                      <div className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-secondary">
-                        <DocThumb url={f.url} label={f.label} />
-                        {extOf(f.url) && (
-                          <span className="absolute bottom-2 left-2 rounded-md bg-background/90 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wide text-muted-foreground shadow-sm">{extOf(f.url)}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
-                        <span className="truncate font-medium">{f.label}</span>
-                        <ArrowSquareOut className="size-3.5 shrink-0 text-muted-foreground" />
-                      </div>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
+              <Panel title="Documents" description={files.length ? `${files.length} uploaded` : "Nothing uploaded with this application"}>
+                {files.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Ask the customer to share documents on WhatsApp or email if you need them.</p>
+                ) : (
+                  <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {files.map((f) => (
+                      <li key={f.url}>
+                        <a href={f.url} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border border-border transition-colors hover:border-foreground/20">
+                          <div className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-secondary">
+                            <DocThumb url={f.url} label={f.label} />
+                            {extOf(f.url) && (
+                              <span className="absolute bottom-2 left-2 rounded-md bg-background/90 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wide text-muted-foreground shadow-sm">{extOf(f.url)}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
+                            <span className="truncate font-medium">{f.label}</span>
+                            <ArrowSquareOut className="size-3.5 shrink-0 text-muted-foreground" />
+                          </div>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+            </>
+          )}
         </div>
 
         <div className="grid content-start gap-6">
-          <Notes type={type} id={id} notes={notes} onChange={setOverride} />
+          <Notes type={type} id={id} notes={notes} onChange={setOverride} readOnly={!canEdit} />
           <Origin lead={lead} customer={customer} />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={forwarding}
+        title="Forward to Operations L2?"
+        body="It goes to the L2 pick-up pool. You can still view it, but not change it."
+        confirmLabel="Forward"
+        variant="default"
+        busy={saving}
+        onConfirm={async () => {
+          if (await patch({ forward: true }, "Forwarded to Operations L2")) setForwarding(false);
+        }}
+        onClose={() => setForwarding(false)}
+      />
+
+      <Dialog
+        open={sendingBack}
+        onOpenChange={(next) => {
+          if (!next) {
+            setSendingBack(false);
+            setReason("");
+          }
+        }}
+      >
+        <DialogContent>
+          <form
+            className="grid gap-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!reason.trim()) return;
+              if (await patch({ sendBack: true, reason }, "Sent back to Operations L1")) {
+                setSendingBack(false);
+                setReason("");
+              }
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Send back to Operations L1</DialogTitle>
+              <DialogDescription>{l1OwnerName ? `It goes back to ${l1OwnerName}.` : "It goes back to the L1 pick-up pool."} Say what is missing.</DialogDescription>
+            </DialogHeader>
+            <label htmlFor="send-back-reason" className="sr-only">
+              Reason
+            </label>
+            <Textarea
+              id="send-back-reason"
+              rows={3}
+              required
+              autoFocus
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Bank statement for the last 6 months is missing..."
+              className="min-h-20 resize-none text-sm"
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => setSendingBack(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={saving || !reason.trim()}>
+                {saving && <SpinnerGap className="animate-spin" />} Send back
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={confirm}

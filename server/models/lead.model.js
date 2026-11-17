@@ -15,6 +15,12 @@ const leadSchema = mongoose.Schema(
     status: { type: String, default: 'new' },
     assignedTo: { type: String, default: null },
     assignedName: { type: String, default: null },
+    // Operations level working the lead (l1 | l2); missing on older records means l1.
+    stage: { type: String, default: 'l1' },
+    // The L1 owner at the time it went to L2, so L2 can send it back to them.
+    l1Owner: { type: mongoose.Schema.Types.Mixed, default: null },
+    // Everyone who has owned the lead; they keep a read-only view after it moves on.
+    handledBy: [String],
     userId: { type: String, default: null },
     source: { type: mongoose.Schema.Types.Mixed, default: null },
     consent: { type: mongoose.Schema.Types.Mixed, default: null },

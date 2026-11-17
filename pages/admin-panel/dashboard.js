@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowRight } from "@phosphor-icons/react";
-import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
+import AdminShell, { stageLabel, useAdmin } from "@/components/admin/AdminShell";
 import { Empty, ErrorNote, LoadingRows, Panel, StatusBadge } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -131,7 +131,7 @@ function Pipeline({ counts, query }) {
   );
 }
 
-function LeadRows({ leads, empty }) {
+function LeadRows({ leads, empty, showStage }) {
   if (leads.length === 0) return <Empty title={empty.title} body={empty.body} />;
   return (
     <ul className="divide-y divide-border">
@@ -140,7 +140,9 @@ function LeadRows({ leads, empty }) {
           <Link href={`/admin-panel/leads/${l.type}/${l.id}`} className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/50">
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{l.name}</span>
-              <span className="block truncate text-xs text-muted-foreground">{[l.typeLabel, l.phone, l.assignedName].filter(Boolean).join(", ")}</span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {[l.typeLabel, l.phone, showStage && l.stage?.toUpperCase(), showStage ? l.assignedName || "waiting" : l.assignedName].filter(Boolean).join(", ")}
+              </span>
             </span>
             <span className="hidden text-xs text-muted-foreground sm:block">{timeAgo(l.createdAt)}</span>
             <StatusBadge status={l.status} className="w-28 justify-end" />
@@ -236,11 +238,53 @@ function TeamTable({ team, query }) {
               <Link href={leadsHref({ scope: m.id, ...query })} className="hover:underline">
                 {m.name}
               </Link>
+              {m.personaLabel && <span className="block text-xs font-normal text-muted-foreground">{m.personaLabel}</span>}
             </TableCell>
             <TableCell className="text-right">{m.assigned}</TableCell>
             <TableCell className="text-right">{m.won}</TableCell>
             <TableCell className="text-right">{pct(m.conversion)}</TableCell>
             <TableCell className="text-right">{m.active}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function SalesTable({ sales, query }) {
+  if (!sales?.length)
+    return (
+      <p className="p-5 text-sm text-muted-foreground">
+        No sales executives yet.{" "}
+        <Link href="/admin-panel/team" className="font-medium text-foreground underline underline-offset-4">
+          Add one
+        </Link>{" "}
+        to track the leads they bring in.
+      </p>
+    );
+  return (
+    <Table className="min-w-[560px]">
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead>Sales executive</TableHead>
+          <HeadTip tip="Leads they added in this period.">Added</HeadTip>
+          <TableHead className="text-right">Converted</TableHead>
+          <HeadTip tip="Converted as a share of added.">Conversion</HeadTip>
+          <HeadTip tip="Leads from this period that are still open.">Open</HeadTip>
+        </TableRow>
+      </TableHeader>
+      <TableBody className="tabular-nums">
+        {sales.map((m) => (
+          <TableRow key={m.id}>
+            <TableCell className="font-medium">
+              <Link href={leadsHref({ addedBy: m.id, ...query })} className="hover:underline">
+                {m.name}
+              </Link>
+            </TableCell>
+            <TableCell className="text-right">{m.added}</TableCell>
+            <TableCell className="text-right">{m.won}</TableCell>
+            <TableCell className="text-right">{pct(m.conversion)}</TableCell>
+            <TableCell className="text-right">{m.open}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -366,7 +410,12 @@ function AdminOverview() {
         <div className={cn("grid grid-cols-1 gap-6 transition-opacity", loading && "opacity-60")} aria-busy={loading || undefined}>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi label="New leads" value={o.totals.open} hint="Waiting for a first call" href={leadsHref({ status: "new" })} />
-            <Kpi label="Unassigned" value={o.totals.unassigned} hint="Open leads with no advisor" href={leadsHref({ scope: "unassigned" })} />
+            <Kpi
+              label="Unassigned"
+              value={o.totals.unassigned}
+              hint={o.stageCounts ? `L1 pool ${o.stageCounts.l1.waiting}, L2 pool ${o.stageCounts.l2.waiting}` : "Open leads with no advisor"}
+              href={leadsHref({ scope: "unassigned" })}
+            />
             <Kpi label="Leads in period" value={a.totals.leads} hint={delta(a.totals.leads, a.totals.previous)} href={leadsHref(inRange)} />
             <Kpi label="Converted" value={a.totals.won} hint={`${pct(a.totals.conversion)} of leads in period`} href={leadsHref({ ...inRange, status: "won" })} />
             <Kpi label="Customers" value={o.totals.users} hint="Website accounts" href="/admin-panel/customers" />
@@ -383,10 +432,13 @@ function AdminOverview() {
           </div>
           <Panel
             title="Team performance"
-            description={`Assigned, won and conversion cover the ${rangeLabel}. Active is as of now.`}
+            description={`Operations. Assigned, won and conversion cover the ${rangeLabel}. Active is as of now.`}
             bodyClassName="p-0"
           >
             <TeamTable team={a.team} query={inRange} />
+          </Panel>
+          <Panel title="Sales performance" description={`Leads each sales executive added in the ${rangeLabel}, and how many converted.`} bodyClassName="p-0">
+            <SalesTable sales={a.sales} query={inRange} />
           </Panel>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <Panel title="Latest leads" className="xl:col-span-2" bodyClassName="p-0" actions={viewAll(leadsHref())}>
@@ -408,8 +460,11 @@ function AdminOverview() {
 }
 
 function EmployeeDay() {
+  const { config, staff } = useAdmin();
   const { data, error, loading, reload } = useAdminData("admin/overview");
   const o = data?.data;
+  const level = config.personas?.find((p) => p.id === staff.persona)?.level;
+  const pool = stageLabel(config, level) || "your level";
 
   const summary = o
     ? `${o.totals.active} active ${o.totals.active === 1 ? "lead" : "leads"}${o.totals.unassigned ? `, ${o.totals.unassigned} waiting to be picked up` : ""}.`
@@ -424,13 +479,13 @@ function EmployeeDay() {
         <div className="grid gap-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi label="My active leads" value={o.totals.active} hint="New, contacted or in progress" href={leadsHref({ scope: "mine" })} />
-            <Kpi label="Ready to pick up" value={o.totals.unassigned} hint="Open leads with no advisor" href={leadsHref({ scope: "unassigned" })} />
+            <Kpi label="Ready to pick up" value={o.totals.unassigned} hint={`Open leads in the ${pool} pool`} href={leadsHref({ scope: "unassigned" })} />
             <Kpi label="Converted" value={o.totals.won} hint="Leads you closed as won" href={leadsHref({ scope: "mine", status: "won" })} />
             <Kpi label="Last 7 days" value={o.totals.last7} hint={`${o.totals.leads} assigned to you in total`} href={leadsHref({ scope: "mine" })} />
           </div>
           <div className="grid gap-6 xl:grid-cols-3">
-            <Panel title="Pick up next" description="Newest open leads with no advisor. Acting on one makes it yours." className="xl:col-span-2" bodyClassName="p-0" actions={viewAll(leadsHref({ scope: "unassigned" }), "See all")}>
-              <LeadRows leads={o.pool} empty={{ title: "Nothing waiting", body: "Every open lead has an advisor. New ones will show up here." }} />
+            <Panel title="Pick up next" description={`Newest open leads in the ${pool} pool. Acting on one makes it yours.`} className="xl:col-span-2" bodyClassName="p-0" actions={viewAll(leadsHref({ scope: "unassigned" }), "See all")}>
+              <LeadRows leads={o.pool} empty={{ title: "Nothing waiting", body: "Every open lead at your level has an advisor. New ones will show up here." }} />
             </Panel>
             <Panel title="My pipeline">
               <Pipeline counts={o.statusCounts} query={{ scope: "mine" }} />
@@ -450,9 +505,54 @@ function EmployeeDay() {
   );
 }
 
+function SalesDay() {
+  const { data, error, loading, reload } = useAdminData("admin/overview");
+  const o = data?.data;
+  const waiting = o ? o.stageCounts.l1.waiting + o.stageCounts.l2.waiting : 0;
+
+  const summary = o
+    ? `${o.totals.active} open ${o.totals.active === 1 ? "lead" : "leads"} you added${waiting ? `, ${waiting} waiting to be picked up` : ""}.`
+    : null;
+
+  return (
+    <>
+      <Header title="My dashboard" summary={summary} />
+      <Loading error={error} reload={reload} loading={loading && !o} />
+
+      {o && (
+        <div className="grid gap-6">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Kpi label="With Operations L1" value={o.stageCounts.l1.open} hint={`${o.stageCounts.l1.waiting} not picked up yet`} href={leadsHref({ scope: "mine", stage: "l1" })} />
+            <Kpi label="With Operations L2" value={o.stageCounts.l2.open} hint={`${o.stageCounts.l2.waiting} not picked up yet`} href={leadsHref({ scope: "mine", stage: "l2" })} />
+            <Kpi label="Converted" value={o.totals.won} hint={`Of ${o.totals.leads} leads you added`} href={leadsHref({ scope: "mine", status: "won" })} />
+            <Kpi label="Last 7 days" value={o.totals.last7} hint="Leads you added" href={leadsHref({ scope: "mine" })} />
+          </div>
+          <div className="grid gap-6 xl:grid-cols-3">
+            <Panel
+              title="My latest leads"
+              description="Level and advisor working each one"
+              className="xl:col-span-2"
+              bodyClassName="p-0"
+              actions={viewAll(leadsHref({ scope: "mine" }))}
+            >
+              <LeadRows leads={o.recent} showStage empty={{ title: "No leads yet", body: "Add your first lead to see it here." }} />
+            </Panel>
+            <Panel title="My pipeline">
+              <Pipeline counts={o.statusCounts} query={{ scope: "mine" }} />
+            </Panel>
+          </div>
+          <Panel title="Leads I added, last 30 days">
+            <DailyChart days={o.daily} />
+          </Panel>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Dashboard() {
-  const { isAdmin } = useAdmin();
-  return isAdmin ? <AdminOverview /> : <EmployeeDay />;
+  const { isAdmin, isSales } = useAdmin();
+  return isAdmin ? <AdminOverview /> : isSales ? <SalesDay /> : <EmployeeDay />;
 }
 
 export default function DashboardPage() {

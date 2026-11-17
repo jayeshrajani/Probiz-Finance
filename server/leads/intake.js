@@ -14,6 +14,7 @@ const { allow } = require('./rateLimit');
 const { emit, on } = require('./events');
 const { notifyNewLead } = require('./notify/whatsapp');
 const { normalizePhone } = require('./backfill');
+const { personaOf, levelOf, stageOf } = require('../admin/personas');
 
 const HONEYPOT = 'company_website';
 const DEDUPE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -119,12 +120,21 @@ function makeGate(ctx) {
     }
 
     if (staffEntry) {
-      // Employees own what they enter; admins may hand it to an employee or leave it in the pool.
-      if (req.staff.role !== 'admin') ctx.assignee = { id: req.staff.id, name: req.staff.name };
-      else if (assignTo) {
+      // Operations own what they enter, at their level. Sales entries go to the L1 pool as a new lead of their
+      // own (never merged into someone else's). Admins may hand it to an operations employee or leave it in the pool.
+      if (req.staff.role !== 'admin') {
+        const level = levelOf(req.staff.persona);
+        if (level) {
+          ctx.assignee = { id: req.staff.id, name: req.staff.name };
+          ctx.stage = level;
+        } else ctx.noMerge = true;
+      } else if (assignTo) {
         const employee = await Employee.findOne({ _id: assignTo, deleteFlag: false }).lean();
         if (!employee) return deny(res, 400, 'That employee no longer exists.');
+        const level = levelOf(personaOf(employee));
+        if (!level) return deny(res, 400, "Sales executives can't be assigned leads.");
         ctx.assignee = { id: String(employee._id), name: employee.name };
+        ctx.stage = level;
       }
     }
 
@@ -185,7 +195,7 @@ async function upsertLead(ctx, refId, req) {
       ? { kind: 'staff', id: req.staff?.id || null, name: req.staff?.name || null }
       : { kind: 'customer', id: ctx.userId, name: s.name };
   const source = { channel: ctx.channel, topic: ctx.meta?.topic || null, ...(ctx.meta?.source || {}) };
-  if (ctx.mode === 'staff' && req.staff) source.addedBy = { id: req.staff.id, name: req.staff.name || req.staff.email || null, role: req.staff.role };
+  if (ctx.mode === 'staff' && req.staff) source.addedBy = { id: req.staff.id, name: req.staff.name || req.staff.email || null, role: req.staff.role, persona: req.staff.persona || null };
   const dedupeKey = phone ? `${def.type}:${phone}` : null;
 
   // One transaction, locked on the duplicate key and the record: concurrent submissions from the same phone
@@ -195,9 +205,10 @@ async function upsertLead(ctx, refId, req) {
     const owner = await Lead.findOne({ type: def.type, refIds: refId });
     if (owner) return { lead: owner, repeat: false };
 
-    const match = dedupeKey
-      ? await Lead.findOne({ dedupeKey, status: { $in: OPEN }, lastActivityAt: { $gte: new Date(now - DEDUPE_MS) } }).sort({ lastActivityAt: -1 })
-      : null;
+    const match =
+      dedupeKey && !ctx.noMerge
+        ? await Lead.findOne({ dedupeKey, status: { $in: OPEN }, lastActivityAt: { $gte: new Date(now - DEDUPE_MS) } }).sort({ lastActivityAt: -1 })
+        : null;
     // An archived lead stays archived; a new submission starts a fresh one.
     const existing = match && !match.archived ? match : null;
     if (existing) {
@@ -208,10 +219,12 @@ async function upsertLead(ctx, refId, req) {
       for (const k of ['name', 'email', 'amount', 'detail']) if (s[k]) existing[k] = String(s[k]);
       if (!existing.userId && ctx.userId) existing.userId = ctx.userId;
       if (ctx.meta?.consent) existing.consent = { ...ctx.meta.consent, at: now };
-      const assign = !existing.assignedTo && ctx.assignee;
+      // Only an owner working at the lead's current level can take it over.
+      const assign = !existing.assignedTo && ctx.assignee && stageOf(existing) === (ctx.stage || 'l1');
       if (assign) {
         existing.assignedTo = ctx.assignee.id;
         existing.assignedName = ctx.assignee.name;
+        if (!(existing.handledBy || []).includes(ctx.assignee.id)) existing.handledBy = [...(existing.handledBy || []), ctx.assignee.id];
       }
       await existing.save();
       tx.afterCommit(async () => {
@@ -234,6 +247,8 @@ async function upsertLead(ctx, refId, req) {
       status: 'new',
       assignedTo: ctx.assignee?.id || null,
       assignedName: ctx.assignee?.name || null,
+      stage: ctx.stage || 'l1',
+      handledBy: ctx.assignee ? [ctx.assignee.id] : [],
       userId: ctx.userId,
       source,
       consent: ctx.meta?.consent ? { ...ctx.meta.consent, at: now } : null,
@@ -289,6 +304,7 @@ function persist(controller) {
         repeat: Boolean(result?.repeat),
         assignedTo: lead?.assignedTo || null,
         assignedName: lead?.assignedName || null,
+        stage: lead ? stageOf(lead) : null,
       });
     }
     for (const [k, v] of Object.entries(out.headers)) res.setHeader(k, v);

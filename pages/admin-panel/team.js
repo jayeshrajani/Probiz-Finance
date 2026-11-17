@@ -3,15 +3,34 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Key, SpinnerGap, Trash, UserPlus } from "@phosphor-icons/react";
-import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
+import AdminShell, { personaLabel, useAdmin } from "@/components/admin/AdminShell";
 import { ConfirmDialog, ErrorNote, LoadingRows, PageHeader, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fieldBase } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { adminFetch, timeAgo, useAdminData } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
 
 const field = cn(fieldBase, "h-10 text-sm");
+const PERSONA_HINT = {
+  sales: "Adds leads and follows their progress",
+  ops_l1: "Picks up new leads, forwards to L2",
+  ops_l2: "Works leads forwarded by L1",
+};
+const PERSONA_TONE = {
+  sales: "bg-violet-500/12 text-violet-700 dark:text-violet-300",
+  ops_l1: "bg-sky-500/12 text-sky-700 dark:text-sky-300",
+  ops_l2: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+};
+
+// Mirrors staffEmail() in server/admin/personas.js; the server adds a number if the address is taken.
+function emailPreview(config, name, persona) {
+  const p = config.personas?.find((x) => x.id === persona);
+  if (!p || !name.trim()) return null;
+  const first = name.trim().split(/\s+/)[0].normalize("NFKD").toLowerCase().replace(/[^a-z0-9]/g, "") || "staff";
+  return `${first}.${p.emailTag}@${config.emailDomain}`;
+}
 
 function Field({ label, className, ...props }) {
   return (
@@ -38,67 +57,127 @@ function useSubmit() {
 }
 
 function AddEmployee({ onAdded }) {
-  const blank = { name: "", email: "", mobile: "", employeeId: "", title: "Advisor", password: "" };
+  const { config } = useAdmin();
+  const blank = { name: "", persona: "", mobile: "", employeeId: "", password: "" };
   const [v, setV] = useState(blank);
+  const [created, setCreated] = useState(null);
   const [busy, run] = useSubmit();
   const set = (k) => (e) => setV({ ...v, [k]: e.target.value });
+  const preview = emailPreview(config, v.name, v.persona);
   return (
-    <Panel title="Add an employee" description="They sign in at /sign-in under Probiz staff.">
+    <Panel title="Add an employee" description="Pick their role; the sign-in email is made from their first name and role.">
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          if (!v.persona) return toast.error("Choose a role.");
           run(async () => {
-            await adminFetch("admin/employees", { method: "POST", body: v });
-            toast.success(`${v.name} can now sign in`);
+            const res = await adminFetch("admin/employees", { method: "POST", body: v });
+            toast.success(`${v.name} can now sign in as ${res.data.email}`);
+            setCreated({ name: v.name, email: res.data.email });
             setV(blank);
             onAdded();
           });
         }}
         className="grid gap-4 sm:grid-cols-2"
       >
+        <fieldset className="grid gap-1.5 sm:col-span-2">
+          <legend className="mb-1.5 text-sm font-medium">Role</legend>
+          <div role="radiogroup" aria-label="Role" className="grid gap-2 sm:grid-cols-3">
+            {(config.personas || []).map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                role="radio"
+                aria-checked={v.persona === p.id}
+                onClick={() => setV({ ...v, persona: p.id })}
+                className={cn(
+                  "rounded-xl border px-3 py-2.5 text-left transition-colors focus-visible:ring-[3px] focus-visible:ring-brand/25 focus-visible:outline-none",
+                  v.persona === p.id ? "border-brand bg-brand-soft" : "border-border hover:border-foreground/20"
+                )}
+              >
+                <span className="block text-sm font-medium">{p.label}</span>
+                <span className="block text-xs text-muted-foreground">{PERSONA_HINT[p.id]}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <Field label="Full name" required value={v.name} onChange={set("name")} autoComplete="off" />
-        <Field label="Employee ID" required value={v.employeeId} onChange={set("employeeId")} placeholder="PBZ-003" autoComplete="off" />
-        <Field label="Work email" type="email" required value={v.email} onChange={set("email")} autoComplete="off" />
+        <div className="grid gap-1.5 text-sm font-medium">
+          Sign-in email
+          <p className={cn(field, "flex items-center truncate bg-secondary/60", !preview && "text-muted-foreground")} aria-live="polite">
+            {preview || "Enter a name and pick a role"}
+          </p>
+        </div>
         <Field label="Mobile" type="tel" required value={v.mobile} onChange={set("mobile")} autoComplete="off" />
-        <Field label="Job title" value={v.title} onChange={set("title")} autoComplete="off" />
+        <Field label="Employee ID" required value={v.employeeId} onChange={set("employeeId")} placeholder="PBZ-003" autoComplete="off" />
         <Field label="Temporary password" type="password" required minLength={8} value={v.password} onChange={set("password")} autoComplete="new-password" />
-        <Button type="submit" disabled={busy} className="justify-self-start sm:col-span-2">
-          {busy ? <SpinnerGap className="animate-spin" /> : <UserPlus />} Add employee
-        </Button>
+        <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+          <Button type="submit" disabled={busy}>
+            {busy ? <SpinnerGap className="animate-spin" /> : <UserPlus />} Add employee
+          </Button>
+          {created && (
+            <p className="text-sm text-muted-foreground">
+              {created.name} signs in as <span className="font-medium text-foreground select-all">{created.email}</span>
+            </p>
+          )}
+        </div>
       </form>
     </Panel>
   );
 }
 
+const PERSONA_ORDER = ["sales", "ops_l1", "ops_l2"];
+
 function Employees() {
+  const { config } = useAdmin();
   const { data, error, loading, reload } = useAdminData("admin/employees");
   const [removing, setRemoving] = useState(null);
   const [resetting, setResetting] = useState(null);
   const [password, setPassword] = useState("");
   const [busy, run] = useSubmit();
-  const list = data?.data || [];
+  const list = [...(data?.data || [])].sort((a, b) => PERSONA_ORDER.indexOf(a.persona) - PERSONA_ORDER.indexOf(b.persona));
+
+  const changeRole = (e, persona) =>
+    run(async () => {
+      await adminFetch(`admin/employees/${e._id}`, { method: "PUT", body: { persona } });
+      toast.success(`${e.name} is now ${personaLabel(config, persona)}`);
+      reload();
+    });
 
   return (
     <>
-      <Panel title="Employees" description="Advisors who work leads. They see only their own leads and the unassigned pool." bodyClassName="p-0">
+      <Panel title="Employees" description="Sales add leads. Operations L1 picks them up and forwards to L2." bodyClassName="p-0">
         <ErrorNote error={error} onRetry={reload} />
         {loading && !data ? (
           <LoadingRows rows={3} />
         ) : list.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-muted-foreground">No employees yet. Add your first advisor below.</p>
+          <p className="px-5 py-8 text-center text-sm text-muted-foreground">No employees yet. Add your first one below.</p>
         ) : (
           <ul className="divide-y divide-border">
             {list.map((e) => (
               <li key={e._id} className="flex flex-wrap items-center gap-4 px-5 py-3.5">
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">
-                    {e.name} <span className="font-normal text-muted-foreground">{e.roll}</span>
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <span className="truncate">{e.name}</span>
+                    <span className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium", PERSONA_TONE[e.persona])}>{personaLabel(config, e.persona)}</span>
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">{[e.employeeId, e.email, e.mobile].filter(Boolean).join(", ")}</span>
                 </span>
                 <span className="text-xs tabular-nums text-muted-foreground">
-                  {e.active} active, {e.won} won
+                  {e.persona === "sales" ? `${e.added} added, ${e.addedWon} converted` : `${e.active} active, ${e.won} won`}
                 </span>
+                <Select value={e.persona} disabled={busy} onValueChange={(next) => next !== e.persona && changeRole(e, next)}>
+                  <SelectTrigger size="sm" aria-label={`Change ${e.name}'s role`} className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {(config.personas || []).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <div className="flex gap-1">
                   <Button size="icon-sm" variant="ghost" aria-label={`Reset ${e.name}'s password`} onClick={() => setResetting(e)}>
                     <Key />
@@ -250,7 +329,7 @@ function Admins() {
 }
 
 function MyAccount() {
-  const { staff, isAdmin } = useAdmin();
+  const { staff, isAdmin, config } = useAdmin();
   const [v, setV] = useState({ current: "", next: "", confirm: "" });
   const [busy, run] = useSubmit();
   return (
@@ -266,7 +345,9 @@ function MyAccount() {
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-muted-foreground">Role</dt>
-          <dd className="font-medium">{staff.platform ? "Platform manager" : isAdmin ? "Admin" : [staff.title, staff.employeeId].filter(Boolean).join(", ")}</dd>
+          <dd className="font-medium">
+            {staff.platform ? "Platform manager" : isAdmin ? "Admin" : [personaLabel(config, staff.persona) || staff.title, staff.employeeId].filter(Boolean).join(", ")}
+          </dd>
         </div>
       </dl>
       {staff.platform ? (

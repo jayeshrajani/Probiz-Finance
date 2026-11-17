@@ -128,7 +128,7 @@ export function Pager({ page, limit, total, onPage }) {
   );
 }
 
-export function ConfirmDialog({ open, title, body, confirmLabel = "Delete", busy, onConfirm, onClose }) {
+export function ConfirmDialog({ open, title, body, confirmLabel = "Delete", variant = "destructive", busy, onConfirm, onClose }) {
   return (
     <AlertDialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
       <AlertDialogContent>
@@ -139,7 +139,7 @@ export function ConfirmDialog({ open, title, body, confirmLabel = "Delete", busy
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            variant="destructive"
+            variant={variant}
             disabled={busy}
             onClick={(e) => {
               // Keep the dialog open until the request finishes; the caller closes it.

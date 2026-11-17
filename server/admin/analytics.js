@@ -1,5 +1,6 @@
 // Date-range numbers for the admin dashboard: volume, conversion, where leads come from and how each advisor performs.
 const { byType } = require('./leads');
+const { PERSONAS, personaOf } = require('./personas');
 
 const DAY = 24 * 60 * 60 * 1000;
 const IST_OFFSET = 330 * 60 * 1000;
@@ -124,6 +125,7 @@ function analytics({ leads, events, employees, query, now = Date.now() }) {
   const responses = inRange.map(responseMs).filter((v) => v !== null);
 
   const team = employees
+    .filter((e) => personaOf(e) !== 'sales')
     .map((e) => {
       const id = String(e._id);
       const theirs = leads.filter((l) => l.assignedTo === id);
@@ -138,6 +140,8 @@ function analytics({ leads, events, employees, query, now = Date.now() }) {
       return {
         id,
         name: e.name,
+        persona: personaOf(e),
+        personaLabel: PERSONAS[personaOf(e)].label,
         assigned: theirsInRange.length,
         won,
         lost,
@@ -147,6 +151,25 @@ function analytics({ leads, events, employees, query, now = Date.now() }) {
       };
     })
     .sort((a, b) => b.assigned - a.assigned || b.active - a.active || a.name.localeCompare(b.name));
+
+  // Sales executives are credited with the leads they added, whoever converts them.
+  const sales = employees
+    .filter((e) => personaOf(e) === 'sales')
+    .map((e) => {
+      const id = String(e._id);
+      const added = inRange.filter((l) => l.source?.addedBy?.id === id);
+      const won = added.filter((l) => l.status === 'won').length;
+      return {
+        id,
+        name: e.name,
+        added: added.length,
+        won,
+        lost: added.filter((l) => l.status === 'lost').length,
+        conversion: added.length ? won / added.length : null,
+        open: added.filter((l) => OPEN.has(l.status || 'new')).length,
+      };
+    })
+    .sort((a, b) => b.added - a.added || b.won - a.won || a.name.localeCompare(b.name));
 
   const typeTotals = tally(inRange, (l) => l.type, 50).map((t) => ({
     type: t.label,
@@ -177,6 +200,7 @@ function analytics({ leads, events, employees, query, now = Date.now() }) {
       pages: tally(inRange, (l) => pathOf(l.source?.landingPage || l.source?.page), 10),
     },
     team,
+    sales,
   };
 }
 

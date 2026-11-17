@@ -327,9 +327,10 @@ Timestamps: yes.
 | name | String | yes |  |  |
 | mobile | String | yes |  |  |
 | email | String | yes |  | unique among non-deleted (new, case-insensitive) |
-| roll | String | yes |  | job title |
+| roll | String | yes |  | job title (the persona label for staff-panel accounts) |
 | password | String | yes |  | bcrypt hash (C) |
 | employeeId | String | yes |  | unique among non-deleted (new) |
+| persona | String |  | "ops_l1" | sales, ops_l1, ops_l2 (`server/admin/personas.js`); missing on older records means ops_l1 |
 | deleteFlag | Boolean |  | false |  |
 
 ### Group 16: `gold_loan`
@@ -414,8 +415,11 @@ Timestamps: yes.
 | status | String |  | "new" | new, contacted, in_progress, won, lost |
 | assignedTo | String |  | null | `employee` ID |
 | assignedName | String |  | null | denormalised |
+| stage | String |  | "l1" | operations level working it: l1, l2; missing on older records means l1 |
+| l1Owner | Mixed |  | null | `{ id, name }` of the L1 owner when it went to L2 (target of "send back") |
+| handledBy | Array of String |  | [] | every `employee` ID that has owned it (read-only access after it moves on) |
 | userId | String |  | null | `user` ID |
-| source | Mixed |  | null | `{ channel, topic, page, referrer, landingPage, device, utm }` |
+| source | Mixed |  | null | `{ channel, topic, page, referrer, landingPage, device, utm, addedBy }`; staff entries add `addedBy: { id, name, role, persona }` |
 | consent | Mixed |  | null | `{ accepted, version, text, at }` (`at` is stored as an ISO string, as in Postgres today, because `consent` is Mixed) |
 | dedupeKey | String |  | null | `<type>:<10-digit phone>` |
 | repeatCount | Number |  | 0 |  |

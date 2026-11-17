@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useId, useState } from "react";
 import { SpinnerGap, WarningCircle } from "@phosphor-icons/react";
+import { toast } from "sonner";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { PageHeader, Panel } from "@/components/admin/ui";
 import FileSlot, { formatBytes } from "@/components/forms/FileSlot";
@@ -30,9 +31,11 @@ function Label({ htmlFor, children }) {
 
 function NewLead() {
   const router = useRouter();
-  const { config, isAdmin, staff, refreshCounts } = useAdmin();
+  const { config, isAdmin, isSales, staff, refreshCounts } = useAdmin();
   const idPrefix = useId().replace(/:/g, "");
   const types = config.types.filter((t) => t.formKey && forms[t.formKey]);
+  const levelOf = (persona) => config.personas?.find((p) => p.id === persona)?.level;
+  const myLevel = levelOf(staff.persona);
 
   const [type, setType] = useState("");
   const [source, setSource] = useState(SOURCES[0]);
@@ -99,7 +102,8 @@ function NewLead() {
     try {
       const res = await adminFetch(`admin/leads/${def.formKey}`, { method: "POST", body });
       refreshCounts();
-      const visibleToMe = isAdmin || !res.assignedTo || res.assignedTo === staff.id;
+      if (isSales) toast.success("Lead added. It is waiting for Operations L1.");
+      const visibleToMe = isAdmin || isSales || res.assignedTo === staff.id || (!res.assignedTo && res.stage === myLevel);
       if (res.leadId && visibleToMe) return router.push(`/admin-panel/leads/${res.type}/${res.leadId}`);
       setMerged(res);
     } catch (err) {
@@ -166,16 +170,23 @@ function NewLead() {
             <Label htmlFor={`${idPrefix}-assign`}>Advisor</Label>
             {isAdmin ? (
               <NativeSelect id={`${idPrefix}-assign`} value={assignTo} onChange={(e) => setAssignTo(e.target.value)}>
-                <option value="">Unassigned</option>
-                {config.employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name}
-                  </option>
-                ))}
+                <option value="">Operations L1 pool</option>
+                {(config.stages || []).map((s) => {
+                  const list = config.employees.filter((emp) => levelOf(emp.persona) === s.id);
+                  return list.length ? (
+                    <optgroup key={s.id} label={s.label}>
+                      {list.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null;
+                })}
               </NativeSelect>
             ) : (
               <p id={`${idPrefix}-assign`} className="flex h-12 items-center text-sm text-muted-foreground">
-                Assigned to you
+                {isSales ? "Goes to the Operations L1 pool" : "Assigned to you"}
               </p>
             )}
           </div>

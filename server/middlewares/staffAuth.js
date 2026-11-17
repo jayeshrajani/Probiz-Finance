@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config/auth.config');
 const Admin = require('../models/admin.model');
 const Employee = require('../models/employee.model');
+const { personaOf } = require('../admin/personas');
 
 const TOKEN_TTL = '7d';
 
@@ -67,7 +68,7 @@ async function staffFromRequest(req) {
   if (payload.role === 'employee') {
     const found = await Employee.findOne({ _id: payload.id, deleteFlag: false }).lean();
     if (!found) return null;
-    return { id: String(found._id), role: 'employee', name: found.name, email: found.email, employeeId: found.employeeId, title: found.roll };
+    return { id: String(found._id), role: 'employee', persona: personaOf(found), name: found.name, email: found.email, employeeId: found.employeeId, title: found.roll };
   }
   return null;
 }
