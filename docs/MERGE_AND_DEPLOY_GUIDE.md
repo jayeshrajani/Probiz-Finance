@@ -140,3 +140,33 @@ After resolving: `npm run build` and `npm run check:i18n` again (3.3-3.4).
 - Facebook Pixel (`pages/_app.js`) loads without consent; consider putting it behind the same notice.
 - WhatsApp lead alerts (built by Jayesh, off): need the Meta WhatsApp Cloud API settings and the client's details (see the WhatsApp change note).
 - Platform manager default login in non-production runs (see review notes in Jayesh's change note).
+
+## 6. Owner decisions (2026-11-17) and tasks for Jayesh
+
+Decisions:
+
+- **Aadhaar:** customers upload their normal Aadhaar (no masked-Aadhaar requirement; it was found tedious and could lose customers).
+  Full Aadhaar numbers are therefore stored: keep them private, logged and deleted after the retention period (to be decided).
+- **Old KYC files: do not delete them. Secure them** so only authorised staff can open them; the public links must stop working.
+- **Commits and pushes on `shivansh_dev`** happen only after the owner's (Shivansh's) go-ahead.
+
+Tasks for Jayesh (each needs a go-ahead before anything is changed; Copilot must stop and ask at each **[Jayesh]**):
+
+1. **[Jayesh] Vercel production:** confirm `FILE_STORAGE_BACKEND=firebase`. If it is unset or `legacy`, new KYC uploads are stored at public URLs; report it.
+2. **[Jayesh] Old KYC files, find them:** where the old site stores uploads (the old code reads `req.files.<field>[0].location`, which suggests AWS S3 via multer-s3),
+   the bucket name and region, whether it is public, and whether property images are in the same bucket. Share counts only, never file names or contents.
+3. **Old KYC files, private copy (no deletion):** dry-run first (the default), then copy with `--apply`. The tool refuses real systems unless they are named
+   (`--confirm-project=<firebase project>`, `--confirm-source=<database host>`, `--confirm-legacy-host=<bucket host>`); see `node scripts/migrate-firestore.js` usage
+   and `docs/firebase-migration-plan.md`.
+   ```bash
+   npm run migrate:files -- --confirm-project=<project> --confirm-source=<db host> --confirm-legacy-host=<bucket host>            # dry run: counts only
+   npm run migrate:files -- --apply --confirm-project=<project> --confirm-source=<db host> --confirm-legacy-host=<bucket host>    # copy, check SHA-256 and size, switch records to pf:
+   ```
+   The tool never deletes or changes the originals; its report lists every verified original (keep the report private: it locates the public files).
+   It reads Supabase legacy buckets (`LEGACY_SUPABASE_URL`) and `public/uploads`; if the old files are on S3, it needs an S3 reader first: ask Shivansh before running it.
+4. **[Jayesh] Old KYC files, stop public access, keep the originals:**
+   - If property images are **not** in that bucket: turn on "Block public access" for the whole bucket (AWS S3) or make it private (Supabase).
+   - If they **are** shared: move only the verified KYC originals into a separate private archive bucket (copy, check size, then remove from the public bucket), so property images stay public.
+   - Nothing is permanently deleted: the private copy and the private archive both remain.
+5. **Check:** an old public KYC link now returns 403/404; in the admin panel every migrated lead still opens its documents (signed `/api/files/...` links).
+6. Record counts (copied, verified, archived, failed) in `docs/FIREBASE_IMPLEMENTATION_LOG.md`. No personal data in the log.

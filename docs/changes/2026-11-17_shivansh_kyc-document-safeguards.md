@@ -67,7 +67,7 @@ Optional for production: a customer-managed key (Cloud KMS, CMEK) so Probiz cont
 | 8 | Retention: how long documents are kept after a lead is closed or rejected, then automatic deletion | **Client decision needed** (period); then built |
 | 9 | Consent notice and privacy policy: purpose, sharing with the chosen bank/NBFC, retention, grievance contact | Client/lawyer to approve text |
 | 10 | Breach plan: who reports to CERT-In (6 h) and the Data Protection Board (72 h) | Client to name owners |
-| 11 | Old KYC files at public URLs on the current system (Supabase public bucket) | **Launch blocker.** Copy privately (`npm run migrate:files`), then secure or delete originals, with approval (Jayesh) |
+| 11 | Old KYC files at public URLs on the current system | **Launch blocker. Owner decision (2026-11-17): do not delete; secure them** so only authorised staff can open them. Plan: copy each file privately with SHA-256 check (`npm run migrate:files`), keep the originals in a private archive (private bucket or blocked public access), and only then remove public reachability. Needs Jayesh: where the old files are stored (the old code's `.location` suggests AWS S3) and whether property images share that bucket |
 | 12 | Production storage mode: `FILE_STORAGE_BACKEND=firebase` in production. The default `legacy` mode stores new uploads at public URLs | **Jayesh to check Vercel now** |
 | 13 | Separate production Firebase project, least-privilege service account, data processing terms with Google and Vercel | Before go-live |
 | 14 | WhatsApp lead alerts send name and phone to Meta (no documents) | Mention in privacy policy if switched on |
