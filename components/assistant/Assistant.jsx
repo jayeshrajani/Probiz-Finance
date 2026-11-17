@@ -212,6 +212,7 @@ export default function Assistant() {
   const launcherRef = useRef(null);
   const timers = useRef([]);
   const topicRef = useRef(null);
+  const expectRef = useRef(null);
   const flowRef = useRef(null);
   flowRef.current = flow;
   const tr = useCallback((text, vars) => t(text, translateVars(t, vars, locale)), [t, locale]);
@@ -385,7 +386,8 @@ export default function Assistant() {
       setInput("");
       const f = flowRef.current;
       if (f && handleFlow(text, f)) return;
-      const r = reply(text);
+      const r = reply(text, { expect: expectRef.current });
+      expectRef.current = r.expect || null;
       if (r.topic) topicRef.current = r.topic;
       if (r.action === "lead") return startLead(r.topic);
       say(r, 420 + Math.min(text.length * 6, 380));

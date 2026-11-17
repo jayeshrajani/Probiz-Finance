@@ -116,8 +116,9 @@ const THANKS = ["thank", "thanks", "thank you", "great", "ok", "okay", "cool", "
 
 const words = (text) => text.trim().split(/\s+/).filter(Boolean).length;
 
-// Returns { text, vars, links, chips, emi, list, contact, action, topic }. `action: "lead"` starts the in-chat callback flow.
-export function reply(input) {
+// Returns { text, vars, links, chips, emi, list, contact, action, topic, expect }. `action: "lead"` starts the in-chat callback flow.
+// `expect` is what the reply asked for; pass it back as `context.expect` with the next message.
+export function reply(input, context = {}) {
   const text = ` ${input.toLowerCase().trim()} `;
   const slugs = matchSlugs(text);
   const topic = slugs.length ? topicOf(slugs[0]) : null;
@@ -128,10 +129,14 @@ export function reply(input) {
     return { text: "Here's how to reach us. Tap any of these.", contact: true, chips: [CALLBACK] };
   }
 
-  if (has(text, ["emi", "instalment", "installment", "monthly payment", "ईएमआई", "किस्त", "kist"])) {
-    const { amount, rate, years } = parseLoan(text);
+  const loan = parseLoan(text);
+  const asksEmi = has(text, ["emi", "instalment", "installment", "monthly payment", "ईएमआई", "किस्त", "kist"]);
+  // "30 lakh at 7% for 10 years" is an EMI question even without the word EMI.
+  const looksLikeEmi = loan.amount && (context.expect === "emi" || loan.rate || loan.years);
+  if (asksEmi || looksLikeEmi) {
+    const { amount, rate, years } = loan;
     if (!amount) {
-      return { text: "Tell me the amount, and if you like the rate and tenure. For example: 30 lakh at 8.5% for 20 years." };
+      return { text: "Tell me the amount, and if you like the rate and tenure. For example: 30 lakh at 8.5% for 20 years.", expect: "emi" };
     }
     const r = rate ?? 9;
     const y = years ?? 20;
