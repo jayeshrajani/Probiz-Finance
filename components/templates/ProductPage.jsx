@@ -1,15 +1,12 @@
 import Link from "next/link";
 import { ArrowDown, Check, FileText, Phone } from "@phosphor-icons/react";
-import Scene, { sceneFor } from "@/components/art/Scene";
-import ApplySection from "@/components/blocks/ApplySection";
 import Breadcrumbs from "@/components/blocks/Breadcrumbs";
 import Faq from "@/components/blocks/Faq";
 import ProductTile from "@/components/blocks/ProductTile";
-import { LeadPanel } from "@/components/blocks/QuickLead";
 import EmiCalculator from "@/components/calculators/EmiCalculator";
 import SipCalculator from "@/components/calculators/SipCalculator";
+import ApplicationForm from "@/components/forms/ApplicationForm";
 import SiteLayout from "@/components/site/SiteLayout";
-import { Button } from "@/components/ui/button";
 import { productBySlug, products, relatedTo } from "@/lib/catalog";
 import { faqsFor } from "@/lib/faqs";
 import { forms } from "@/lib/forms";
@@ -27,10 +24,14 @@ const GROUPS = {
 };
 
 const APPLY_COPY = {
-  loan: { title: "Apply in a few minutes.", intro: "Share the basics now. Documents are optional at this stage." },
+  loan: {
+    next: [
+      "An advisor reviews your details and calls you to discuss your options.",
+      "We compare offers from our partner banks and NBFCs.",
+      "You choose. We handle the paperwork through to disbursal.",
+    ],
+  },
   card: {
-    title: "Apply in a few minutes.",
-    intro: "Tell us about your income and we'll match you with the right card.",
     next: [
       "An advisor reviews your details and calls you.",
       "We suggest cards that match your income and spending.",
@@ -38,8 +39,6 @@ const APPLY_COPY = {
     ],
   },
   insurance: {
-    title: "Get quotes from several insurers.",
-    intro: "Six details, and an advisor will send you options to compare.",
     next: [
       "An advisor calls to understand who needs cover and your budget.",
       "We send quotes from several insurers, side by side.",
@@ -47,8 +46,6 @@ const APPLY_COPY = {
     ],
   },
   investment: {
-    title: "Talk to an advisor.",
-    intro: "Share your details and we'll call to understand your goals.",
     next: [
       "An advisor calls to understand your goals and timeline.",
       "We suggest plans, with costs, lock-ins and risks explained.",
@@ -129,30 +126,12 @@ export default function ProductPage({ slug }) {
     <SiteLayout title={product.title} description={product.description} path={`/${slug}`}>
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_60%_at_85%_0%,var(--brand-soft),transparent)]" />
-        <div className="container-page relative grid items-center gap-12 pt-10 pb-16 md:pt-14 lg:grid-cols-12 lg:gap-16 lg:pb-24">
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-700 lg:col-span-6">
+        <div className="container-page relative grid items-start gap-10 pt-10 pb-16 md:pt-14 lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-x-14 lg:gap-y-0 lg:pb-24">
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-700 lg:col-span-5 lg:col-start-1 lg:row-start-1 lg:pt-2">
             <Breadcrumbs items={[{ label: "Home", href: "/" }, ...(product.hub ? [] : [{ label: group.label, href: group.href }]), { label: product.name }]} />
             <h1 className="display-page mt-6 max-w-[18ch] text-balance">{t(product.headline)}</h1>
             <p className="lede mt-6 max-w-xl text-pretty">{t(product.summary)}</p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <a href="#apply">{product.kind === "loan" || product.kind === "card" ? t("Apply now") : t("Get started")}</a>
-              </Button>
-              {hasEmi ? (
-                <Button asChild size="lg" variant="outline">
-                  <a href="#emi">
-                    {t("Calculate EMI")} <ArrowDown weight="bold" />
-                  </a>
-                </Button>
-              ) : (
-                <Button asChild size="lg" variant="outline">
-                  <a href={primary.href}>
-                    <Phone weight="bold" /> {t("Call us")}
-                  </a>
-                </Button>
-              )}
-            </div>
-            <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
               {[t("No credit check to start"), t("One advisor, start to finish"), t("Trusted since {year}", { year: site.since })].map((line) => (
                 <li key={line} className="inline-flex items-center gap-2">
                   <Check weight="bold" className="size-3.5 text-brand-ink" />
@@ -161,13 +140,45 @@ export default function ProductPage({ slug }) {
               ))}
             </ul>
           </div>
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 lg:col-span-6">
-            <LeadPanel
-              interest={product.name}
-              moreHref="#apply"
-              fact={product.facts?.[0]}
-              scene={<Scene name={sceneFor(product)} className="pointer-events-none absolute -top-6 right-0 h-44 w-auto sm:-top-8 sm:right-4 sm:h-52" />}
+          <div id="apply" className="animate-in fade-in slide-in-from-bottom-4 scroll-mt-24 duration-1000 lg:col-span-7 lg:col-start-6 lg:row-span-2 lg:row-start-1">
+            <ApplicationForm
+              formKey={product.form}
+              preset={product.preset}
+              productName={product.name}
+              className="shadow-[0_24px_60px_-40px_oklch(0.21_0.006_286/0.35)]"
             />
+          </div>
+          {/* After the form on phones, beside it on desktop. */}
+          <div className="lg:col-span-5 lg:col-start-1 lg:row-start-2">
+            <ol className="grid gap-4 lg:mt-10">
+              {applyCopy.next.map((line, i) => (
+                <li key={line} className="flex gap-3.5">
+                  <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-background text-xs font-semibold tabular-nums shadow-[0_0_0_1px_var(--border)]">
+                    {i + 1}
+                  </span>
+                  <p className="text-[0.9375rem] leading-relaxed text-muted-foreground">{t(line)}</p>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <a
+                href={primary.href}
+                className="inline-flex items-center gap-3 rounded-full bg-background px-5 py-3 text-sm shadow-[0_0_0_1px_var(--border)] transition-colors hover:bg-accent"
+              >
+                <Phone weight="duotone" className="size-5 text-brand-ink" />
+                <span>
+                  {t("Prefer to talk?")} <span className="font-semibold">{primary.display}</span>
+                </span>
+              </a>
+              {hasEmi && (
+                <a
+                  href="#emi"
+                  className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-medium text-brand-ink transition-colors hover:bg-accent"
+                >
+                  {t("Calculate EMI")} <ArrowDown weight="bold" className="size-3.5" />
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -216,15 +227,6 @@ export default function ProductPage({ slug }) {
       )}
 
       {files.length > 0 && <Documents files={files} />}
-
-      <ApplySection
-        title={applyCopy.title}
-        intro={applyCopy.intro}
-        formKey={product.form}
-        preset={product.preset}
-        productName={product.name}
-        next={applyCopy.next}
-      />
 
       <Faq items={faqsFor(product)} />
 

@@ -312,17 +312,17 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
         </p>
       )}
 
-      <div className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-6">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-border pt-6">
         {step > 0 ? (
           <Button type="button" variant="ghost" onClick={() => go(step - 1)}>
             <ArrowLeft weight="bold" /> {t("Back")}
           </Button>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p className="min-w-0 flex-1 basis-56 text-xs text-muted-foreground">
             {t("We only use your details to work on this request.")} <Link href="/privacy-policy" className="-my-2 inline-block py-2 underline underline-offset-2">{t("Privacy policy")}</Link>
           </p>
         )}
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="ml-auto flex shrink-0 items-center justify-end gap-2">
           {basicsOnly && !isLast && (
             <Button type="button" variant="ghost" onClick={() => validate([step]) && go(steps.length - 1)}>
               {t("Skip to submit")}
