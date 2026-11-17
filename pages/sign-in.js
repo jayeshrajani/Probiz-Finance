@@ -4,10 +4,11 @@ import { motion } from "motion/react";
 import { Eye, EyeSlash, SpinnerGap } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import AuthLayout, { AuthLink } from "@/components/templates/AuthLayout";
+import OtpForm from "@/components/forms/OtpForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { setToken } from "@/lib/admin-api";
-import { errorMessage, postJSON } from "@/lib/api";
+import { errorMessage, getJSON, postJSON } from "@/lib/api";
 import { safeNext, signIn } from "@/lib/use-user";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -29,12 +30,31 @@ export default function SignInPage() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [method, setMethod] = useState("email");
+  const [otpReady, setOtpReady] = useState(false);
   const isStaff = mode === "staff";
+  const byMobile = !isStaff && otpReady && method === "mobile";
 
   useEffect(() => {
     const as = router.query.as;
     if (as === "staff" || as === "employee" || as === "admin") setMode("staff");
   }, [router.query.as]);
+
+  // Mobile codes are offered only where a sender (WhatsApp or SMS) is configured.
+  useEffect(() => {
+    getJSON("otp/status").then((res) => {
+      if (res.ok && res.data?.available) {
+        setOtpReady(true);
+        setMethod("mobile");
+      }
+    });
+  }, []);
+
+  function onOtpDone(data) {
+    signIn({ ...data.data, accessToken: data.accessToken });
+    toast.success(t("Signed in."));
+    router.push(safeNext(router.query.next, "/account"));
+  }
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -71,7 +91,7 @@ export default function SignInPage() {
       title="Sign In"
       path="/sign-in"
       heading="Sign in"
-      intro={MODES.find((m) => m.id === mode).intro}
+      intro={byMobile ? "Use your mobile number. New here? This creates your account." : MODES.find((m) => m.id === mode).intro}
       footer={
         isStaff ? (
           <>{t("Staff accounts are created by a Probiz admin. Forgotten your password? Ask an admin to reset it.")}</>
@@ -103,6 +123,30 @@ export default function SignInPage() {
           </button>
         ))}
       </div>
+      {!isStaff && otpReady && (
+        <div className="mb-6 flex gap-4 text-sm" role="group" aria-label={t("Sign in with")}>
+          {[
+            ["mobile", "Mobile number"],
+            ["email", "Email and password"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={method === id}
+              onClick={() => {
+                setMethod(id);
+                setError(null);
+              }}
+              className={cn("border-b-2 pb-1 font-medium transition-colors", method === id ? "border-brand text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}
+            >
+              {t(label)}
+            </button>
+          ))}
+        </div>
+      )}
+      {byMobile ? (
+        <OtpForm purpose="signin" submitLabel="Verify and sign in" onDone={onOtpDone} />
+      ) : (
       <form onSubmit={onSubmit} noValidate className="grid gap-5">
         <div className="grid gap-2">
           <label htmlFor="email" className="text-sm font-medium">
@@ -142,6 +186,7 @@ export default function SignInPage() {
           {busy ? <SpinnerGap className="animate-spin" /> : null} {t("Sign in")}
         </Button>
       </form>
+      )}
     </AuthLayout>
   );
 }

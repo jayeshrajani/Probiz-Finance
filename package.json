@@ -26,6 +26,7 @@
     "check:migration": "node scripts/check-migration.js",
     "check:e2e": "node scripts/check-e2e.mjs",
     "check:rollback": "node scripts/check-rollback.js",
+    "check:otp": "node scripts/check-otp.mjs",
     "check:i18n": "node scripts/i18n-check.mjs"
   },
   "engines": {

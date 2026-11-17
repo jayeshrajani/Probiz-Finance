@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, CheckCircle, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, CheckCircle, SealCheck, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
 import FileSlot, { formatBytes } from "@/components/forms/FileSlot";
 import FormField from "@/components/forms/FormField";
+import OtpForm, { useOtpAvailable } from "@/components/forms/OtpForm";
 import Confetti from "@/components/fun/Confetti";
 import { Button } from "@/components/ui/button";
 import { errorMessage, postForm, postJSON } from "@/lib/api";
@@ -44,6 +45,9 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
   const [repeat, setRepeat] = useState(false);
+  // The saved lead, so the customer can prove the number with a code (a genuine lead for the team).
+  const [submitted, setSubmitted] = useState(null);
+  const otpAvailable = useOtpAvailable();
   const trapRef = useRef(null);
   const doneRef = useRef(null);
 
@@ -144,6 +148,7 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
 
     if (res.ok) {
       setRepeat(Boolean(res.data?.repeat));
+      setSubmitted(res.data?.leadId ? { leadId: String(res.data.leadId), verified: Boolean(res.data.phoneVerified) } : null);
       setStatus("done");
       track("generate_lead", { form: formKey, product: productName || formKey, repeat: Boolean(res.data?.repeat) });
     } else {
@@ -183,6 +188,21 @@ export default function ApplicationForm({ formKey, preset = {}, productName, cla
                 : t("A Probiz advisor will call you to take your {topic} forward.", { topic })}{" "}
             {t("If it's urgent, call us on")} <a href={primary.href} className="font-medium text-foreground underline-offset-4 hover:underline">{primary.display}</a>{stop}
           </p>
+          {submitted && phone && otpAvailable && (
+            <div className="mt-8 max-w-md rounded-2xl bg-secondary/60 p-5">
+              {submitted.verified ? (
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  <SealCheck weight="fill" className="size-5 text-brand" /> {t("Mobile number verified.")}
+                </p>
+              ) : (
+                <>
+                  <p className="font-medium">{t("Verify your mobile number")}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("One quick step so our advisor knows this request is really from you.")}</p>
+                  <OtpForm purpose="lead" leadId={submitted.leadId} className="mt-4" onDone={() => setSubmitted((s) => ({ ...s, verified: true }))} />
+                </>
+              )}
+            </div>
+          )}
           <div className="mt-8 flex flex-wrap gap-2">
             <Button asChild>
               <Link href="/">{t("Back to home")}</Link>

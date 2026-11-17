@@ -300,6 +300,10 @@ exports.userLogin = async (req, res) => {
       return res.status(404).send({ message: 'Your email is not registered with us.', status: 404 });
     }
 
+    if (!userData.password) {
+      return res.status(401).send({ message: 'This account signs in with a mobile code. Choose "Mobile number" above.', status: 401 });
+    }
+
     const passwordIsValid = bcrypt.compareSync(password, userData.password);
     if (!passwordIsValid) {
       return res.status(401).send({ message: 'Please enter a valid password.', status: 401 });

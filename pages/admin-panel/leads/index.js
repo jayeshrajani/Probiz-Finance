@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowSquareOut, DownloadSimple, MagnifyingGlass, Phone, Plus, X } from "@phosphor-icons/react";
+import { ArrowSquareOut, DownloadSimple, MagnifyingGlass, Phone, Plus, SealCheck, X } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { Empty, ErrorNote, LoadingRows, PageHeader, Pager, StatusBadge } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,12 @@ import { cn } from "@/lib/utils";
 
 const LIMIT = 25;
 const ANY = "any";
-const CHANNEL_LABEL = { web_form: "Website form", assistant: "Assistant", staff: "Staff entry", legacy_api: "Older form", legacy_import: "Imported" };
+const CHANNEL_LABEL = { web_form: "Website form", assistant: "Assistant", otp_signin: "Mobile sign-in", staff: "Staff entry", legacy_api: "Older form", legacy_import: "Imported" };
+
+function Verified({ show }) {
+  if (!show) return null;
+  return <SealCheck weight="fill" aria-label="Number verified by OTP" className="inline size-3.5 shrink-0 align-[-2px] text-emerald-600 dark:text-emerald-400" />;
+}
 const amountText = (v) => (v === null || v === undefined || v === "" ? "" : Number.isFinite(Number(v)) ? formatINRShort(Number(v)) : String(v));
 const fmtDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
@@ -135,9 +140,11 @@ function Leads() {
         if (all.length >= res.total || res.data.length === 0) break;
       }
       downloadCsv(`probiz-${type || group || "all"}-leads.csv`, [
+        { label: "Ref", value: (r) => r.ref },
         { label: "Name", value: (r) => r.name },
         { label: "Product", value: (r) => r.typeLabel },
         { label: "Phone", value: (r) => r.phone },
+        { label: "Number verified", value: (r) => (r.phoneVerified ? "Yes" : "No") },
         { label: "Email", value: (r) => r.email },
         { label: "Amount", value: (r) => r.amount },
         { label: "Detail", value: (r) => r.detail },
@@ -264,7 +271,7 @@ function Leads() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Name, phone or email"
+                placeholder="Name, phone, email or ref"
                 className="h-9 w-full rounded-lg border border-border bg-background pr-8 pl-9 text-sm outline-none transition-[border-color,box-shadow] focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/20"
               />
               {search && (
@@ -306,6 +313,7 @@ function Leads() {
                         </Link>
                         <span className="block text-xs text-muted-foreground">
                           {[
+                            r.ref,
                             !typeDef && r.typeLabel,
                             r.addedBy ? `added by ${r.addedBy}` : CHANNEL_LABEL[r.channel],
                             r.repeatCount > 0 && `sent ${r.repeatCount + 1} times`,
@@ -316,7 +324,9 @@ function Leads() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="block tabular-nums">{r.phone || "–"}</span>
+                        <span className="flex items-center gap-1 tabular-nums">
+                          {r.phone || "–"} <Verified show={r.phone && r.phoneVerified} />
+                        </span>
                         {r.email && <span className="block max-w-[14rem] truncate text-xs text-muted-foreground">{r.email}</span>}
                       </TableCell>
                       <TableCell className="tabular-nums">{amountText(r.amount) || <span className="text-muted-foreground">–</span>}</TableCell>
@@ -340,11 +350,13 @@ function Leads() {
                 <li key={`${r.type}-${r.id}`} className="flex items-center gap-3 px-4 py-3.5">
                   <Link href={`/admin-panel/leads/${r.type}/${r.id}`} className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
-                      <span className="truncate font-medium">{r.name}</span>
+                      <span className="flex min-w-0 items-center gap-1">
+                        <span className="truncate font-medium">{r.name}</span> <Verified show={r.phoneVerified} />
+                      </span>
                       <StatusBadge status={r.status} className="shrink-0 text-xs" />
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                      {[r.typeLabel, timeAgo(r.lastActivityAt || r.createdAt), amountText(r.amount), isSales && `${r.stage?.toUpperCase()}, ${r.assignedName || "waiting"}`]
+                      {[r.ref, r.typeLabel, timeAgo(r.lastActivityAt || r.createdAt), amountText(r.amount), isSales && `${r.stage?.toUpperCase()}, ${r.assignedName || "waiting"}`]
                         .filter(Boolean)
                         .join(", ")}
                     </span>

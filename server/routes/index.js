@@ -21,6 +21,7 @@ require('./siteSettings.routes')(app);
 require('./files.routes')(app);
 require('./jobs.routes')(app);
 require('./serviceRequests.routes')(app);
+require('./otp.routes')(app);
 
 // Every lead form (old URLs and POST /api/leads/:formKey) goes through one intake pipeline.
 require('../leads/intake').installLeadIntake(app, routes);
@@ -39,6 +40,9 @@ const PUBLIC_READS = new Set([
     '/api/jobs',
     // Protected by its own short-lived signed link instead of a bearer token (browsers open it directly).
     '/api/files/:token',
+    '/api/otp/status',
+    // Checks CRON_SECRET itself.
+    '/api/cron/purge',
 ]);
 const ADMIN_WRITES = new Set(['/api/addInHouseProperty', '/api/addRoleByAdmin', '/api/addEmployee', '/api/bulkAddAreas']);
 
