@@ -2,6 +2,7 @@
 
 import { FilePdf, ImageSquare, Paperclip, X } from "@phosphor-icons/react";
 import { useT } from "@/lib/i18n";
+import { MASKED_AADHAAR_URL } from "@/lib/forms";
 import { cn } from "@/lib/utils";
 
 const ACCEPT = "image/png,image/jpeg,application/pdf";
@@ -28,6 +29,19 @@ export default function FileSlot({ slot, file, onChange, idPrefix }) {
         <p className="truncate text-xs text-muted-foreground">
           {file ? `${file.name} · ${formatBytes(file.size)}` : t("PDF, JPG or PNG")}
         </p>
+        {slot.aadhaar && (
+          <p className="mt-0.5 text-xs font-medium text-foreground/80">
+            {t("Masked Aadhaar only: first 8 digits hidden.")}{" "}
+            <a
+              href={MASKED_AADHAAR_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative z-10 underline underline-offset-2 hover:text-foreground"
+            >
+              {t("Download from myAadhaar")}
+            </a>
+          </p>
+        )}
       </div>
       {file && (
         <button

@@ -4,6 +4,7 @@ const Admin = require('../models/admin.model');
 const Employee = require('../models/employee.model');
 const Lead = require('../models/lead.model');
 const LeadEvent = require('../models/leadEvent.model');
+const DocumentAccess = require('../models/documentAccess.model');
 const User = require('../models/user.model');
 const Property = require('../models/property.model');
 const Newsletter = require('../models/newslatter.model');
@@ -279,11 +280,12 @@ exports.get = async (req, res) => {
   const customer = lead.userId ? await User.findById(lead.userId).lean() : null;
   // findLead has checked canSee, so private documents get short-lived links; the response is never cached.
   res.setHeader('Cache-Control', 'no-store');
+  const by = { staffId: req.staff.id, staffName: req.staff.name || req.staff.email || null, role: req.staff.role, leadId: String(lead._id), leadType: def.type };
   res.json({
     data: {
       lead: { ...row(lead), page: def.page || null, source: lead.source || null, consent: lead.consent || null },
-      fields: docs[0] ? withFileLinks(clean(docs[0])) : {},
-      submissions: docs.map((d) => ({ id: String(d._id), createdAt: d.createdAt, fields: withFileLinks(clean(d)) })),
+      fields: docs[0] ? withFileLinks(clean(docs[0]), by) : {},
+      submissions: docs.map((d) => ({ id: String(d._id), createdAt: d.createdAt, fields: withFileLinks(clean(d), by) })),
       customer: customer ? { id: String(customer._id), name: customer.user_Name || null, email: customer.user_Email || null } : null,
       ...(await view(lead)),
     },
@@ -470,5 +472,18 @@ exports.clientIp = (req, res) => {
       trustProxyHops: process.env.TRUST_PROXY_HOPS || null,
       resolved: clientIp(req),
     },
+  });
+};
+
+// Who opened this lead's private documents (admins only). Equality filter only, sorted here: no Firestore index needed.
+exports.documentAccess = async (req, res) => {
+  const leadId = String(req.query.leadId || '').trim();
+  if (!leadId) return fail(res, 400, 'leadId is required.');
+  const rows = await DocumentAccess.find({ leadId }).lean();
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    data: rows
+      .sort((a, b) => new Date(b.at) - new Date(a.at))
+      .map((r) => ({ at: r.at, staffId: r.staffId, staffName: r.staffName, role: r.role, leadType: r.leadType, path: r.path, ip: r.ip })),
   });
 };

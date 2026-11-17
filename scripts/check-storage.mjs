@@ -116,6 +116,10 @@ const bytes = Buffer.from(await file.arrayBuffer());
 check(file.status === 200 && bytes.equals(PDF) && file.headers.get("content-type") === "application/pdf" && file.headers.get("x-content-type-options") === "nosniff" &&
   file.headers.get("cache-control") === "private, no-store" && /^inline; filename="document\.pdf"$/.test(file.headers.get("content-disposition") || ""),
   "the signed link returns the exact file with safe headers", `status=${file.status} type=${file.headers.get("content-type")}`);
+const accessLog = async () => (await call(`admin/document-access?leadId=${encodeURIComponent(leadId)}`, { token: admin })).data?.data || [];
+const opened = (await accessLog()).filter((r) => r.path === panPath);
+check(opened.length === 1 && opened[0].role === "admin" && opened[0].leadType === "homeloan" && Boolean(opened[0].staffId) && Boolean(opened[0].ip),
+  "opening a document is logged with the staff member, lead and address", `entries=${opened.length} role=${opened[0]?.role}`);
 
 const [payload, sig] = link.slice("/api/files/".length).split(".");
 const flipped = `${sig.slice(0, -1)}${sig.endsWith("A") ? "B" : "A"}`;
@@ -155,6 +159,7 @@ const byEmployee = await call(`admin/leads/homeloan/${leadId}`, { method: "DELET
 check(byEmployee.status === 403 && (await exists(panPath)), "an employee cannot delete the lead or its documents", `status=${byEmployee.status}`);
 const removed = await call(`admin/leads/homeloan/${leadId}`, { method: "DELETE", token: admin });
 check(removed.status === 200 && !(await exists(panPath)) && !(await exists(aadhaarPath)), "admin lead deletion removes its private documents", `status=${removed.status}`);
+check((await accessLog()).some((r) => r.path === panPath), "the document access log is kept after the lead is deleted");
 await bucket.file(legacyPath).delete({ ignoreNotFound: true });
 
 // ---------- Public property media and the D12 limit ----------

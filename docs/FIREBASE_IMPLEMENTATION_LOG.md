@@ -894,6 +894,7 @@ Stage 4B results summary:
 - **Local incident (2026-11-16):** to compare translations with `main`, a temporary `git worktree` was created with a directory junction to the project's `node_modules`; `git worktree remove --force` followed the junction and deleted part of the local `node_modules` (for example `firebase-admin`) before it was stopped. No tracked file was affected (`git status` clean), nothing remote was affected, and the commit had been built and checked before. Local `node_modules` must be reinstalled before the next local build. Lesson: never link `node_modules` into a worktree; remove junctions with `rmdir` before `git worktree remove`. `node_modules` was reinstalled with `npm ci` from the public registry (519 packages) on 2026-11-16.
 - **Service cards (2026-11-17):** headings first, details on hover or tap (`docs/changes/2026-11-17_shivansh_service-cards-hover.md`).
 - **Merge and deploy guide for Jayesh (2026-11-17):** `docs/MERGE_AND_DEPLOY_GUIDE.md`, kept up to date with every push to `shivansh_dev`; GA4 deploy steps also in the GA4 change note.
+- **KYC safeguards (2026-11-17):** masked-Aadhaar instruction on uploads; document access log (`document_access`, admin endpoint). `check:firestore-adapter` 125/125, `check:storage` 22/22 (Storage emulator; Java at `%USERPROFILE%\tools\jdk-21.0.13+9-jre`). Bucket lockdown and Cloud audit logs prepared, not run (need approval). See `docs/changes/2026-11-17_shivansh_kyc-document-safeguards.md`.
 
 ## Codebase Analysis (Stage 4A, commit 9f2bb93)
 
