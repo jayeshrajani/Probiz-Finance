@@ -5,7 +5,6 @@ const DAY = 24 * 60 * 60 * 1000;
 const IST_OFFSET = 330 * 60 * 1000;
 const PRESETS = new Set([7, 30, 90]);
 const MAX_DAYS = 366;
-const STALE_MS = 3 * DAY;
 const OPEN = new Set(['new', 'contacted', 'in_progress']);
 const STATUSES = ['new', 'contacted', 'in_progress', 'won', 'lost'];
 const CHANNEL_LABEL = { web_form: 'Website forms', assistant: 'Website assistant', staff: 'Added by staff', legacy_api: 'Older forms', legacy_import: 'Older forms' };
@@ -145,7 +144,6 @@ function analytics({ leads, events, employees, query, now = Date.now() }) {
         conversion: theirsInRange.length ? won / theirsInRange.length : null,
         medianResponseMs: median(theirResponses),
         active: open.length,
-        stale: open.filter((l) => now - time(l.lastActivityAt || l.createdAt) > STALE_MS).length,
       };
     })
     .sort((a, b) => b.assigned - a.assigned || b.active - a.active || a.name.localeCompare(b.name));

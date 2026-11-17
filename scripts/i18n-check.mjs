@@ -71,7 +71,7 @@ function areaFor(file) {
 const sourceFiles = [
   ...walkFiles(join(root, "components")),
   ...walkFiles(join(root, "pages")),
-  ...["lib/catalog.js", "lib/faqs.js", "lib/forms.js", "lib/lead-schema.js", "lib/services-content.js", "lib/callback.js", "lib/api.js", "server/leads/intake.js"].map((f) => join(root, f)),
+  ...["lib/catalog.js", "lib/faqs.js", "lib/forms.js", "lib/lead-schema.js", "lib/services-content.js", "lib/callback.js", "lib/api.js", "lib/property.js", "server/leads/intake.js"].map((f) => join(root, f)),
 ];
 
 for (const file of sourceFiles) {

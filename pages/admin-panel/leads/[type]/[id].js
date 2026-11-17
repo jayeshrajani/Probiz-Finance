@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowSquareOut, EnvelopeSimple, FileText, HandGrabbing, Phone, SpinnerGap, Trash, WhatsappLogo } from "@phosphor-icons/react";
+import { Archive, ArrowCounterClockwise, ArrowLeft, ArrowSquareOut, EnvelopeSimple, FileText, HandGrabbing, Phone, SpinnerGap, Trash, WhatsappLogo } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { ConfirmDialog, ErrorNote, LoadingRows, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,32 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { adminFetch, formatDateTime, STATUS_META, timeAgo, useAdminData } from "@/lib/admin-api";
 import { formatINR } from "@/lib/format";
+import { forms } from "@/lib/forms";
 import { cn } from "@/lib/utils";
 
 const isFile = (v) => typeof v === "string" && (/^https?:\/\//i.test(v) || v.startsWith("/uploads/") || v.startsWith("/api/files/"));
 const isImage = (v) => /\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(v);
+const isPdf = (v) => /\.pdf(\?|#|$)/i.test(v);
+const extOf = (v) => (String(v).split(/[?#]/)[0].split(".").pop() || "").toUpperCase();
+
+// A small look at the actual document: the image itself, or page one of a PDF.
+function DocThumb({ url, label }) {
+  if (isImage(url)) return <img src={url} alt={label} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />;
+  if (isPdf(url)) {
+    return (
+      <div className="relative size-full overflow-hidden bg-white">
+        <iframe
+          src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+          title={label}
+          loading="lazy"
+          tabIndex={-1}
+          className="pointer-events-none absolute top-0 left-0 h-[250%] w-[250%] origin-top-left scale-[0.4] border-0"
+        />
+      </div>
+    );
+  }
+  return <FileText weight="duotone" className="size-10 text-muted-foreground" />;
+}
 const MONEY = /amount|income|salary|value|budget|price|emi/i;
 const DATE = /date|At$/;
 
@@ -40,23 +62,32 @@ function formatValue(key, value) {
   return String(value);
 }
 
-function splitFields(fields) {
+// Labels as the customer saw them on the form, falling back to the stored field name.
+function labelsFor(formKey) {
+  const config = forms[formKey];
+  if (!config) return {};
+  const fields = config.steps.flatMap((s) => s.fields);
+  return Object.fromEntries([...fields, ...(config.files || [])].map((f) => [f.name, f.label]));
+}
+
+function splitFields(fields, labels = {}) {
+  const label = (key) => labels[key] || humanize(key);
   const details = [];
   const files = [];
   for (const [key, value] of Object.entries(fields)) {
     if (key === "createdAt" || key === "updatedAt") continue;
     // Some forms store uploads as { fieldName: url } instead of top-level fields.
     if (value && typeof value === "object" && !Array.isArray(value)) {
-      for (const [sub, url] of Object.entries(value)) if (isFile(url)) files.push({ key: `${key}.${sub}`, label: humanize(sub), url });
+      for (const [sub, url] of Object.entries(value)) if (isFile(url)) files.push({ key: `${key}.${sub}`, label: label(sub), url });
       continue;
     }
     const list = Array.isArray(value) ? value : [value];
     if (list.length && list.every(isFile)) {
-      list.forEach((url, i) => files.push({ key, label: humanize(key) + (list.length > 1 ? ` ${i + 1}` : ""), url }));
+      list.forEach((url, i) => files.push({ key, label: label(key) + (list.length > 1 ? ` ${i + 1}` : ""), url }));
       continue;
     }
     const shown = formatValue(key, value);
-    if (shown !== null) details.push({ key, label: humanize(key), value: shown });
+    if (shown !== null) details.push({ key, label: label(key), value: shown });
   }
   return { details, files };
 }
@@ -105,8 +136,22 @@ function Notes({ type, id, notes, onChange }) {
               animate={{ opacity: 1, y: 0 }}
               className="relative border-l border-border pb-5 pl-5 last:pb-0"
             >
-              <span className={cn("absolute top-1 -left-[5px] size-2.5 rounded-full ring-4 ring-background", n.kind === "system" ? "bg-muted-foreground/50" : "bg-brand")} />
-              <p className={cn("text-sm leading-relaxed", n.kind === "system" && "text-muted-foreground")}>{n.text}</p>
+              <span
+                className={cn(
+                  "absolute top-1 -left-[5px] size-2.5 rounded-full ring-4 ring-background",
+                  STATUS_META[n.status]?.dot || (n.kind === "system" ? "bg-muted-foreground/40" : "bg-foreground")
+                )}
+              />
+              <p className={cn("text-sm leading-relaxed", n.kind === "system" && "text-muted-foreground")}>
+                {n.status && STATUS_META[n.status] ? (
+                  <>
+                    Status changed to{" "}
+                    <span className={cn("rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset", STATUS_META[n.status].soft)}>{STATUS_META[n.status].label}</span>
+                  </>
+                ) : (
+                  n.text
+                )}
+              </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {n.by}, {timeAgo(n.at)}
               </p>
@@ -132,6 +177,7 @@ function Origin({ lead, customer }) {
   const utm = Object.entries(src.utm || {}).map(([k, v]) => `${k}: ${v}`);
   const rows = [
     ["Channel", CHANNEL_LABEL[src.channel] || "Unknown"],
+    ["Added by", src.addedBy?.name ? `${src.addedBy.name}${src.addedBy.role ? ` (${src.addedBy.role})` : ""}` : null],
     ["Topic", src.topic],
     ["Submitted on", src.page],
     ["First page", src.landingPage],
@@ -173,9 +219,9 @@ function LeadDetail() {
   const submissions = data.data.submissions?.length ? data.data.submissions : [{ id: "current", createdAt: lead.createdAt, fields: data.data.fields }];
   const fields = (submissions[shown] || submissions[0]).fields;
   const current = override || data.data;
-  const { status, notes, assignedTo, assignedName } = current;
+  const { status, notes, assignedTo, assignedName, archived } = current;
   const canEdit = isAdmin || !assignedTo || assignedTo === staff.id;
-  const { details, files } = splitFields(fields);
+  const { details, files } = splitFields(fields, labelsFor(config.types.find((t) => t.type === type)?.formKey));
   const phone = lead.phone ? String(lead.phone).replace(/\D/g, "").slice(-10) : null;
 
   async function patch(body, message) {
@@ -244,12 +290,32 @@ function LeadDetail() {
             </Button>
           )}
           {isAdmin && (
+            <Button size="sm" variant="outline" disabled={saving} onClick={() => patch({ archive: !archived }, archived ? "Lead restored" : "Lead archived")}>
+              {archived ? (
+                <>
+                  <ArrowCounterClockwise /> Restore
+                </>
+              ) : (
+                <>
+                  <Archive /> Archive
+                </>
+              )}
+            </Button>
+          )}
+          {isAdmin && (
             <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setConfirm(true)}>
               <Trash /> Delete
             </Button>
           )}
         </div>
       </div>
+
+      {archived && (
+        <Card className="mb-4 flex-row items-center gap-3 border-dashed bg-secondary/60 px-4 py-3 text-sm">
+          <Archive className="size-4 shrink-0 text-muted-foreground" />
+          <span className="flex-1 text-muted-foreground">This lead is archived. It is hidden from lead lists, counts and advisors until you restore it.</span>
+        </Card>
+      )}
 
       <Card className="mb-4 flex-row flex-wrap items-center justify-between gap-3 px-4 py-3">
         <p className="text-sm">
@@ -309,10 +375,11 @@ function LeadDetail() {
             disabled={saving || !canEdit}
             onClick={() => setStatus(s)}
             className={cn(
-              "h-9 rounded-lg text-sm font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-brand/25 focus-visible:outline-none disabled:cursor-not-allowed",
-              status === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              "inline-flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-brand/25 focus-visible:outline-none disabled:cursor-not-allowed",
+              status === s ? cn("shadow-sm ring-1 ring-inset", STATUS_META[s].soft) : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
             )}
           >
+            <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", STATUS_META[s].dot, status !== s && "opacity-60")} />
             {STATUS_META[s].label}
           </button>
         ))}
@@ -350,11 +417,10 @@ function LeadDetail() {
                 {files.map((f) => (
                   <li key={f.url}>
                     <a href={f.url} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border border-border transition-colors hover:border-foreground/20">
-                      <div className="grid aspect-[4/3] place-items-center overflow-hidden bg-secondary">
-                        {isImage(f.url) ? (
-                          <img src={f.url} alt={f.label} loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-                        ) : (
-                          <FileText weight="duotone" className="size-10 text-muted-foreground" />
+                      <div className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-secondary">
+                        <DocThumb url={f.url} label={f.label} />
+                        {extOf(f.url) && (
+                          <span className="absolute bottom-2 left-2 rounded-md bg-background/90 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wide text-muted-foreground shadow-sm">{extOf(f.url)}</span>
                         )}
                       </div>
                       <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">

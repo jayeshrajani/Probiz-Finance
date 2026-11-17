@@ -20,6 +20,7 @@ require('./account.routes')(app);
 require('./siteSettings.routes')(app);
 require('./files.routes')(app);
 require('./jobs.routes')(app);
+require('./serviceRequests.routes')(app);
 
 // Every lead form (old URLs and POST /api/leads/:formKey) goes through one intake pipeline.
 require('../leads/intake').installLeadIntake(app, routes);

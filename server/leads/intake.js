@@ -185,6 +185,7 @@ async function upsertLead(ctx, refId, req) {
       ? { kind: 'staff', id: req.staff?.id || null, name: req.staff?.name || null }
       : { kind: 'customer', id: ctx.userId, name: s.name };
   const source = { channel: ctx.channel, topic: ctx.meta?.topic || null, ...(ctx.meta?.source || {}) };
+  if (ctx.mode === 'staff' && req.staff) source.addedBy = { id: req.staff.id, name: req.staff.name || req.staff.email || null, role: req.staff.role };
   const dedupeKey = phone ? `${def.type}:${phone}` : null;
 
   // One transaction, locked on the duplicate key and the record: concurrent submissions from the same phone
@@ -194,9 +195,11 @@ async function upsertLead(ctx, refId, req) {
     const owner = await Lead.findOne({ type: def.type, refIds: refId });
     if (owner) return { lead: owner, repeat: false };
 
-    const existing = dedupeKey
+    const match = dedupeKey
       ? await Lead.findOne({ dedupeKey, status: { $in: OPEN }, lastActivityAt: { $gte: new Date(now - DEDUPE_MS) } }).sort({ lastActivityAt: -1 })
       : null;
+    // An archived lead stays archived; a new submission starts a fresh one.
+    const existing = match && !match.archived ? match : null;
     if (existing) {
       existing.refIds = [...(existing.refIds || []), refId];
       existing.refId = refId;

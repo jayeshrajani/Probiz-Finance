@@ -137,7 +137,8 @@ exports.cashfreeWebhook = async (req, res) => {
 };
 
 exports.userSignUp = async (req, res) => {
-  let user_Email = req.body.user_Email ? req.body.user_Email : "";
+  // Login lowercases the email, so store it the same way.
+  let user_Email = req.body.user_Email ? String(req.body.user_Email).trim().toLowerCase() : "";
   let user_Name = req.body.user_Name ? req.body.user_Name : "";
   let country_code = req.body.country_code ? req.body.country_code : "";
 
@@ -276,7 +277,7 @@ exports.userSignUp = async (req, res) => {
 
     return res
       .status(200)
-      .send({ data: withoutPassword(data), message: "Success", status: 200 });
+      .send({ accessToken: generateToken(data._id), data: withoutPassword(data), message: "Success", status: 200 });
   } catch (error) {
     return res
       .status(500)

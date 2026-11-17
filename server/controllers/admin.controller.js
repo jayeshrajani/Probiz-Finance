@@ -387,14 +387,29 @@ exports.UpdatePropertyById = async (req, res) => {
     } = req.body;
 
     // Use new images if provided, else keep the old ones
-    const propertyImage = req.files?.['propertyImage']?.length
-      ? req.files['propertyImage'].map(file => file.location)
-      : existingProperty.propertyImage;
+    const uploaded = req.files?.['propertyImage']?.map((file) => file.location) || [];
+    let propertyImage = uploaded.length ? uploaded : existingProperty.propertyImage;
+    const removedFiles = [];
+    // The admin editor sends the photos to keep, so single photos can be removed and new ones appended.
+    if (req.body.keepImages !== undefined) {
+      let keep = [];
+      try {
+        keep = JSON.parse(req.body.keepImages);
+      } catch {}
+      const current = existingProperty.propertyImage || [];
+      const kept = current.filter((url) => Array.isArray(keep) && keep.includes(url));
+      removedFiles.push(...current.filter((url) => !kept.includes(url)));
+      propertyImage = [...kept, ...uploaded].slice(0, 10);
+    }
 
     // Use new video if provided, else keep the old one
-    const propertyVideo = req.files?.['propertyVideo']?.[0]
+    let propertyVideo = req.files?.['propertyVideo']?.[0]
       ? req.files['propertyVideo'][0].location
       : existingProperty.propertyVideo;
+    if (req.body.removeVideo === '1' && !req.files?.['propertyVideo']?.[0]) {
+      if (existingProperty.propertyVideo) removedFiles.push(existingProperty.propertyVideo);
+      propertyVideo = '';
+    }
 
     // Handle area - accept area name as string from frontend
     if (area !== undefined) {
@@ -423,29 +438,20 @@ exports.UpdatePropertyById = async (req, res) => {
       }
     }
 
-    // Update the fields
-    existingProperty.ownerName = ownerName || existingProperty.ownerName;
-    existingProperty.contactNo = contactNo || existingProperty.contactNo;
-    existingProperty.propertyName = propertyName || existingProperty.propertyName;
-    existingProperty.bhk_of_house = bhk_of_house || existingProperty.bhk_of_house;
-    existingProperty.buildUpArea = buildUpArea || existingProperty.buildUpArea;
-    existingProperty.propertyType = propertyType || existingProperty.propertyType;
-    existingProperty.price = price || existingProperty.price;
-    existingProperty.construction_year = construction_year || existingProperty.construction_year;
-    existingProperty.state = state || existingProperty.state;
-    existingProperty.city = city || existingProperty.city;
-    existingProperty.address = address || existingProperty.address;
-    existingProperty.description = description || existingProperty.description;
-    existingProperty.bathrooms = bathrooms || existingProperty.bathrooms;
-    existingProperty.carpetArea = carpetArea || existingProperty.carpetArea;
-    existingProperty.houseFacing = houseFacing || existingProperty.houseFacing;
-    existingProperty.plotArea = plotArea || existingProperty.plotArea;
-    existingProperty.numberOfBalconies = numberOfBalconies || existingProperty.numberOfBalconies;
-    existingProperty.furnishingStatus = furnishingStatus || existingProperty.furnishingStatus;
+    // Fields that are sent are saved as given (so the editor can clear them); missing ones are left alone.
+    const NUMERIC = new Set(['buildUpArea', 'construction_year', 'bathrooms', 'plotArea', 'numberOfBalconies']);
+    const sent = { ownerName, contactNo, propertyName, bhk_of_house, buildUpArea, propertyType, construction_year, state, city, address, description, bathrooms, carpetArea, houseFacing, plotArea, numberOfBalconies, furnishingStatus };
+    for (const [key, value] of Object.entries(sent)) {
+      if (value === undefined) continue;
+      const text = String(value).trim();
+      existingProperty[key] = text === '' && NUMERIC.has(key) ? 0 : text;
+    }
+    if (price !== undefined && String(price).trim() !== '') existingProperty.price = Number(price) || 0;
     existingProperty.propertyImage = propertyImage;
     existingProperty.propertyVideo = propertyVideo;
 
     await existingProperty.save();
+    for (const value of removedFiles) await deleteStoredFile(value);
     
     // Transform property to show only area (name) and remove areaName from response
     const propertyObj = existingProperty.toObject();

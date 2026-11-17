@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
-import { CheckCircle, ImageSquare, SpinnerGap, VideoCamera, WarningCircle, X } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { CheckCircle, ImageSquare, SpinnerGap, WarningCircle, X } from "@phosphor-icons/react";
 import Breadcrumbs from "@/components/blocks/Breadcrumbs";
 import FormField from "@/components/forms/FormField";
 import SiteLayout from "@/components/site/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { errorMessage, postForm } from "@/lib/api";
-import { PROPERTY_TYPES, typeLabel } from "@/lib/property";
+import { PROPERTY_SECTIONS, propertyErrors, visibleFields } from "@/lib/property";
 import { useStoredUser } from "@/lib/use-user";
 import { useT } from "@/lib/i18n";
 import { localeProps } from "@/lib/i18n-static";
@@ -17,47 +17,10 @@ import { localeProps } from "@/lib/i18n-static";
 export const getStaticProps = localeProps;
 
 const MAX_UPLOAD = 4.4 * 1024 * 1024;
-const BUILT = ["Flat", "Row House", "Bunglow", "Farm House", "Pent House", "Commercial Property"];
-const nums = ["1", "2", "3", "4", "5", "6"];
+const sections = PROPERTY_SECTIONS;
+const visible = visibleFields;
 
-const sections = [
-  {
-    title: "Property",
-    fields: [
-      { name: "propertyName", label: "Listing title", type: "text", required: true, help: "For example, 3 BHK flat with covered parking" },
-      { name: "propertyType", label: "Type", type: "select", required: true, half: true, options: PROPERTY_TYPES.map((type) => ({ value: type, label: typeLabel(type) })) },
-      { name: "price", label: "Asking price (₹)", type: "number", required: true, half: true, inputMode: "numeric" },
-      { name: "bhk_of_house", label: "Configuration", type: "select", half: true, options: ["1RK", "1BHK", "2BHK", "3BHK", "4BHK", "5BHK", "6BHK"], showIf: (v) => BUILT.includes(v.propertyType) },
-      { name: "buildUpArea", label: "Built-up area (sq ft)", type: "number", half: true, inputMode: "numeric", showIf: (v) => BUILT.includes(v.propertyType) },
-      { name: "carpetArea", label: "Carpet area (sq ft)", type: "number", half: true, inputMode: "numeric", showIf: (v) => BUILT.includes(v.propertyType) },
-      { name: "plotArea", label: "Plot area (sq ft)", type: "number", half: true, inputMode: "numeric" },
-      { name: "houseFacing", label: "Facing", type: "select", half: true, options: ["North", "South", "East", "West"] },
-      { name: "furnishingStatus", label: "Furnishing", type: "select", half: true, options: ["Furnished", "Semi-Furnished", "Unfurnished"], showIf: (v) => BUILT.includes(v.propertyType) },
-      { name: "bathrooms", label: "Bathrooms", type: "select", half: true, options: nums, showIf: (v) => BUILT.includes(v.propertyType) },
-      { name: "numberOfBalconies", label: "Balconies", type: "select", half: true, options: nums, showIf: (v) => BUILT.includes(v.propertyType) },
-      { name: "construction_year", label: "Year built", type: "number", half: true, inputMode: "numeric", maxLength: 4, showIf: (v) => BUILT.includes(v.propertyType) },
-      { name: "description", label: "Description", type: "textarea" },
-    ],
-  },
-  {
-    title: "Location",
-    fields: [
-      { name: "address", label: "Address", type: "text", required: true, autoComplete: "street-address" },
-      { name: "area", label: "Area or locality", type: "text", half: true },
-      { name: "city", label: "City", type: "text", required: true, half: true, autoComplete: "address-level2" },
-      { name: "state", label: "State", type: "text", required: true, half: true, autoComplete: "address-level1" },
-    ],
-  },
-  {
-    title: "Owner",
-    fields: [
-      { name: "ownerName", label: "Owner's name", type: "text", required: true, half: true, autoComplete: "name" },
-      { name: "contactNo", label: "Mobile number", type: "tel", required: true, half: true, autoComplete: "tel" },
-    ],
-  },
-];
-
-const visible = (fields, v) => fields.filter((f) => !f.showIf || f.showIf(v));
+const ownerDefaults = (user) => ({ ownerName: user?.user_Name || "", contactNo: user?.mobile_no || "" });
 
 export default function AddPropertyPage() {
   const t = useT();
@@ -66,12 +29,17 @@ export default function AddPropertyPage() {
   const [values, setValues] = useState({});
   const [errors, setErrors] = useState({});
   const [images, setImages] = useState([]);
-  const [video, setVideo] = useState(null);
   const [status, setStatus] = useState("idle");
   const [submitError, setSubmitError] = useState(null);
 
-  const total = images.reduce((s, f) => s + f.size, 0) + (video?.size || 0);
+  const total = images.reduce((s, f) => s + f.size, 0);
   const tooLarge = total > MAX_UPLOAD;
+
+  // The account already has the owner's name and mobile; don't ask for them again.
+  useEffect(() => {
+    if (!user) return;
+    setValues((v) => ({ ...v, ...Object.fromEntries(Object.entries(ownerDefaults(user)).filter(([k]) => !v[k])) }));
+  }, [user]);
 
   const setValue = (name, value) => {
     setValues((v) => ({ ...v, [name]: value }));
@@ -80,14 +48,7 @@ export default function AddPropertyPage() {
 
   async function onSubmit(e) {
     e.preventDefault();
-    const errs = {};
-    for (const s of sections) {
-      for (const f of visible(s.fields, values)) {
-        const val = String(values[f.name] ?? "").trim();
-        if (f.required && !val) errs[f.name] = "Required";
-        else if (f.type === "tel" && val && !/^[6-9]\d{9}$/.test(val)) errs[f.name] = "Enter a 10-digit mobile number";
-      }
-    }
+    const errs = propertyErrors(values);
     setErrors(errs);
     if (Object.keys(errs).length) {
       document.getElementById(`property-${Object.keys(errs)[0]}`)?.focus();
@@ -103,16 +64,25 @@ export default function AddPropertyPage() {
       }
     }
     images.forEach((img) => fd.append("propertyImage", img));
-    if (video) fd.append("propertyVideo", video);
 
     setStatus("submitting");
     setSubmitError(null);
     const res = await postForm("addProperty", fd);
-    if (res.ok) setStatus("done");
-    else {
+    if (res.ok) {
+      setStatus("done");
+      window.scrollTo({ top: 0 });
+    } else {
       setStatus("idle");
       setSubmitError(errorMessage(res.data));
     }
+  }
+
+  if (user === undefined) {
+    return (
+      <SiteLayout title="List Your Property" path="/add-product" noindex>
+        <section className="min-h-[60dvh]" />
+      </SiteLayout>
+    );
   }
 
   if (!user) {
@@ -126,7 +96,7 @@ export default function AddPropertyPage() {
               <Link href="/sign-in?next=/add-product">{t("Sign in")}</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/sign-up">{t("Create an account")}</Link>
+              <Link href="/sign-up?next=/add-product">{t("Create an account")}</Link>
             </Button>
           </div>
         </section>
@@ -145,7 +115,7 @@ export default function AddPropertyPage() {
             <Button size="lg" onClick={() => router.push("/property")}>
               {t("See listings")}
             </Button>
-            <Button size="lg" variant="outline" onClick={() => { setValues({}); setImages([]); setVideo(null); setStatus("idle"); }}>
+            <Button size="lg" variant="outline" onClick={() => { setValues(ownerDefaults(user)); setImages([]); setStatus("idle"); }}>
               {t("List another")}
             </Button>
           </div>
@@ -172,34 +142,26 @@ export default function AddPropertyPage() {
           ))}
 
           <fieldset className="border-t border-border pt-8">
-            <legend className="headline mb-6 text-xl">{t("Photos and video")}</legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-input px-4 py-4 hover:bg-secondary">
-                <ImageSquare weight="duotone" className="size-6 text-muted-foreground" />
-                <span>
-                  <span className="block text-sm font-medium">{t("Add photos")}</span>
-                  <span className="block text-xs text-muted-foreground">{t("Up to 10, JPG or PNG")}</span>
-                </span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg"
-                  multiple
-                  className="sr-only"
-                  onChange={(e) => {
-                    setImages((cur) => [...cur, ...Array.from(e.target.files || [])].slice(0, 10));
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-input px-4 py-4 hover:bg-secondary">
-                <VideoCamera weight="duotone" className="size-6 text-muted-foreground" />
-                <span>
-                  <span className="block text-sm font-medium">{video ? video.name : t("Add a video")}</span>
-                  <span className="block text-xs text-muted-foreground">{t("One MP4, optional")}</span>
-                </span>
-                <input type="file" accept="video/mp4" className="sr-only" onChange={(e) => setVideo(e.target.files?.[0] || null)} />
-              </label>
-            </div>
+            <legend className="headline mb-6 text-xl">{t("Photos")}</legend>
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-input px-4 py-4 hover:bg-secondary">
+              <ImageSquare weight="duotone" className="size-6 text-muted-foreground" />
+              <span>
+                <span className="block text-sm font-medium">{t("Add photos")}</span>
+                <span className="block text-xs text-muted-foreground">{t("Up to 10, JPG or PNG")}</span>
+              </span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                multiple
+                className="sr-only"
+                onChange={(e) => {
+                  // Copy before clearing: the updater runs after e.target.value is reset.
+                  const picked = Array.from(e.target.files || []);
+                  setImages((cur) => [...cur, ...picked].slice(0, 10));
+                  e.target.value = "";
+                }}
+              />
+            </label>
             {images.length > 0 && (
               <ul className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-5">
                 {images.map((img, i) => (
@@ -218,7 +180,7 @@ export default function AddPropertyPage() {
               </ul>
             )}
             <p className={tooLarge ? "mt-3 text-xs font-medium text-destructive" : "mt-3 text-xs text-muted-foreground"}>
-              {tooLarge ? t("Files are over the 4.4 MB limit. Remove some photos or compress them.") : t("Up to 4.4 MB in total.")}
+              {tooLarge ? t("Photos are over the 4.4 MB limit. Remove some or compress them.") : t("Up to 4.4 MB in total.")}
             </p>
           </fieldset>
 

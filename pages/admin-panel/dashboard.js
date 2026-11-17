@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Info } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { Empty, ErrorNote, LoadingRows, Panel, StatusBadge } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
@@ -26,15 +26,6 @@ const EASE = [0.16, 1, 0.3, 1];
 
 const pct = (v) => (v === null || v === undefined ? "–" : `${Math.round(v * 100)}%`);
 const fmtDay = (iso, withYear) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", ...(withYear ? { year: "numeric" } : {}) });
-
-function formatDuration(ms) {
-  if (ms === null || ms === undefined) return "–";
-  const min = ms / 60000;
-  if (min < 60) return `${Math.max(1, Math.round(min))} min`;
-  const h = min / 60;
-  if (h < 48) return `${h < 10 ? h.toFixed(1).replace(/\.0$/, "") : Math.round(h)} h`;
-  return `${Math.round(h / 24)} days`;
-}
 
 function delta(current, previous) {
   if (!previous) return current ? "None in the period before" : "Same as the period before";
@@ -235,9 +226,7 @@ function TeamTable({ team, query }) {
           <HeadTip tip="Leads from this period that are assigned to them now.">Assigned</HeadTip>
           <TableHead className="text-right">Won</TableHead>
           <HeadTip tip="Won as a share of assigned.">Conversion</HeadTip>
-          <HeadTip tip="Median time from a lead arriving to their first status change or note.">First response</HeadTip>
           <HeadTip tip="Open leads they own right now.">Active</HeadTip>
-          <HeadTip tip="Open leads with no activity for 3 or more days.">Stale</HeadTip>
         </TableRow>
       </TableHeader>
       <TableBody className="tabular-nums">
@@ -251,9 +240,7 @@ function TeamTable({ team, query }) {
             <TableCell className="text-right">{m.assigned}</TableCell>
             <TableCell className="text-right">{m.won}</TableCell>
             <TableCell className="text-right">{pct(m.conversion)}</TableCell>
-            <TableCell className="text-right">{formatDuration(m.medianResponseMs)}</TableCell>
             <TableCell className="text-right">{m.active}</TableCell>
-            <TableCell className={cn("text-right", m.stale ? "font-medium text-amber-700" : "text-muted-foreground")}>{m.stale}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -382,7 +369,6 @@ function AdminOverview() {
             <Kpi label="Unassigned" value={o.totals.unassigned} hint="Open leads with no advisor" href={leadsHref({ scope: "unassigned" })} />
             <Kpi label="Leads in period" value={a.totals.leads} hint={delta(a.totals.leads, a.totals.previous)} href={leadsHref(inRange)} />
             <Kpi label="Converted" value={a.totals.won} hint={`${pct(a.totals.conversion)} of leads in period`} href={leadsHref({ ...inRange, status: "won" })} />
-            <Kpi label="First response" value={formatDuration(a.totals.medianResponseMs)} hint={a.totals.uncontacted ? `Median; ${a.totals.uncontacted} in period not contacted yet` : "Median time to first contact"} />
             <Kpi label="Customers" value={o.totals.users} hint="Website accounts" href="/admin-panel/customers" />
             <Kpi label="Listings" value={o.totals.properties} hint="Property for sale" href="/admin-panel/properties" />
             <Kpi label="Subscribers" value={o.totals.subscribers} hint="Newsletter" href="/admin-panel/subscribers" />
@@ -397,16 +383,8 @@ function AdminOverview() {
           </div>
           <Panel
             title="Team performance"
-            description={`Assigned, won, conversion and first response cover the ${rangeLabel}. Active and stale are as of now.`}
+            description={`Assigned, won and conversion cover the ${rangeLabel}. Active is as of now.`}
             bodyClassName="p-0"
-            actions={
-              <Tooltip>
-                <TooltipTrigger className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted" aria-label="How these are counted">
-                  <Info className="size-4" />
-                </TooltipTrigger>
-                <TooltipContent side="left">First response counts the first status change or note by a staff member. Admin actions count in the overall figure, not against an advisor.</TooltipContent>
-              </Tooltip>
-            }
           >
             <TeamTable team={a.team} query={inRange} />
           </Panel>

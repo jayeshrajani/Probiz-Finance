@@ -26,7 +26,7 @@ const byActivity = (a, b) => new Date(b.lastActivityAt || b.createdAt) - new Dat
 const fail = (res, status, message) => res.status(status).json({ message, status });
 
 // Employees work their own leads plus the unassigned pool; admins see everything.
-const canSee = (req, lead) => isAdmin(req) || !lead.assignedTo || lead.assignedTo === req.staff.id;
+const canSee = (req, lead) => isAdmin(req) || (!lead.archived && (!lead.assignedTo || lead.assignedTo === req.staff.id));
 
 const row = (lead) => ({
   id: String(lead._id),
@@ -43,7 +43,9 @@ const row = (lead) => ({
   assignedTo: lead.assignedTo || null,
   assignedName: lead.assignedName || null,
   channel: lead.source?.channel || null,
+  addedBy: lead.source?.addedBy?.name || null,
   repeatCount: lead.repeatCount || 0,
+  archived: Boolean(lead.archived),
 });
 
 async function loadLeads(filter = {}) {
@@ -72,6 +74,10 @@ function activity(events) {
         return `Status changed to ${String(d.to).replace('_', ' ')}`;
       case 'lead.note_added':
         return d.text;
+      case 'lead.archived':
+        return 'Archived';
+      case 'lead.unarchived':
+        return 'Restored from the archive';
       case 'notification.sent':
         return 'WhatsApp alert sent to the team';
       case 'notification.failed':
@@ -87,6 +93,7 @@ function activity(events) {
       id: String(e._id),
       kind: e.type === 'lead.note_added' ? 'note' : 'system',
       text: text(e),
+      status: e.type === 'lead.status_changed' ? e.data?.to || null : null,
       by: e.actor?.name || (e.actor?.kind === 'customer' ? 'Customer' : 'Probiz'),
       at: e.at,
     }));
@@ -142,7 +149,8 @@ exports.config = async (req, res) => {
 
 exports.overview = async (req, res) => {
   await ensureBackfilled();
-  const raw = await Lead.find({}).lean();
+  const everything = await Lead.find({}).lean();
+  const raw = everything.filter((l) => !l.archived);
   const all = raw.map(row);
   const mine = isAdmin(req) ? all : all.filter((l) => l.assignedTo === req.staff.id);
   // Only open leads are waiting to be picked up; closed ones can stay unassigned.
@@ -177,6 +185,7 @@ exports.overview = async (req, res) => {
       active: mine.filter((l) => OPEN.has(l.status)).length,
       won: statusCounts.won,
       unassigned: unassigned.length,
+      archived: isAdmin(req) ? everything.length - raw.length : 0,
     },
     statusCounts,
     daily: days,
@@ -214,9 +223,11 @@ exports.list = async (req, res) => {
   if (group) leads = leads.filter((l) => byType[l.type]?.group === group);
 
   const scope = String(req.query.scope || '');
+  const showArchived = scope === 'archived' && isAdmin(req);
+  leads = leads.filter((l) => l.archived === showArchived);
   if (scope === 'mine') leads = leads.filter((l) => l.assignedTo === req.staff.id);
   else if (scope === 'unassigned') leads = leads.filter((l) => !l.assignedTo);
-  else if (scope && isAdmin(req)) leads = leads.filter((l) => l.assignedTo === scope);
+  else if (scope && !showArchived && isAdmin(req)) leads = leads.filter((l) => l.assignedTo === scope);
 
   const channel = String(req.query.channel || '');
   if (CHANNELS.includes(channel)) leads = leads.filter((l) => l.channel === channel);
@@ -264,6 +275,7 @@ async function view(lead) {
     status: lead.status || 'new',
     assignedTo: lead.assignedTo || null,
     assignedName: lead.assignedName || null,
+    archived: Boolean(lead.archived),
     notes: activity(events),
   };
 }
@@ -297,6 +309,7 @@ exports.update = async (req, res) => {
   const note = String(body.note || '').trim().slice(0, 2000);
   if (body.status !== undefined && !STATUSES.includes(body.status)) return fail(res, 400, 'Unknown status.');
   if (body.assignTo !== undefined && !isAdmin(req)) return fail(res, 403, 'Only admins can reassign leads.');
+  if (body.archive !== undefined && !isAdmin(req)) return fail(res, 403, 'Only admins can archive leads.');
 
   // Read-modify-write in one transaction: a claim only succeeds if the lead is still unassigned, and
   // concurrent status, note and assignment changes cannot overwrite each other.
@@ -332,6 +345,12 @@ exports.update = async (req, res) => {
       lead.status = body.status;
     }
     if (note) events.push(['lead.note_added', { text: note }]);
+    if (body.archive !== undefined && Boolean(body.archive) !== Boolean(lead.archived)) {
+      lead.archived = Boolean(body.archive);
+      lead.archivedAt = lead.archived ? new Date() : null;
+      lead.archivedBy = lead.archived ? req.staff.name || req.staff.email || null : null;
+      events.push([lead.archived ? 'lead.archived' : 'lead.unarchived', {}]);
+    }
     if (events.length) {
       lead.lastActivityAt = new Date();
       await lead.save();

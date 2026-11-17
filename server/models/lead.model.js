@@ -21,6 +21,10 @@ const leadSchema = mongoose.Schema(
     dedupeKey: { type: String, default: null },
     repeatCount: { type: Number, default: 0 },
     lastActivityAt: { type: Date, default: null },
+    // Archived leads are kept but hidden from every list and count except the admin Archived view.
+    archived: { type: Boolean, default: false },
+    archivedAt: { type: Date, default: null },
+    archivedBy: { type: String, default: null },
   },
   { timestamps: true }
 );

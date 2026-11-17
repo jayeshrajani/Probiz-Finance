@@ -45,6 +45,8 @@ function Leads() {
       ? groupDef.label
       : scope === "mine"
       ? "My leads"
+      : scope === "archived" && isAdmin
+      ? "Archived leads"
       : scope === "unassigned"
         ? isAdmin
           ? "Unassigned leads"
@@ -55,7 +57,9 @@ function Leads() {
             ? "All leads"
             : "My leads and new leads";
   const subheading =
-    scope === "unassigned"
+    scope === "archived" && isAdmin
+      ? "Kept, but hidden from every other list and count. Open one to restore it."
+      : scope === "unassigned"
       ? isAdmin
         ? "Nobody owns these yet. Open one to assign it to an advisor."
         : "Open a lead and act on it to make it yours."
@@ -128,7 +132,7 @@ function Leads() {
         { label: "Detail", value: (r) => r.detail },
         { label: "Status", value: (r) => STATUS_META[r.status]?.label },
         { label: "Advisor", value: (r) => r.assignedName || "Unassigned" },
-        { label: "Source", value: (r) => CHANNEL_LABEL[r.channel] || "" },
+        { label: "Source", value: (r) => (r.addedBy ? `Added by ${r.addedBy}` : CHANNEL_LABEL[r.channel] || "") },
         { label: "Times sent", value: (r) => r.repeatCount + 1 },
         { label: "Received", value: (r) => formatDateTime(r.createdAt) },
         { label: "Last activity", value: (r) => formatDateTime(r.lastActivityAt) },
@@ -182,6 +186,7 @@ function Leads() {
                 <>
                   <SelectItem value={ANY}>Any advisor</SelectItem>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
                   {config.employees.length > 0 && <SelectSeparator />}
                   {config.employees.map((e) => (
                     <SelectItem key={e.id} value={e.id}>
@@ -274,7 +279,7 @@ function Leads() {
                           {r.name}
                         </Link>
                         <span className="block text-xs text-muted-foreground">
-                          {[!typeDef && r.typeLabel, CHANNEL_LABEL[r.channel], r.repeatCount > 0 && `sent ${r.repeatCount + 1} times`].filter(Boolean).join(", ")}
+                          {[!typeDef && r.typeLabel, r.addedBy ? `added by ${r.addedBy}` : CHANNEL_LABEL[r.channel], r.repeatCount > 0 && `sent ${r.repeatCount + 1} times`].filter(Boolean).join(", ")}
                         </span>
                       </TableCell>
                       <TableCell>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { setToken } from "@/lib/admin-api";
 import { errorMessage, postJSON } from "@/lib/api";
-import { signIn } from "@/lib/use-user";
+import { safeNext, signIn } from "@/lib/use-user";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import { localeProps } from "@/lib/i18n-static";
@@ -60,7 +60,7 @@ export default function SignInPage() {
     if (res.ok && res.data?.data) {
       signIn({ ...res.data.data, accessToken: res.data.accessToken });
       toast.success(t("Signed in."));
-      router.push(typeof router.query.next === "string" && router.query.next.startsWith("/") ? router.query.next : "/");
+      router.push(safeNext(router.query.next));
     } else {
       setError(errorMessage(res.data, "Sign-in failed. Check your details and try again."));
     }
@@ -77,7 +77,8 @@ export default function SignInPage() {
           <>{t("Staff accounts are created by a Probiz admin. Forgotten your password? Ask an admin to reset it.")}</>
         ) : (
           <>
-            {t("New to Probiz?")} <AuthLink href="/sign-up">{t("Create an account")}</AuthLink>
+            {t("New to Probiz?")}{" "}
+            <AuthLink href={router.query.next ? `/sign-up?next=${encodeURIComponent(safeNext(router.query.next))}` : "/sign-up"}>{t("Create an account")}</AuthLink>
           </>
         )
       }

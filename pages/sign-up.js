@@ -6,6 +6,7 @@ import AuthLayout, { AuthLink } from "@/components/templates/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage, postJSON } from "@/lib/api";
+import { safeNext, signIn } from "@/lib/use-user";
 import { useT } from "@/lib/i18n";
 import { localeProps } from "@/lib/i18n-static";
 
@@ -51,9 +52,13 @@ export default function SignUpPage() {
     setBusy(true);
     const res = await postJSON("userSignUp", { ...values, country_code: "+91" });
     setBusy(false);
-    if (res.ok) {
+    if (res.ok && res.data?.accessToken) {
+      signIn({ ...res.data.data, accessToken: res.data.accessToken });
+      toast.success(t("Account created."));
+      router.push(safeNext(router.query.next));
+    } else if (res.ok) {
       toast.success(t("Account created. Sign in to continue."));
-      router.push("/sign-in");
+      router.push(router.query.next ? `/sign-in?next=${encodeURIComponent(safeNext(router.query.next))}` : "/sign-in");
     } else {
       setFormError(errorMessage(res.data, "We couldn't create your account. Please try again."));
     }
@@ -67,7 +72,8 @@ export default function SignUpPage() {
       intro="It takes a minute."
       footer={
         <>
-          {t("Already have an account?")} <AuthLink href="/sign-in">{t("Sign in")}</AuthLink>
+          {t("Already have an account?")}{" "}
+          <AuthLink href={router.query.next ? `/sign-in?next=${encodeURIComponent(safeNext(router.query.next))}` : "/sign-in"}>{t("Sign in")}</AuthLink>
         </>
       }
     >

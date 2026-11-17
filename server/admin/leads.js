@@ -1,5 +1,6 @@
 // Every form submission the admin can work through, keyed by a short, URL-safe type.
 const m = (file) => require(`../models/${file}`);
+const { models: serviceModels } = require('../models/serviceRequest.model');
 
 const LEAD_TYPES = [
   { type: 'homeloan', label: 'Home loan', group: 'loans', model: m('homeloan.model'), page: '/homeloan' },
@@ -34,6 +35,11 @@ const LEAD_TYPES = [
   { type: 'marketing', label: 'Digital marketing', group: 'services', model: m('digitalMarketing.model'), page: '/digital-marketing-sevice' },
   { type: 'realestate', label: 'Real estate services', group: 'services', model: m('realState.model'), page: '/real-estate-services' },
   { type: 'dsa', label: 'DSA franchise', group: 'services', model: m('dsaService.model'), page: '/dsa-franchise' },
+  { type: 'gstreg', label: 'GST registration', group: 'services', model: serviceModels.gst, page: '/gst-registration' },
+  { type: 'gumastareg', label: 'Gumasta licence', group: 'services', model: serviceModels.gumasta, page: '/gumasta-license' },
+  { type: 'itrfiling', label: 'ITR filing', group: 'services', model: serviceModels.itr, page: '/itr-filing' },
+  { type: 'rentagreement', label: 'Rent agreement', group: 'services', model: serviceModels.rent, page: '/rent-agreement' },
+  { type: 'udyam', label: 'Udyam (MSME) registration', group: 'services', model: serviceModels.udyam, page: '/udyam-registration' },
   { type: 'callback', label: 'Callback requests', group: 'inbox', model: m('callback.model') },
   { type: 'contact', label: 'Contact messages', group: 'inbox', model: m('contact.model'), page: '/contact' },
   { type: 'inhouse', label: 'Property requirements', group: 'inbox', model: m('inHouse.model') },
@@ -76,6 +82,11 @@ const INTAKE = {
   marketing: ['digital-marketing-sevice', 'addDigitalMarketingService'],
   realestate: ['real-estate-services', 'addRealStateServices'],
   dsa: ['dsa-franchise', 'addDsaServices'],
+  gstreg: ['gst-registration', 'addGstRegistration'],
+  gumastareg: ['gumasta-license', 'addGumastaLicense'],
+  itrfiling: ['itr-filing', 'addItrFiling'],
+  rentagreement: ['rent-agreement', 'addRentAgreement'],
+  udyam: ['udyam-registration', 'addUdyamRegistration'],
   callback: ['callback', 'addCallbackRequest'],
   contact: ['contact', 'addContactUs'],
   inhouse: [null, 'addInHouseProperty'],
@@ -117,7 +128,7 @@ function summarize(def, doc) {
     phone: first(doc, ['contactNumber', 'mobile_no', 'mobileNo', 'mobile', 'mobileLinkedToAadhaar', 'contactNo']),
     email: first(doc, ['email', 'emailId', 'user_Email']),
     amount: first(doc, ['loanAmountRequired', 'loanAmount', 'budget', 'currentLoanAmount']),
-    detail: first(doc, ['interest', 'loan_Type', 'propertyType', 'carType', 'goldType', 'courseName', 'businessName', 'companyName', 'enterpriseName', 'firmName', 'formType', 'location', 'message']),
+    detail: first(doc, ['interest', 'loan_Type', 'propertyType', 'carType', 'goldType', 'courseName', 'businessName', 'companyName', 'enterpriseName', 'firmName', 'formType', 'propertyAddress', 'location', 'message']),
     createdAt: doc.createdAt,
   };
 }
