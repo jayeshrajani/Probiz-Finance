@@ -1,4 +1,4 @@
-# Jayesh Rajani: changes on `main` (2026-11-13 to 2026-11-16)
+# Jayesh Rajani: changes on `main` (2026-11-13 to 2026-11-17)
 
 Author: Jayesh Rajani. Source: `git log --author=Jayesh origin/main`, reviewed 2026-11-16 by Shivansh. Commit hashes refer to `main`.
 
@@ -39,6 +39,24 @@ Default behaviour is unchanged: Postgres and legacy file storage unless the Fire
 
 Note: the i18n check reports 4 untranslated strings on `main`. Two are not text (`(prefers-reduced-motion: reduce)` and a canvas font string)
 and can be excluded from the check; the other two ("Swim before work.", "Write freely.") need Hindi.
+
+## 2026-11-17
+
+Merged `shivansh_dev` twice (`2a42756`, `bdb3d5d`): address and maps, GA4 with consent, WhatsApp messages, service cards, document access log, merge guide.
+
+| Commit | Area | Change |
+|---|---|---|
+| `43dfc42` | Admin | Lead archive (hidden from lists and counts except the admin "Archived" view; `archived`, `archivedAt`, `archivedBy` on the lead); light/dark staff theme (`lib/admin-theme.js`); property editor (`pages/admin-panel/properties.js`); document previews on the lead page |
+| | Services | Five new service pages and forms with private document uploads: GST registration, ITR filing, Udyam registration, Gumasta licence, rent agreement (`server/models/serviceRequest.model.js`, `server/routes/serviceRequests.routes.js`, registered as lead types in `server/admin/leads.js`); Hindi added |
+| | Fixes | Sign-up signs the customer in; add-property page rework |
+| `4c57a20` | Website | Application form in the hero of every service, loan, card, insurance and investment page (`ProductPage`, `ServicePage`); livelier social icons; form footer layout |
+| `6b4b2ff` | Assistant | "30 lakh at 7% for 10 years" is understood as an EMI question, also right after the assistant asks for the amount |
+| `a38c70b` | Staff | Personas: sales, operations L1, operations L2 (`server/admin/personas.js`). Sales add and follow only their own leads, read-only, without application fields or documents; their leads start in the L1 pool. L1 forwards to L2; L2 can send back to the previous L1 owner with a reason. Admins assign any operations employee or move leads between pools. Sign-in emails generated from the role (for example `name.sales@probiz.com`); role change via `PUT /api/admin/employees/:id`, blocked while the employee owns open leads. Sales dashboard, sales performance on the overview, level filters; `check:staff` covers the rules |
+| `0cca2d5` | Website | About page hero: bouncy "Trusted since 2013." headline with floating stickers and confetti (`components/fun/JollyHero.jsx`); respects reduced motion |
+
+Checked by Shivansh on 2026-11-17 (`shivansh_dev` fast-forwarded to `0cca2d5`): build exit 0, 246 pages; all merged Shivansh features present.
+`check:i18n`: 6 missing; new since 2026-11-16: "30 lakh at 7% for 10 years" and "Sales executives can't be assigned leads.".
+Note: with document previews, opening a lead page now records a document access for each previewed file (`document_access` log).
 
 ## Review notes (Shivansh, 2026-11-16)
 

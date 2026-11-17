@@ -62,8 +62,8 @@ Optional for production: a customer-managed key (Cloud KMS, CMEK) so Probiz cont
 | 3 | Upload checks (real file type, 5 MB), no documents or personal data in logs | Done (Firebase work) |
 | 4 | Masked Aadhaar | **Not used (owner decision 2026-11-17):** normal Aadhaar uploads; risk accepted, to be reviewed with the lawyer |
 | 5 | App-level document access log | **Done (this change)** |
-| 6 | Bucket lockdown: public access prevention, uniform bucket-level access | To do in Cloud Shell, with approval (steps below) |
-| 7 | Google Cloud audit logs for Storage (data read/write), kept 365 days | To do in Cloud Shell, with approval (steps below) |
+| 6 | Bucket lockdown: public access prevention, uniform bucket-level access | **Done on staging (2026-11-17).** Token test: property image with token 200, without token 403. Owner account given `roles/storage.objectAdmin` on the bucket (uniform access removes file access from basic owner roles). The app's service account `firebase-adminsdk-fbsvc` keeps file access through `roles/firebase.sdkAdminServiceAgent` (includes `storage.objects.create/get/delete/list`) |
+| 7 | Google Cloud audit logs for Storage (data read/write), kept 365 days | Staging: `_Default` log bucket retention set to **365 days** (2026-11-17). Data Read/Data Write audit logs: Console step, to confirm |
 | 8 | Retention: how long documents are kept after a lead is closed or rejected, then automatic deletion | **Client decision needed** (period); then built |
 | 9 | Consent notice and privacy policy: purpose, sharing with the chosen bank/NBFC, retention, grievance contact | Client/lawyer to approve text |
 | 10 | Breach plan: who reports to CERT-In (6 h) and the Data Protection Board (72 h) | Client to name owners |
@@ -72,9 +72,9 @@ Optional for production: a customer-managed key (Cloud KMS, CMEK) so Probiz cont
 | 13 | Separate production Firebase project, least-privilege service account, data processing terms with Google and Vercel | Before go-live |
 | 14 | WhatsApp lead alerts send name and phone to Meta (no documents) | Mention in privacy policy if switched on |
 
-## Cloud steps for staging (not yet done; run only after approval, one at a time)
+## Cloud steps for staging (run 2026-11-17; repeat for the production project)
 
-Cloud Shell, project `probiz-finance-staging`. Synthetic files only.
+Cloud Shell, project `probiz-finance-staging`. Synthetic files only. Results are in the checklist above (items 6 and 7).
 
 1. Lock down the bucket:
 
@@ -96,6 +96,8 @@ Cloud Shell, project `probiz-finance-staging`. Synthetic files only.
    ```
 
    If the first request is not 200, undo step 1 (`--no-public-access-prevention` / `--no-uniform-bucket-level-access`) and report.
+   With uniform access on, deleting the test file needs file access for the account running the command:
+   `gcloud storage buckets add-iam-policy-binding gs://probiz-finance-staging.firebasestorage.app --member='user:<owner email>' --role='roles/storage.objectAdmin'`.
 
 3. Turn on Cloud Storage data-access audit logs: Console > IAM & Admin > Audit Logs > "Google Cloud Storage" > tick "Data Read" and "Data Write" > Save.
    Keep logs 365 days: `gcloud logging buckets update _Default --location=global --retention-days=365`.
