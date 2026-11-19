@@ -65,13 +65,14 @@ function areaFor(file) {
   if (rel === "lib/catalog.js" || rel === "lib/faqs.js") return "catalog";
   if (rel === "lib/forms.js" || rel === "lib/lead-schema.js" || rel === "lib/api.js" || rel.startsWith("server/")) return "forms";
   if (rel === "lib/services-content.js") return "services";
+  if (rel === "lib/careers.js" || rel.startsWith("pages/Careers/") || rel.startsWith("components/careers/") || rel === "components/templates/CareerProgrammePage.jsx") return "company";
   return "ui";
 }
 
 const sourceFiles = [
   ...walkFiles(join(root, "components")),
   ...walkFiles(join(root, "pages")),
-  ...["lib/catalog.js", "lib/faqs.js", "lib/forms.js", "lib/lead-schema.js", "lib/services-content.js", "lib/callback.js", "lib/api.js", "lib/property.js", "server/leads/intake.js"].map((f) => join(root, f)),
+  ...["lib/catalog.js", "lib/faqs.js", "lib/forms.js", "lib/lead-schema.js", "lib/services-content.js", "lib/callback.js", "lib/api.js", "lib/property.js", "lib/careers.js", "server/leads/intake.js"].map((f) => join(root, f)),
 ];
 
 for (const file of sourceFiles) {
@@ -164,10 +165,6 @@ for (const sections of Object.values(legal)) {
 }
 
 company.about.paragraphs.forEach((p) => add("company", p));
-company.careers.introParagraphs.forEach((p) => add("company", p));
-company.careers.perks.forEach((p) => walk("company", p));
-company.careers.hiringSteps.forEach((p) => walk("company", p));
-company.careers.cities.forEach((c) => add("company", c));
 add("ui", site.address);
 add("ui", site.description);
 

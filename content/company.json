@@ -13,23 +13,6 @@
     ]
   },
   "careers": {
-    "pageTitle": "Careers",
-    "introParagraphs": [
-      "Probiz Finance - Statewide Hiring Across Madhya Pradesh",
-      "We are expanding our fintech footprint across the state and onboarding high-performance talent for our B2C and B2B lending verticals. All positions include structured training, multi-bank product exposure, and a fast-track growth path."
-    ],
-    "perks": [
-      { "title": "Learn lending end to end", "body": "Sourcing, eligibility, documentation, credit and disbursal. You see the whole journey of a loan, not one slice of it." },
-      { "title": "Many banks, one desk", "body": "Work with products from banks and NBFCs side by side, and learn why one fits a customer better than another." },
-      { "title": "Training from day one", "body": "A structured first month with product sessions, field shadowing and a named buddy on your team." },
-      { "title": "Growth you can see", "body": "Clear targets, monthly reviews and a fast-track path to team lead for people who deliver." }
-    ],
-    "hiringSteps": [
-      { "title": "Apply", "body": "Email your CV with the job ID in the subject line." },
-      { "title": "Phone call", "body": "A short call with our HR team about the role, location and pay." },
-      { "title": "Interview", "body": "Meet the hiring manager at our Indore office or over video." },
-      { "title": "Offer", "body": "We share a written offer with your CTC, incentives and joining date." }
-    ],
     "roles": [
       {
         "jobId": "PF-SAL-101",
@@ -77,28 +60,7 @@
           "Deep knowledge of loan products, credit policies & partner handling"
         ]
       }
-    ],
-    "citiesHeading": "Cities Where Hiring Is Open (2 Executives Per City)",
-    "citiesIntro": "We are currently hiring across the following cities within Madhya Pradesh:",
-    "cities": [
-      "Indore",
-      "Rau",
-      "Dewas",
-      "Sonkatch",
-      "Ashta",
-      "Maksi",
-      "Shajapur",
-      "Ujjain",
-      "Agar",
-      "Nagda",
-      "Jaora",
-      "Depalpur",
-      "Badnawar",
-      "Ratlam",
-      "Betma",
-      "Dhar"
-    ],
-    "howToApply": null
+    ]
   },
   "contact": {
     "heroText": "Feel Free To Contact Us Anytime...",

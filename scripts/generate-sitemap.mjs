@@ -9,11 +9,14 @@ const base = (process.env.SITE_URL || "https://probizfinance.com").replace(/\/+$
 // Private, sign-in or duplicate pages (/home renders the homepage).
 const EXCLUDE = new Set(["_app", "_document", "404", "500", "home", "sign-in", "sign-up", "forgot-password", "account", "add-product", "property-detail"]);
 
-const routes = readdirSync(join(root, "pages"), { withFileTypes: true })
-  .filter((f) => f.isFile() && /\.(js|jsx)$/.test(f.name))
-  .map((f) => f.name.replace(/\.(js|jsx)$/, ""))
+// Top-level pages plus the /Careers section.
+const pagesIn = (dir) =>
+  readdirSync(join(root, "pages", dir), { withFileTypes: true })
+    .filter((f) => f.isFile() && /\.(js|jsx)$/.test(f.name))
+    .map((f) => join(dir, f.name.replace(/\.(js|jsx)$/, "")));
+const routes = [...pagesIn(""), ...pagesIn("Careers")]
   .filter((name) => !EXCLUDE.has(name))
-  .map((name) => (name === "index" ? "/" : `/${name}`))
+  .map((name) => (name === "index" ? "/" : `/${name.replace(/\/index$/, "")}`))
   .sort((a, b) => (a === "/" ? -1 : b === "/" ? 1 : a.localeCompare(b)));
 
 // Every page exists in English (no prefix) and Hindi (/hi); each URL lists both versions.
