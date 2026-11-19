@@ -1,7 +1,6 @@
 // Job openings for the careers page: public list of open jobs, admin create/update/delete.
 const Job = require('../models/job.model');
 const { transaction } = require('../odm');
-const company = require('../../content/company.json');
 
 const TEXT_LIMITS = { jobId: 20, title: 120, team: 40, location: 120, employmentType: 40, experience: 60, vacancies: 60, ctc: 80, overview: 1500 };
 const REQUIRED = new Set(['jobId', 'title', 'team', 'overview']);
@@ -124,21 +123,6 @@ exports.remove = async (req, res) => {
   const doc = await Job.findByIdAndDelete(req.params.id);
   if (!doc) return fail(res, 404, 'That job no longer exists.');
   res.status(200).json({ message: 'Job deleted.' });
-};
-
-// Adds the roles from content/company.json only while there are no jobs at all; never overwrites.
-exports.seedJobs = async () => {
-  const roles = company.careers.roles.map((role) => {
-    const { values, message } = validate(role);
-    if (!values) throw new Error(`content/company.json role ${role.jobId || role.title} is invalid: ${message}`);
-    return values;
-  });
-  return transaction(async (tx) => {
-    await tx.lock('jobs:seed');
-    if ((await Job.countDocuments({})) > 0) return { created: 0 };
-    for (const values of roles) await Job.create(values);
-    return { created: roles.length };
-  });
 };
 
 exports.validate = validate;
