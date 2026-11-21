@@ -46,6 +46,7 @@ function Leads() {
   const owner = config.employees.find((e) => e.id === scope);
   const adder = isAdmin ? config.employees.find((e) => e.id === addedBy) : null;
   const opsEmployees = config.employees.filter((e) => e.persona !== "sales");
+  const salesEmployees = config.employees.filter((e) => e.persona === "sales");
   const heading = typeDef
     ? typeDef.label
     : groupDef
@@ -125,7 +126,7 @@ function Leads() {
   const rows = data?.data || [];
   const counts = data?.statusCounts || {};
   const allCount = Object.values(counts).reduce((a, b) => a + b, 0);
-  const filtered = Boolean(q || status || channel || stage || (from && to));
+  const filtered = Boolean(q || status || channel || stage || addedBy || (from && to));
 
   async function exportCsv() {
     setExporting(true);
@@ -222,6 +223,17 @@ function Leads() {
                     <SelectItem value="handled">Handled earlier</SelectItem>
                   </>
                 )}
+              </FilterSelect>
+            )}
+            {isAdmin && salesEmployees.length > 0 && (
+              <FilterSelect label="Sales executive" value={addedBy} onChange={(v) => setQuery({ addedBy: v, page: "" })} className="sm:min-w-44">
+                <SelectItem value={ANY}>Any sales executive</SelectItem>
+                <SelectSeparator />
+                {salesEmployees.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.name}
+                  </SelectItem>
+                ))}
               </FilterSelect>
             )}
             {(isAdmin || isSales) && (

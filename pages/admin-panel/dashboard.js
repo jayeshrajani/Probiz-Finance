@@ -449,13 +449,17 @@ function SalesTargets({ targets, onSaved }) {
             <TableHead>Sales executive</TableHead>
             <TableHead>Converted leads</TableHead>
             <TableHead>Converted amount</TableHead>
-            <TableHead className="w-0" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {targets.map((t) => (
             <TableRow key={t.id}>
-              <TableCell className="font-medium">{t.name}</TableCell>
+              <TableCell className="font-medium">
+                {t.name}
+                <Button variant="outline" size="sm" className="mt-1.5 flex" onClick={() => edit(t)}>
+                  <PencilSimple /> Set target
+                </Button>
+              </TableCell>
               <TableCell>
                 {t.target.leads ? <TargetBar compact done={t.won} goal={t.target.leads} month={t.month} /> : <span className="text-muted-foreground">No target, {t.won} converted</span>}
               </TableCell>
@@ -465,11 +469,6 @@ function SalesTargets({ targets, onSaved }) {
                 ) : (
                   <span className="text-muted-foreground">No target, {inr(t.wonAmount)}</span>
                 )}
-              </TableCell>
-              <TableCell>
-                <Button variant="outline" size="sm" onClick={() => edit(t)}>
-                  <PencilSimple /> Set target
-                </Button>
               </TableCell>
             </TableRow>
           ))}
