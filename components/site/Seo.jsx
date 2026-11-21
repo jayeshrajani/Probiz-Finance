@@ -51,6 +51,7 @@ export default function Seo({ title, description, path = "", noindex = false, js
       <meta property="og:type" content="website" />
       <meta property="og:url" content={url} />
       <meta property="og:site_name" content={site.name} />
+      {process.env.NEXT_PUBLIC_FB_APP_ID && <meta property="fb:app_id" content={process.env.NEXT_PUBLIC_FB_APP_ID} />}
       <meta property="og:locale" content={locale === "hi" ? "hi_IN" : "en_IN"} />
       <meta property="og:image" content={img} />
       <meta property="og:image:width" content="1200" />
