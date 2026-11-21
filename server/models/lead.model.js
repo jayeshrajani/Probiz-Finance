@@ -13,6 +13,8 @@ const leadSchema = mongoose.Schema(
     amount: { type: String, default: null },
     detail: { type: String, default: null },
     status: { type: String, default: 'new' },
+    // When the lead last became Converted; sales targets count conversions by this month.
+    wonAt: { type: Date, default: null },
     assignedTo: { type: String, default: null },
     assignedName: { type: String, default: null },
     // Operations level working the lead (l1 | l2); missing on older records means l1.

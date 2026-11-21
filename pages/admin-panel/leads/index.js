@@ -271,7 +271,7 @@ function Leads() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Name, phone, email or ref"
+                placeholder="Name, phone, email, ref or sales executive"
                 className="h-9 w-full rounded-lg border border-border bg-background pr-8 pl-9 text-sm outline-none transition-[border-color,box-shadow] focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/20"
               />
               {search && (

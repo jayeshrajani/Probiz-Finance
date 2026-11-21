@@ -17,6 +17,7 @@ const { withFileLinks, storedValues, deleteStoredFile } = require('../storage');
 const { PERSONAS, STAGES, STAGE_LABEL, EMAIL_DOMAIN, personaOf, levelOf, stageOf, staffEmail } = require('../admin/personas');
 const { ensureRefs } = require('../leads/refs');
 const { purgeSigninLeads } = require('../leads/mobile');
+const { salesProgress, parseTarget } = require('../admin/targets');
 
 const STATUSES = ['new', 'contacted', 'in_progress', 'won', 'lost'];
 const OPEN = new Set(['new', 'contacted', 'in_progress']);
@@ -213,7 +214,9 @@ exports.config = async (req, res) => {
 exports.overview = async (req, res) => {
   await ensureBackfilled();
   const everything = await ensureRefs(await Lead.find({}).lean());
-  const raw = everything.filter((l) => !l.archived);
+  // Admins can narrow the dashboard to the leads one sales executive added.
+  const addedByFilter = isAdmin(req) ? String(req.query.addedBy || '') : '';
+  const raw = everything.filter((l) => !l.archived && (!addedByFilter || addedById(l) === addedByFilter));
   const all = raw.map((l) => row(l, req));
   const level = myLevel(req);
   // Sales "own" the leads they added; operations the ones assigned to them.
@@ -225,12 +228,15 @@ exports.overview = async (req, res) => {
   const now = Date.now();
   const age = (row) => now - new Date(row.createdAt).getTime();
 
-  const days = Array.from({ length: 30 }, (_, i) => ({ date: dayKey(now - (29 - i) * DAY), count: 0 }));
+  const days = Array.from({ length: 30 }, (_, i) => ({ date: dayKey(now - (29 - i) * DAY), count: 0, won: 0, open: 0, lost: 0 }));
   const dayIndex = new Map(days.map((d, i) => [d.date, i]));
   const perType = new Map();
   for (const row of mine) {
     const key = dayKey(new Date(row.createdAt).getTime());
-    if (dayIndex.has(key)) days[dayIndex.get(key)].count += 1;
+    if (!dayIndex.has(key)) continue;
+    const day = days[dayIndex.get(key)];
+    day.count += 1;
+    day[row.status === 'won' ? 'won' : row.status === 'lost' ? 'lost' : 'open'] += 1;
   }
   // Sidebar badges: new leads per product among the ones this person can open.
   for (const row of visible) {
@@ -252,8 +258,10 @@ exports.overview = async (req, res) => {
       open: statusCounts.new,
       active: openMine.length,
       won: statusCounts.won,
+      lost: statusCounts.lost,
+      rejection: mine.length ? statusCounts.lost / mine.length : null,
       unassigned: unassigned.length,
-      archived: isAdmin(req) ? everything.length - raw.length : 0,
+      archived: isAdmin(req) ? everything.filter((l) => l.archived && (!addedByFilter || addedById(l) === addedByFilter)).length : 0,
     },
     statusCounts,
     // Open leads by operations level, and how many of those still wait in that level's pool.
@@ -265,6 +273,11 @@ exports.overview = async (req, res) => {
     recent: [...mine].sort(byActivity).slice(0, 8),
     pool: [...unassigned].sort(byNewest).slice(0, 5),
   };
+
+  if (isSales(req)) {
+    const me = await Employee.findOne({ _id: req.staff.id, deleteFlag: false }).lean();
+    if (me) data.target = salesProgress(raw, me, now);
+  }
 
   if (isAdmin(req)) {
     const [users, properties, subscribers, employees] = await Promise.all([
@@ -280,6 +293,7 @@ exports.overview = async (req, res) => {
       // Range-only query: type + range together would need a Firestore composite index.
       const events = (await LeadEvent.find({ at: { $gte: new Date(start) } }).lean()).filter((e) => e.type === 'lead.status_changed' || e.type === 'lead.note_added');
       data.analytics = analytics({ leads: raw, events, employees, query: req.query });
+      data.targets = employees.filter((e) => personaOf(e) === 'sales' && (!addedByFilter || String(e._id) === addedByFilter)).map((e) => salesProgress(raw, e, now));
     }
   }
   res.json({ data });
@@ -317,7 +331,7 @@ exports.list = async (req, res) => {
   if (range) leads = leads.filter((l) => new Date(l.createdAt) >= range.start && new Date(l.createdAt) < range.end);
 
   const q = String(req.query.q || '').trim().toLowerCase();
-  if (q) leads = leads.filter((l) => [l.name, l.phone, l.email, l.detail, l.ref, l.convertedFrom].some((v) => v && String(v).toLowerCase().includes(q)));
+  if (q) leads = leads.filter((l) => [l.name, l.phone, l.email, l.detail, l.ref, l.convertedFrom, l.addedBy].some((v) => v && String(v).toLowerCase().includes(q)));
   const statusCounts = Object.fromEntries(STATUSES.map((s) => [s, leads.filter((l) => l.status === s).length]));
   const status = String(req.query.status || '');
   if (STATUSES.includes(status)) leads = leads.filter((l) => l.status === status);
@@ -462,6 +476,7 @@ exports.update = async (req, res) => {
     if (body.status && body.status !== lead.status) {
       events.push(['lead.status_changed', { from: lead.status, to: body.status }]);
       lead.status = body.status;
+      lead.wonAt = body.status === 'won' ? new Date() : null;
     }
     if (note) events.push(['lead.note_added', { text: note }]);
 
@@ -626,6 +641,17 @@ exports.updateEmployee = async (req, res) => {
   if (result.error) return fail(res, ...result.error);
   const { password, ...data } = result.target.toObject();
   res.json({ data: { ...data, persona: personaOf(data) } });
+};
+
+exports.setSalesTarget = async (req, res) => {
+  const salesTarget = parseTarget(req.body);
+  if (!salesTarget) return fail(res, 400, 'Targets must be whole numbers above 0, or left empty.');
+  const target = await Employee.findOne({ _id: req.params.id, deleteFlag: false });
+  if (!target) return fail(res, 404, 'Employee not found.');
+  if (personaOf(target) !== 'sales') return fail(res, 400, 'Targets are only for sales executives.');
+  target.salesTarget = salesTarget;
+  await target.save();
+  res.json({ data: { id: String(target._id), target: salesTarget } });
 };
 
 exports.removeEmployee = async (req, res) => {

@@ -32,6 +32,11 @@ const employeeSchema = mongoose.Schema({
         type: String,
         default: 'ops_l1'
     },
+    // Sales only: monthly target { leads, amount }; either may be null (tracker off).
+    salesTarget: {
+        type: Schema.Types.Mixed,
+        default: null
+    },
     deleteFlag: {
         type: Boolean,
         default: false
