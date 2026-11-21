@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const base = (process.env.SITE_URL || "https://probizfinance.com").replace(/\/+$/, "");
+const base = (process.env.SITE_URL || "https://www.probizfinance.com").replace(/\/+$/, "");
 
 // Private, sign-in or duplicate pages (/home renders the homepage).
 const EXCLUDE = new Set(["_app", "_document", "404", "500", "home", "sign-in", "sign-up", "forgot-password", "account", "add-product", "property-detail"]);

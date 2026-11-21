@@ -3,4 +3,4 @@ Disallow: /admin-panel
 Disallow: /api/
 Allow: /
 
-Sitemap: https://probizfinance.com/sitemap.xml
+Sitemap: https://www.probizfinance.com/sitemap.xml

@@ -32,13 +32,14 @@ export function JsonLd({ data }) {
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />;
 }
 
-export default function Seo({ title, description, path = "", noindex = false, jsonLd }) {
+export default function Seo({ title, description, path = "", noindex = false, jsonLd, image = "/og-image.png" }) {
   const t = useT();
   const locale = useLocale();
   const fullTitle = title ? `${t(title)} | ${site.name}` : `${site.name} | ${t("Loans, Insurance and Investments Across India")}`;
   const desc = t(description || site.description);
   const at = (l) => `${site.url}${l === "hi" ? "/hi" : ""}${path}`;
   const url = at(locale);
+  const img = `${site.url}${image}`;
 
   return (
     <Head>
@@ -51,7 +52,12 @@ export default function Seo({ title, description, path = "", noindex = false, js
       <meta property="og:url" content={url} />
       <meta property="og:site_name" content={site.name} />
       <meta property="og:locale" content={locale === "hi" ? "hi_IN" : "en_IN"} />
-      <meta name="twitter:card" content="summary" />
+      <meta property="og:image" content={img} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={fullTitle} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:image" content={img} />
       {!noindex && <link rel="canonical" href={url} />}
       {!noindex && <link rel="alternate" hrefLang="en-IN" href={at("en")} />}
       {!noindex && <link rel="alternate" hrefLang="hi-IN" href={at("hi")} />}
