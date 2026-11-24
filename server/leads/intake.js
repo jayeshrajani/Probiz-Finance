@@ -3,7 +3,7 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config/auth.config');
 const { saveTracker, transaction } = require('../odm');
-const { deleteStoredFile } = require('../storage');
+const { deleteStoredFile, readUploadToken } = require('../storage');
 const Lead = require('../models/lead.model');
 const User = require('../models/user.model');
 const Employee = require('../models/employee.model');
@@ -29,6 +29,43 @@ let schemaPromise = null;
 const loadSchema = () => (schemaPromise ||= import('../../lib/lead-schema.js'));
 
 const clip = (v, n = 300) => (v === undefined || v === null || v === '' ? null : String(v).slice(0, n));
+const MAX_OTHER_DOCS = 20;
+const EXPIRED = 'Some documents have expired. Remove them and attach them again.';
+
+const parseJson = (v) => {
+  if (typeof v !== 'string') return v;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return null;
+  }
+};
+
+// Staff entries send documents uploaded beforehand (POST /api/admin/uploads) as tokens: `_uploads` maps a form's
+// file slot to a token; `_others` lists extra documents named by staff. Returns an error message or null.
+async function takeUploads(req, ctx, uploads, others) {
+  const { fileSlots, coApplicantSlots } = await loadSchema();
+  const coSlots = coApplicantSlots(ctx.def.formKey);
+  const allowed = new Set([...fileSlots(ctx.def.formKey, req.body), ...coSlots].map((s) => s.name));
+  for (const [name, token] of Object.entries(parseJson(uploads) || {})) {
+    if (!allowed.has(name)) continue;
+    const location = readUploadToken(token, req.staff.id);
+    if (!location) return EXPIRED;
+    req.files[name] = [{ fieldname: name, location }];
+  }
+  const list = parseJson(others);
+  if (!Array.isArray(list)) return null;
+  if (list.length > MAX_OTHER_DOCS) return `Attach up to ${MAX_OTHER_DOCS} other documents.`;
+  ctx.otherDocs = [];
+  for (const doc of list) {
+    const label = String(doc?.label || '').trim().slice(0, 80);
+    if (!label) return 'Name every other document.';
+    const file = readUploadToken(doc?.token, req.staff.id);
+    if (!file) return EXPIRED;
+    ctx.otherDocs.push({ party: doc.party === 'coApplicant' && coSlots.length ? 'coApplicant' : 'applicant', label, file });
+  }
+  return null;
+}
 
 // Forwarded headers are only trusted behind a proxy that sets them (Vercel always does); otherwise anyone could spoof them.
 // TRUST_PROXY_HOPS=n (Google App Hosting / Cloud Run): use the n-th X-Forwarded-For entry from the right, i.e. the
@@ -102,6 +139,9 @@ function makeGate(ctx) {
     const staffEntry = ctx.mode === 'staff';
     const assignTo = String(body._assignTo || '');
     delete body._assignTo;
+    const { _uploads: uploads, _others: others } = body;
+    delete body._uploads;
+    delete body._others;
     // The legacy admin-only in-house endpoint keeps its old unchecked behaviour.
     if (ctx.channel === 'staff' && !staffEntry) return true;
 
@@ -148,6 +188,10 @@ function makeGate(ctx) {
     }
     if (ctx.mode !== 'legacy' && !ctx.meta.consent) {
       return deny(res, 400, staffEntry ? 'Confirm the customer agreed to be contacted.' : 'Please accept the privacy policy so we can contact you.');
+    }
+    if (staffEntry && ctx.def.formKey) {
+      const problem = await takeUploads(req, ctx, uploads, others);
+      if (problem) return deny(res, 400, problem);
     }
     return true;
   };
@@ -225,6 +269,8 @@ async function upsertLead(ctx, refId, req) {
       existing.lastActivityAt = now;
       for (const k of ['name', 'email', 'amount', 'detail']) if (s[k]) existing[k] = String(s[k]);
       if (!existing.userId && ctx.userId) existing.userId = ctx.userId;
+      if (ctx.coDocs) existing.coApplicantDocuments = { ...(existing.coApplicantDocuments || {}), ...ctx.coDocs };
+      if (ctx.otherDocs?.length) existing.otherDocuments = [...(existing.otherDocuments || []), ...ctx.otherDocs];
       if (ctx.meta?.consent) existing.consent = { ...ctx.meta.consent, at: now };
       if (verified && !existing.phoneVerified) Object.assign(existing, { phoneVerified: true, phoneVerifiedAt: now });
       // Only an owner working at the lead's current level can take it over.
@@ -262,6 +308,8 @@ async function upsertLead(ctx, refId, req) {
       });
       for (const k of ['name', 'email', 'amount', 'detail']) if (s[k]) signin[k] = String(s[k]).slice(0, k === 'detail' ? 300 : 200);
       if (!signin.userId && ctx.userId) signin.userId = ctx.userId;
+      if (ctx.coDocs) signin.coApplicantDocuments = { ...ctx.coDocs };
+      if (ctx.otherDocs?.length) signin.otherDocuments = ctx.otherDocs;
       if (ctx.meta?.consent) signin.consent = { ...ctx.meta.consent, at: now };
       if (verified && !signin.phoneVerified) Object.assign(signin, { phoneVerified: true, phoneVerifiedAt: now });
       await signin.save();
@@ -295,6 +343,8 @@ async function upsertLead(ctx, refId, req) {
       userId: ctx.userId,
       source,
       consent: ctx.meta?.consent ? { ...ctx.meta.consent, at: now } : null,
+      coApplicantDocuments: ctx.coDocs || null,
+      otherDocuments: ctx.otherDocs?.length ? ctx.otherDocs : null,
       dedupeKey,
       repeatCount: 0,
       lastActivityAt: now,
@@ -308,6 +358,21 @@ async function upsertLead(ctx, refId, req) {
 }
 
 const assignedData = (ctx, actor) => ({ to: ctx.assignee.id, name: ctx.assignee.name, claimed: ctx.assignee.id === actor.id });
+
+// The per-form controllers copy fields one by one; form fields they skip but the model has (e.g. propertyLocation)
+// are added to the saved record here.
+async function fillSkippedFields(def, id, body) {
+  if (!def.formKey) return;
+  const { formFieldNames } = await loadSchema();
+  const doc = await def.model.findById(id).lean();
+  if (!doc) return;
+  const patch = {};
+  for (const name of formFieldNames(def.formKey)) {
+    const value = body?.[name];
+    if (def.model.$fields?.[name] && doc[name] == null && value != null && String(value).trim()) patch[name] = String(value).trim().slice(0, 500);
+  }
+  if (Object.keys(patch).length) await def.model.findByIdAndUpdate(id, { $set: patch });
+}
 
 function persist(controller) {
   return async (req, res) => {
@@ -328,12 +393,21 @@ function persist(controller) {
     let result = null;
     if (ok) {
       const saved = saves.find((s) => s.model === ctx.def.model);
+      const co = (req.extraFileFields || []).filter((n) => req.files?.[n]?.[0]?.location).map((n) => [n, req.files[n][0].location]);
+      if (co.length) ctx.coDocs = Object.fromEntries(co);
+      try {
+        if (saved) await fillSkippedFields(ctx.def, saved.id, req.body);
+      } catch (err) {
+        console.error('[leads] extra fields failed', ctx.def.type, err);
+      }
       try {
         if (saved) result = await upsertLead(ctx, saved.id, req);
       } catch (err) {
         // The application itself is saved; the envelope is rebuilt by the backfill if this fails.
         console.error('[leads] envelope failed', ctx.def.type, err);
       }
+      // Co-applicant and other documents live only on the lead envelope.
+      if (!result?.lead) for (const value of [...Object.values(ctx.coDocs || {}), ...(ctx.otherDocs || []).map((d) => d.file)]) deleteStoredFile(value);
     }
     if (ok && ctx.mode === 'new') {
       const lead = result?.lead;
@@ -374,6 +448,7 @@ function buildChain(def, handlers, { mode, channel }) {
     const ctx = (req.leadCtx = { def, mode, channel, meta: {}, userId: await customerId(req) });
     const gate = makeGate(ctx);
     if (multipartRoute) {
+      if (mode === 'staff' && def.formKey) req.extraFileFields = (await loadSchema()).coApplicantSlots(def.formKey).map((s) => s.name);
       req.leadGate = gate;
       return next();
     }

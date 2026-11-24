@@ -3,23 +3,31 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useId, useState } from "react";
-import { SpinnerGap, WarningCircle } from "@phosphor-icons/react";
+import { Plus, SpinnerGap, WarningCircle, X } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import AdminShell, { useAdmin } from "@/components/admin/AdminShell";
 import { PageHeader, Panel } from "@/components/admin/ui";
-import FileSlot, { formatBytes } from "@/components/forms/FileSlot";
+import FileSlot from "@/components/forms/FileSlot";
 import FormField from "@/components/forms/FormField";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { adminFetch } from "@/lib/admin-api";
 import { forms } from "@/lib/forms";
-import { CONSENT_VERSION, isEmpty, validateLead, visible } from "@/lib/lead-schema";
-import { cn } from "@/lib/utils";
+import { CONSENT_VERSION, coApplicantSlots, isEmpty, validateLead, visible } from "@/lib/lead-schema";
 
-// Hosting (Vercel) rejects request bodies above 4.5 MB.
-const MAX_UPLOAD = 4.4 * 1024 * 1024;
+// Each document is uploaded in its own request, and hosting (Vercel) rejects request bodies above 4.5 MB.
+const MAX_FILE = 4.4 * 1024 * 1024;
+const MAX_OTHERS = 20;
 const SOURCES = ["Phone call", "Walk-in", "WhatsApp", "Referral", "Other"];
 const CONSENT = "The customer agreed to Probiz contacting them by call, SMS, WhatsApp or email about this request.";
+
+async function uploadDocument(file) {
+  const body = new FormData();
+  body.append("file", file);
+  return (await adminFetch("admin/uploads", { method: "POST", body })).token;
+}
 
 function Label({ htmlFor, children }) {
   return (
@@ -41,7 +49,9 @@ function NewLead() {
   const [source, setSource] = useState(SOURCES[0]);
   const [assignTo, setAssignTo] = useState("");
   const [values, setValues] = useState({});
-  const [files, setFiles] = useState({});
+  const [docs, setDocs] = useState({});
+  const [others, setOthers] = useState([]);
+  const [docsFor, setDocsFor] = useState("applicant");
   const [errors, setErrors] = useState({});
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -55,13 +65,38 @@ function NewLead() {
   const def = types.find((t) => t.type === type);
   const form = def ? forms[def.formKey] : null;
   const slots = form ? visible(form.files, values) : [];
-  const uploadBytes = slots.reduce((sum, s) => sum + (files[s.name]?.size || 0), 0);
-  const tooLarge = uploadBytes > MAX_UPLOAD;
+  const coSlots = def ? coApplicantSlots(def.formKey) : [];
+  const party = docsFor === "coApplicant" && coSlots.length ? "coApplicant" : "applicant";
+  const otherKey = (o) => `other-${o.id}`;
+  const othersFor = (p) => others.filter((o) => o.party === p);
+  const attached = (p) => (p === "coApplicant" ? coSlots : slots).filter((s) => docs[s.name]).length + othersFor(p).filter((o) => docs[otherKey(o)]).length;
+  const entries = [...slots, ...coSlots].map((s) => docs[s.name]).concat(others.map((o) => docs[otherKey(o)])).filter(Boolean);
+  const uploading = entries.some((d) => d.status === "uploading");
+
+  // Uploads straight away; a later pick for the same key wins over a slower earlier upload.
+  async function attach(key, file) {
+    if (!file) return setDocs(({ [key]: _, ...rest }) => rest);
+    if (file.size > MAX_FILE) return setDocs((d) => ({ ...d, [key]: { file, status: "failed", message: "Over 4.4 MB. Compress it or split it into parts." } }));
+    setDocs((d) => ({ ...d, [key]: { file, status: "uploading" } }));
+    try {
+      const token = await uploadDocument(file);
+      setDocs((d) => (d[key]?.file === file ? { ...d, [key]: { file, token, status: "ready" } } : d));
+    } catch (err) {
+      setDocs((d) => (d[key]?.file === file ? { ...d, [key]: { file, status: "failed", message: err.message } } : d));
+    }
+  }
+  const addOther = (p) => setOthers((list) => [...list, { id: Date.now() + Math.random(), party: p, label: "" }]);
+  const removeOther = (o) => {
+    setOthers((list) => list.filter((x) => x.id !== o.id));
+    attach(otherKey(o), null);
+  };
 
   const pickType = (next) => {
     setType(next);
     setValues({});
-    setFiles({});
+    setDocs({});
+    setOthers([]);
+    setDocsFor("applicant");
     setErrors({});
     setError(null);
   };
@@ -72,11 +107,16 @@ function NewLead() {
 
   async function submit(e) {
     e.preventDefault();
-    if (!form || busy || tooLarge) return;
+    if (!form || busy) return;
     const found = validateLead(def.formKey, values);
     setErrors(found);
     const first = Object.keys(found)[0];
     if (first) return document.getElementById(`${idPrefix}-${first}`)?.focus();
+    if (uploading) return setError("Wait for the documents to finish uploading.");
+    if (entries.some((d) => d.status === "failed")) return setError("Remove or re-attach the documents marked in red.");
+    const named = others.filter((o) => docs[otherKey(o)] || o.label.trim());
+    if (named.some((o) => !o.label.trim())) return setError("Name every other document.");
+    if (named.some((o) => !docs[otherKey(o)])) return setError("Attach a file to every other document you named, or remove it.");
     if (!consent) return setError("Confirm the customer agreed to be contacted.");
 
     const payload = {};
@@ -86,16 +126,13 @@ function NewLead() {
       }
     }
     const meta = { topic: source, consent: { accepted: true, version: CONSENT_VERSION, text: CONSENT } };
-    let body;
-    if (form.json) {
-      body = { ...payload, _meta: meta, _assignTo: assignTo };
-    } else {
-      body = new FormData();
-      Object.entries(payload).forEach(([k, v]) => body.append(k, v));
-      body.append("_meta", JSON.stringify(meta));
-      body.append("_assignTo", assignTo);
-      slots.forEach((slot) => files[slot.name] && body.append(slot.name, files[slot.name]));
-    }
+    const body = {
+      ...payload,
+      _meta: meta,
+      _assignTo: assignTo,
+      _uploads: Object.fromEntries([...slots, ...coSlots].filter((s) => docs[s.name]?.token).map((s) => [s.name, docs[s.name].token])),
+      _others: named.map((o) => ({ party: o.party, label: o.label.trim(), token: docs[otherKey(o)].token })),
+    };
 
     setBusy(true);
     setError(null);
@@ -203,16 +240,59 @@ function NewLead() {
         </Panel>
       ))}
 
-      {slots.length > 0 && (
-        <Panel title="Documents" description="Optional. PDF, JPG or PNG, up to 5 MB each.">
+      {form && !form.json && (
+        <Panel title="Documents" description="Optional. PDF, JPG or PNG, up to 4.4 MB each. Each file uploads as soon as you pick it.">
+          {coSlots.length > 0 && (
+            <Tabs value={party} onValueChange={setDocsFor} className="mb-4">
+              <TabsList aria-label="Documents for">
+                {[
+                  ["applicant", "Applicant"],
+                  ["coApplicant", "Co-applicant"],
+                ].map(([value, label]) => (
+                  <TabsTrigger key={value} value={value} className="px-3">
+                    {label}
+                    {attached(value) > 0 && <span className="ml-1.5 rounded-full bg-brand-soft px-1.5 text-xs font-semibold text-brand-ink">{attached(value)}</span>}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
-            {slots.map((slot) => (
-              <FileSlot key={slot.name} slot={slot} file={files[slot.name]} onChange={(name, file) => setFiles((f) => ({ ...f, [name]: file }))} idPrefix={idPrefix} />
+            {(party === "coApplicant" ? coSlots : slots).map((slot) => (
+              <FileSlot key={slot.name} slot={slot} file={docs[slot.name]?.file} status={docs[slot.name]?.status} message={docs[slot.name]?.message} onChange={attach} idPrefix={idPrefix} />
             ))}
           </div>
-          <p className={cn("mt-4 text-xs", tooLarge ? "font-medium text-destructive" : "text-muted-foreground")}>
-            {tooLarge ? `Total ${formatBytes(uploadBytes)} is over the 4.4 MB limit. Remove a file.` : `${uploadBytes ? formatBytes(uploadBytes) : "0 KB"} of 4.4 MB`}
-          </p>
+
+          {othersFor(party).length > 0 && (
+            <div className="mt-5 grid gap-3">
+              <p className="text-sm font-medium">Other documents</p>
+              {othersFor(party).map((o) => {
+                const key = otherKey(o);
+                return (
+                  <div key={o.id} className="grid items-center gap-3 sm:grid-cols-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={o.label}
+                        maxLength={80}
+                        placeholder="Document name, e.g. Rent agreement"
+                        aria-label="Document name"
+                        onChange={(e) => setOthers((list) => list.map((x) => (x.id === o.id ? { ...x, label: e.target.value } : x)))}
+                      />
+                      <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${o.label || "this document"}`} onClick={() => removeOther(o)}>
+                        <X weight="bold" />
+                      </Button>
+                    </div>
+                    <FileSlot slot={{ name: key, label: "Attach file" }} file={docs[key]?.file} status={docs[key]?.status} message={docs[key]?.message} onChange={attach} idPrefix={idPrefix} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {others.length < MAX_OTHERS && (
+            <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => addOther(party)}>
+              <Plus weight="bold" /> Add another document
+            </Button>
+          )}
         </Panel>
       )}
 
@@ -240,7 +320,7 @@ function NewLead() {
             <Button asChild variant="ghost">
               <Link href="/admin-panel/leads">Cancel</Link>
             </Button>
-            <Button type="submit" disabled={busy || tooLarge}>
+            <Button type="submit" disabled={busy || uploading}>
               {busy ? (
                 <>
                   <SpinnerGap className="animate-spin" /> Saving

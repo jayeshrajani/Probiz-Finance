@@ -1,5 +1,8 @@
 const panel = require('../controllers/adminPanel.controller');
 const { requireAdmin, requireStaff } = require('../middlewares/staffAuth');
+const { multipart } = require('../http');
+
+const document = multipart(['image/png', 'image/jpg', 'image/jpeg', 'application/pdf'], { visibility: 'private' }).fields([{ name: 'file', maxCount: 1 }]);
 
 module.exports = (app) => {
     app.post('/api/staffLogin', panel.staffLogin);
@@ -13,6 +16,8 @@ module.exports = (app) => {
     app.get('/api/admin/leads', requireStaff, panel.list);
     app.get('/api/admin/leads/:type/:id', requireStaff, panel.get);
     app.patch('/api/admin/leads/:type/:id', requireStaff, panel.update);
+    // One document per request, attached to a lead on the add-lead page by the returned token.
+    app.post('/api/admin/uploads', requireStaff, document, panel.upload);
 
     app.delete('/api/admin/leads/:type/:id', requireAdmin, panel.remove);
     app.get('/api/admin/admins', requireAdmin, panel.admins);

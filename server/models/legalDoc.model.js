@@ -22,6 +22,10 @@ const legalDocSchema = new Schema({
         type: String,
         required: false,
     },
+    propertyLocation: {
+        type: String,
+        required: false,
+    },
 
     
 }, {

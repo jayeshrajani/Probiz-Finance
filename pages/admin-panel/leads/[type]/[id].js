@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { adminFetch, formatDateTime, STATUS_META, timeAgo, useAdminData } from "@/lib/admin-api";
 import { formatINR } from "@/lib/format";
-import { forms } from "@/lib/forms";
+import { CO_APPLICANT_FILES, forms } from "@/lib/forms";
 import { cn } from "@/lib/utils";
 
 const isFile = (v) => typeof v === "string" && (/^https?:\/\//i.test(v) || v.startsWith("/uploads/") || v.startsWith("/api/files/"));
@@ -91,6 +91,31 @@ function splitFields(fields, labels = {}) {
     if (shown !== null) details.push({ key, label: label(key), value: shown });
   }
   return { details, files };
+}
+
+const CO_LABELS = Object.fromEntries(CO_APPLICANT_FILES.map((f) => [f.name, f.label]));
+
+function DocList({ files }) {
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {files.map((f) => (
+        <li key={f.url}>
+          <a href={f.url} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border border-border transition-colors hover:border-foreground/20">
+            <div className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-secondary">
+              <DocThumb url={f.url} label={f.label} />
+              {extOf(f.url) && (
+                <span className="absolute bottom-2 left-2 rounded-md bg-background/90 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wide text-muted-foreground shadow-sm">{extOf(f.url)}</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
+              <span className="truncate font-medium">{f.label}</span>
+              <ArrowSquareOut className="size-3.5 shrink-0 text-muted-foreground" />
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function Notes({ type, id, notes, onChange, readOnly }) {
@@ -239,7 +264,11 @@ function LeadDetail() {
   const { status, notes, assignedTo, assignedName, archived, stage, l1OwnerName, canEdit } = current;
   const isOpen = status === "new" || status === "contacted" || status === "in_progress";
   const levelOf = (persona) => config.personas?.find((p) => p.id === persona)?.level;
-  const { details, files } = splitFields(fields, labelsFor(config.types.find((t) => t.type === type)?.formKey));
+  const { details, files: formFiles } = splitFields(fields, labelsFor(config.types.find((t) => t.type === type)?.formKey));
+  const otherFiles = (party) =>
+    (data.data.otherFiles || []).filter((d) => d.party === party && isFile(d.file)).map((d, i) => ({ key: `other-${party}-${i}`, label: d.label, url: d.file }));
+  const files = [...formFiles, ...otherFiles("applicant")];
+  const coFiles = [...splitFields(data.data.coApplicantFiles || {}, CO_LABELS).files, ...otherFiles("coApplicant")];
   const phone = lead.phone ? String(lead.phone).replace(/\D/g, "").slice(-10) : null;
 
   async function patch(body, message) {
@@ -521,26 +550,15 @@ function LeadDetail() {
                 {files.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Ask the customer to share documents on WhatsApp or email if you need them.</p>
                 ) : (
-                  <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {files.map((f) => (
-                      <li key={f.url}>
-                        <a href={f.url} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border border-border transition-colors hover:border-foreground/20">
-                          <div className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-secondary">
-                            <DocThumb url={f.url} label={f.label} />
-                            {extOf(f.url) && (
-                              <span className="absolute bottom-2 left-2 rounded-md bg-background/90 px-1.5 py-0.5 text-[0.625rem] font-semibold tracking-wide text-muted-foreground shadow-sm">{extOf(f.url)}</span>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm">
-                            <span className="truncate font-medium">{f.label}</span>
-                            <ArrowSquareOut className="size-3.5 shrink-0 text-muted-foreground" />
-                          </div>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                  <DocList files={files} />
                 )}
               </Panel>
+
+              {coFiles.length > 0 && (
+                <Panel title="Co-applicant documents" description={`${coFiles.length} uploaded`}>
+                  <DocList files={coFiles} />
+                </Panel>
+              )}
             </>
           )}
         </div>

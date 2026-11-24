@@ -7,6 +7,7 @@ const BalanceTransferSchema = new mongoose.Schema({
   contactNumber: { type: String, required: false },
   alternateContact: { type: String, required: false },
   propertyType: { type: String, required: false },
+  propertyLocation: { type: String, required: false },
   loanAmount: { type: String, required: false },
   noOfStallmentCurrentLoan: { type: String, required: false },
   profession: { type: String, required: false },

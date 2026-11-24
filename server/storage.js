@@ -145,4 +145,31 @@ function withFileLinks(value, by) {
 
 const openPrivateFile = (objectPath) => provider().open(objectPath);
 
-module.exports = { storeFile, deleteStoredFile, storedValues, fileLink, verifyFileLink, readFileLink, withFileLinks, openPrivateFile, linkTtlSeconds };
+// Staff upload each document in its own request (hosting caps a request at 4.5 MB) and attach it to a lead with
+// this token. It is bound to the uploader, so nobody can attach a stored file they did not upload.
+const UPLOAD_TTL_SECONDS = 6 * 60 * 60;
+
+function uploadToken(location, staffId) {
+  const payload = Buffer.from(JSON.stringify({ v: location, s: staffId, e: Math.floor(Date.now() / 1000) + UPLOAD_TTL_SECONDS })).toString('base64url');
+  return `${payload}.${sign(`upload:${payload}`)}`;
+}
+
+// The stored file reference for a valid, unexpired token issued to `staffId`, otherwise null.
+function readUploadToken(token, staffId) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 2) return null;
+  const [payload, signature] = parts;
+  const expected = Buffer.from(sign(`upload:${payload}`));
+  const given = Buffer.from(signature);
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
+  let data;
+  try {
+    data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+  if (!data || typeof data.v !== 'string' || data.s !== String(staffId) || !(data.e >= Date.now() / 1000)) return null;
+  return data.v;
+}
+
+module.exports = { storeFile, deleteStoredFile, storedValues, fileLink, verifyFileLink, readFileLink, withFileLinks, openPrivateFile, linkTtlSeconds, uploadToken, readUploadToken };

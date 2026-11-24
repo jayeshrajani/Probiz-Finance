@@ -83,7 +83,7 @@ function raw() {
 function multipart(allowedTypes, { visibility = 'private' } = {}) {
   return {
     fields(spec = []) {
-      const limits = Object.fromEntries(spec.map((f) => [f.name, f.maxCount || Infinity]));
+      const base = Object.fromEntries(spec.map((f) => [f.name, f.maxCount || Infinity]));
       const handler = async (req, res, next) => {
         if (!contentType(req).includes('multipart/form-data')) {
           req.body = await parseBody(req);
@@ -91,6 +91,8 @@ function multipart(allowedTypes, { visibility = 'private' } = {}) {
           if (req.leadGate && !(await req.leadGate(req, res, []))) return;
           return next();
         }
+        // req.extraFileFields: single-file fields the lead intake allows on top of the route's own.
+        const limits = { ...base, ...Object.fromEntries((req.extraFileFields || []).map((n) => [n, 1])) };
         const { body, files, rejected } = await parseMultipart(req, limits, allowedTypes);
         req.body = body;
         req.files = {};

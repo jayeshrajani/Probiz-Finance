@@ -26,6 +26,10 @@ const leadSchema = mongoose.Schema(
     userId: { type: String, default: null },
     source: { type: mongoose.Schema.Types.Mixed, default: null },
     consent: { type: mongoose.Schema.Types.Mixed, default: null },
+    // { coAadharFront: 'pf:...', ... } attached by staff on the add-lead page (lib/forms.js CO_APPLICANT_FILES).
+    coApplicantDocuments: { type: mongoose.Schema.Types.Mixed, default: null },
+    // [{ party: 'applicant' | 'coApplicant', label, file }] named by staff on the add-lead page.
+    otherDocuments: { type: mongoose.Schema.Types.Mixed, default: null },
     dedupeKey: { type: String, default: null },
     repeatCount: { type: Number, default: 0 },
     lastActivityAt: { type: Date, default: null },

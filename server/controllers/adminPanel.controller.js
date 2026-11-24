@@ -13,7 +13,7 @@ const { LEAD_TYPES, GROUPS, byType } = require('../admin/leads');
 const { analytics, dayKey, resolveRange, parseDayRange } = require('../admin/analytics');
 const { ensureBackfilled } = require('../leads/backfill');
 const { emit } = require('../leads/events');
-const { withFileLinks, storedValues, deleteStoredFile } = require('../storage');
+const { withFileLinks, storedValues, deleteStoredFile, uploadToken } = require('../storage');
 const { PERSONAS, STAGES, STAGE_LABEL, EMAIL_DOMAIN, personaOf, levelOf, stageOf, staffEmail } = require('../admin/personas');
 const { ensureRefs } = require('../leads/refs');
 const { purgeSigninLeads } = require('../leads/mobile');
@@ -405,6 +405,8 @@ exports.get = async (req, res) => {
       lead: { ...row(lead, req), page: def.page || null, source: lead.source || null, consent: lead.consent || null },
       fields: docs[0] ? withFileLinks(clean(docs[0]), by) : {},
       submissions: docs.map((d) => ({ id: String(d._id), createdAt: d.createdAt, fields: withFileLinks(clean(d), by) })),
+      coApplicantFiles: withFileLinks(lead.coApplicantDocuments || {}, by),
+      otherFiles: withFileLinks(lead.otherDocuments || [], by),
       customer: customer ? { id: String(customer._id), name: customer.user_Name || null, email: customer.user_Email || null, mobileVerified: Boolean(customer.mobileVerified) } : null,
       ...(await view(lead, req)),
     },
@@ -520,11 +522,18 @@ exports.update = async (req, res) => {
   res.json({ data: await view(result.lead, req) });
 };
 
+exports.upload = async (req, res) => {
+  if (req.rejectedFiles?.length) return fail(res, 400, 'Upload a PDF, JPG or PNG file of up to 4.4 MB.');
+  const file = req.files?.file?.[0];
+  if (!file?.location) return fail(res, 400, 'Choose a file to upload.');
+  res.json({ token: uploadToken(file.location, req.staff.id) });
+};
+
 exports.remove = async (req, res) => {
   const found = await findLead(req, res);
   if (!found) return;
   const { def, lead } = found;
-  const files = [];
+  const files = [...storedValues(lead.coApplicantDocuments || {}), ...(lead.otherDocuments || []).map((d) => d.file).filter(Boolean)];
   for (const ref of lead.refIds?.length ? lead.refIds : [lead.refId]) {
     const removed = await def.model.findByIdAndDelete(ref).lean();
     if (removed) files.push(...storedValues(removed));

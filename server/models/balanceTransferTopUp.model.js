@@ -8,6 +8,7 @@ const BalanceTransferTopUpSchema = new mongoose.Schema({
   alternateContact: { type: String, required: false },
 
   residenceType: { type: String, required: false },
+  propertyLocation: { type: String, required: false },
   currentLoanAmount: { type: String, required: false },
   currentLoanInstallmentsPaid: { type: String, required: false }, // No. of Installment Paid
   loanAmountRequired: { type: String, required: false },

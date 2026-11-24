@@ -8,6 +8,7 @@ const ConstructionLoanApplication = new mongoose.Schema(
   contactNumber: { type: String, required: false },
   alternateContact: { type: String, required: false },
   propertyType: { type: String, required: false },
+  propertyLocation: { type: String, required: false },
   propertySize: { type: String, required: false },
   constructionSize: { type: String, required: false },
   marketValue: { type: String, required: false },
